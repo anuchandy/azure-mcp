@@ -72,7 +72,7 @@ try {
     # Copy the platform package files to the output directory
     Copy-Item -Path "$npmPackagePath/*" -Recurse -Destination $outputDir -Force
 
-    $command = "dotnet publish '$projectFile' --runtime '$os-$arch' --output '$outputDir/dist' /p:Version=$Version" 
+    $command = "dotnet publish '$projectFile' --runtime '$os-$arch' --output '$outputDir/dist' /p:Version=$Version /p:Configuration=Debug" 
     
     if($SelfContained) {
         $command += " --self-contained"

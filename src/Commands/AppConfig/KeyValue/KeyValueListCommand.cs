@@ -29,8 +29,16 @@ public sealed class KeyValueListCommand(ILogger<KeyValueListCommand> logger) : B
 
     public override string Title => _commandTitle;
 
+    private static void LogDebug(string message)
+    {
+        var logPath = "/tmp/azmcp-server-debug.log";
+        var logLine = $"{DateTime.UtcNow:O} [KeyValueListCommand] {message}\n";
+        System.IO.File.AppendAllText(logPath, logLine);
+    }
+
     protected override void RegisterOptions(Command command)
     {
+        LogDebug("RegisterOptions called");
         base.RegisterOptions(command);
         command.AddOption(_keyOption);
         command.AddOption(_labelOption);
@@ -38,6 +46,7 @@ public sealed class KeyValueListCommand(ILogger<KeyValueListCommand> logger) : B
 
     protected override KeyValueListOptions BindOptions(ParseResult parseResult)
     {
+        LogDebug("BindOptions called");
         var options = base.BindOptions(parseResult);
         options.Key = parseResult.GetValueForOption(_keyOption);
         options.Label = parseResult.GetValueForOption(_labelOption);
@@ -47,16 +56,18 @@ public sealed class KeyValueListCommand(ILogger<KeyValueListCommand> logger) : B
     [McpServerTool(Destructive = false, ReadOnly = true, Title = _commandTitle)]
     public override async Task<CommandResponse> ExecuteAsync(CommandContext context, ParseResult parseResult)
     {
+        LogDebug("ExecuteAsync called");
         var options = BindOptions(parseResult);
-
         try
         {
             if (!Validate(parseResult.CommandResult, context.Response).IsValid)
             {
+                LogDebug("Validation failed");
                 return context.Response;
             }
 
             var appConfigService = context.GetService<IAppConfigService>();
+            LogDebug("Calling appConfigService.ListKeyValues");
             var settings = await appConfigService.ListKeyValues(
                 options.Account!,
                 options.Subscription!,
@@ -64,7 +75,7 @@ public sealed class KeyValueListCommand(ILogger<KeyValueListCommand> logger) : B
                 options.Label,
                 options.Tenant,
                 options.RetryPolicy);
-
+            LogDebug($"ListKeyValues returned {settings?.Count ?? 0} settings");
             context.Response.Results = settings?.Count > 0 ?
                 ResponseResult.Create(
                     new KeyValueListCommandResult(settings),
@@ -73,10 +84,10 @@ public sealed class KeyValueListCommand(ILogger<KeyValueListCommand> logger) : B
         }
         catch (Exception ex)
         {
+            LogDebug($"Exception: {ex}");
             _logger.LogError("An exception occurred processing command. Exception: {Exception}", ex);
             HandleException(context.Response, ex);
         }
-
         return context.Response;
     }
 

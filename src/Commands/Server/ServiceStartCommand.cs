@@ -30,13 +30,36 @@ public sealed class ServiceStartCommand : BaseCommand
 
     protected override void RegisterOptions(Command command)
     {
+        LogDebug("[ServiceStartCommand] RegisterOptions called");
         base.RegisterOptions(command);
         command.AddOption(_transportOption);
         command.AddOption(_portOption);
     }
 
+    private static void LogDebug(string message)
+    {
+        var logPath = "/tmp/azmcp-server-debug.log";
+        var logLine = $"{DateTime.UtcNow:O} {message}\n";
+        System.IO.File.AppendAllText(logPath, logLine);
+    }
+
     public override async Task<CommandResponse> ExecuteAsync(CommandContext context, ParseResult parseResult)
     {
+#if DEBUG
+        LogDebug("[ServiceStartCommand] ExecuteAsync called in debug mode");
+        if (!System.Diagnostics.Debugger.IsAttached)
+        {
+            LogDebug("[ServiceStartCommand] Waiting for debugger to attach. PID: " + Environment.ProcessId);
+            while (!System.Diagnostics.Debugger.IsAttached)
+            {
+                Thread.Sleep(100);
+            }
+            LogDebug("[ServiceStartCommand] Debugger Attached");
+        }
+#else
+        LogDebug("[ServiceStartCommand] ExecuteAsync called in non-debug mode");
+#endif
+
         var port = parseResult.GetValueForOption(_portOption) == default
             ? OptionDefinitions.Service.Port.GetDefaultValue()
             : parseResult.GetValueForOption(_portOption);
@@ -56,6 +79,8 @@ public sealed class ServiceStartCommand : BaseCommand
 
     private IHost CreateHost(ServiceStartOptions serverOptions)
     {
+        LogDebug("[ServiceStartCommand] CreateHost called");
+
         if (serverOptions.Transport == TransportTypes.Sse)
         {
             var builder = WebApplication.CreateBuilder([]);
@@ -94,6 +119,8 @@ public sealed class ServiceStartCommand : BaseCommand
 
     private static void ConfigureMcpServer(IServiceCollection services, string transport)
     {
+        LogDebug("[ServiceStartCommand] ConfigureMcpServer called");
+
         services.AddSingleton<ToolOperations>();
         services.AddSingleton<AzureEventSourceLogForwarder>();
         services.AddHostedService<OtelService>();
@@ -135,7 +162,11 @@ public sealed class ServiceStartCommand : BaseCommand
     private sealed class StdioMcpServerHostedService(IMcpServer session) : BackgroundService
     {
         /// <inheritdoc />
-        protected override Task ExecuteAsync(CancellationToken stoppingToken) => session.RunAsync(stoppingToken);
+        protected override Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+            LogDebug("[ServiceStartCommand.StdioMcpServerHostedService] ExecuteAsync called");
+            return session.RunAsync(stoppingToken);
+        }
     }
 
     /// <summary>
@@ -150,6 +181,7 @@ public sealed class ServiceStartCommand : BaseCommand
 
         public OtelService(IServiceProvider provider)
         {
+            LogDebug("[ServiceStartCommand.OtelService] .ctor called");
             _meterProvider = provider.GetService<MeterProvider>();
             _tracerProvider = provider.GetService<TracerProvider>();
             _loggerProvider = provider.GetService<LoggerProvider>();
@@ -157,10 +189,15 @@ public sealed class ServiceStartCommand : BaseCommand
             _logForwarder.Start();
         }
 
-        protected override Task ExecuteAsync(CancellationToken stoppingToken) => Task.CompletedTask;
+        protected override Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+            LogDebug("[ServiceStartCommand.OtelService] ExecuteAsync called");
+            return Task.CompletedTask;
+        }
 
         public override void Dispose()
         {
+            LogDebug("[ServiceStartCommand.OtelService] Dispose called");
             _meterProvider?.Dispose();
             _tracerProvider?.Dispose();
             _loggerProvider?.Dispose();

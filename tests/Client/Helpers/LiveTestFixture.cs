@@ -32,7 +32,11 @@ public class LiveTestFixture : LiveTestSettingsFixture
         }
 
         var clientTransport = new StdioClientTransport(transportOptions);
+        var clientOptions = new McpClientOptions
+        {
+            InitializationTimeout = TimeSpan.FromMinutes(60)
+        };
 
-        Client = await McpClientFactory.CreateAsync(clientTransport);
+        Client = await McpClientFactory.CreateAsync(clientTransport, clientOptions);
     }
 }
