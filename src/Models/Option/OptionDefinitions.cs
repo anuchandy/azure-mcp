@@ -370,6 +370,7 @@ public static class OptionDefinitions
         public const string TransportName = "transport";
         public const string PortName = "port";
         public const string ServiceName = "service";
+        public const string DebugName = "debug";
 
         public static readonly Option<string> Transport = new(
             $"--{TransportName}",
@@ -393,6 +394,15 @@ public static class OptionDefinitions
             $"--{ServiceName}",
             () => null,
             "The service to expose on the MCP server."
+        )
+        {
+            IsRequired = false,
+        };
+
+        public static readonly Option<bool> Debug = new(
+            $"--{DebugName}",
+            () => false,
+            "Wait for debugger to attach before starting the MCP server."
         )
         {
             IsRequired = false,
