@@ -3,33 +3,22 @@ using Azure.Core;
 
 namespace AzureMcp.Services.Azure.Kusto;
 
-public class KustoClient
+public class KustoClient(string clusterUri, HttpClient httpClient, TokenCredential tokenCredential)
 {
-    #region Private Members
-    private readonly string _clusterUri;
-    private readonly IHttpClientFactory _httpClientFactory;
-    private readonly TokenCredential _tokenCredential;
-    private readonly static string s_application = "AzureMCP";
-    private readonly static string s_clientRequestIdPrefix = "AzMcp";
-    private readonly static string s_default_scope = "https://kusto.dev.kusto.windows.net" + "/.default";
-    #endregion
-
-    #region Public Methods
-    public KustoClient(string clusterUri, IHttpClientFactory httpClientFactory, TokenCredential tokenCredential)
-    {
-        _clusterUri = clusterUri;
-        _httpClientFactory = httpClientFactory;
-        _tokenCredential = tokenCredential;
-    }
+    private readonly string _clusterUri = clusterUri;
+    private readonly HttpClient _httpClient = httpClient;
+    private readonly TokenCredential _tokenCredential = tokenCredential;
+    private static readonly string s_application = "AzureMCP";
+    private static readonly string s_clientRequestIdPrefix = "AzMcp";
+    private static readonly string s_default_scope = "https://kusto.dev.kusto.windows.net/.default";
 
     public async Task<KustoResult> ExecuteQueryAsync(string database, string text, CancellationToken cancellationToken)
     {
         var uri = _clusterUri + "/v1/rest/query";
         var httpRequest = await GenerateHttpRequestMessage(uri, database, text, cancellationToken).ConfigureAwait(false);
 
-        using var httpClient = _httpClientFactory.CreateClient();
-        httpClient.BaseAddress = new Uri(_clusterUri);
-        return await SendRequestAsync(httpClient, httpRequest, cancellationToken).ConfigureAwait(false);        
+        _httpClient.BaseAddress = new Uri(_clusterUri);
+        return await SendRequestAsync(_httpClient, httpRequest, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<KustoResult> ExecuteControlCommandAsync(string database, string text, CancellationToken cancellationToken)
@@ -37,13 +26,10 @@ public class KustoClient
         var uri = _clusterUri + "/v1/rest/mgmt";
         var httpRequest = await GenerateHttpRequestMessage(uri, database, text, cancellationToken).ConfigureAwait(false);
 
-        var httpClient = _httpClientFactory.CreateClient();
-        httpClient.BaseAddress = new Uri(_clusterUri);
-        return await SendRequestAsync(httpClient, httpRequest, cancellationToken).ConfigureAwait(false);
+        _httpClient.BaseAddress = new Uri(_clusterUri);
+        return await SendRequestAsync(_httpClient, httpRequest, cancellationToken).ConfigureAwait(false);
     }
-    #endregion
 
-    #region Private Methods
     private async Task<HttpRequestMessage> GenerateHttpRequestMessage(string uri, string database, string text, CancellationToken cancellationToken = default)
     {
         var httpRequest = new HttpRequestMessage(HttpMethod.Post, uri);
@@ -60,7 +46,7 @@ public class KustoClient
 
         httpRequest.Headers.Add("x-ms-client-request-id", clientRequestId);
         httpRequest.Headers.Add("x-ms-app", s_application);
-        httpRequest.Headers.Add("x-ms-client-version", "Kusto.Client.Light"); // Kusto.Dotnet.Client:{13.0.2}|Runtime:{.NETv4.8.1/CLRv4.0.30319.42000/4.8.9300.0_built_by:_NET481REL1LAST_C}
+        httpRequest.Headers.Add("x-ms-client-version", "Kusto.Client.Light");
         httpRequest.Headers.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
 
         // Body
@@ -78,8 +64,7 @@ public class KustoClient
 
     private async Task<KustoResult> SendRequestAsync(HttpClient httpClient, HttpRequestMessage httpRequest, CancellationToken cancellationToken = default)
     {
-        var httpCompletionOption = new HttpCompletionOption();
-        var httpResponse = await httpClient.SendAsync(httpRequest, httpCompletionOption, cancellationToken);
+        var httpResponse = await httpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseContentRead, cancellationToken);
         if (!httpResponse.IsSuccessStatusCode)
         {
             string errorContent = await httpResponse.Content.ReadAsStringAsync();
@@ -87,5 +72,4 @@ public class KustoClient
         }
         return KustoResult.FromHttpResponseMessage(httpResponse);
     }
-    #endregion
 }
