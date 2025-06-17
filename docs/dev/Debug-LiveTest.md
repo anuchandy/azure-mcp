@@ -49,10 +49,11 @@ The `azmcp` supports a `--debug` command-line argument. When this argument is pr
 
 ## Debugging the test
 
-1. Build the package with debug symbols by running `./eng/scripts/Build-Local.ps1 -DebugBuild`.
-2. Set a breakpoint in a command file (e.g., [`KeyValueListCommand.ExecuteAsync`](https://github.com/Azure/azure-mcp/blob/4ed650a0507921273acc7b382a79049809ef39c1/src/Commands/AppConfig/KeyValue/KeyValueListCommand.cs#L48)).
-3. In VS Code, right-click the test method (e.g., [`AppConfigCommandTests::Should_list_appconfig_kvs()`](https://github.com/Azure/azure-mcp/blob/4ed650a0507921273acc7b382a79049809ef39c1/tests/Client/AppConfigCommandTests.cs#L56)) and select **Debug Test** (🐞).
-4. Find the `azmcp` process ID 
+1. In `.testsettings.json`, add an entry `"EnableDebugMode": true`.
+2. Build the package with debug symbols by running `./eng/scripts/Build-Local.ps1 -DebugBuild`.
+3. Set a breakpoint in a command file (e.g., [`KeyValueListCommand.ExecuteAsync`](https://github.com/Azure/azure-mcp/blob/4ed650a0507921273acc7b382a79049809ef39c1/src/Commands/AppConfig/KeyValue/KeyValueListCommand.cs#L48)).
+4. In VS Code, right-click the test method (e.g., [`AppConfigCommandTests::Should_list_appconfig_kvs()`](https://github.com/Azure/azure-mcp/blob/4ed650a0507921273acc7b382a79049809ef39c1/tests/Client/AppConfigCommandTests.cs#L56)) and select **Debug Test** (🐞).
+5. Find the `azmcp` process ID
 
 ```shell
 pgrep -fl azmcp
