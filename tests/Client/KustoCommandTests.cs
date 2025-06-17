@@ -37,7 +37,7 @@ public class KustoCommandTests(LiveTestFixture liveTestFixture, ITestOutputHelpe
                 { "cluster-name", Settings.ResourceBaseName }
                 });
             var clusterUri = clusterInfo.AssertProperty("cluster").AssertProperty("clusterUri").GetString();
-            var kustoClient = new KustoClient(clusterUri ?? string.Empty, new HttpClientFactory(), credentials);           
+            var kustoClient = new KustoClient(clusterUri ?? string.Empty, new HttpClient(), credentials);
             using var resp = await kustoClient.ExecuteControlCommandAsync(
                 TestDatabaseName,
                 ".set-or-replace ToDoList <| datatable (Title: string, IsCompleted: bool) [' Hello World!', false]",

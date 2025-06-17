@@ -2,7 +2,7 @@
 
 public class KustoResult : IDisposable
 {
-    public JsonDocument JsonDocument { get; private set; }
+    public JsonDocument? JsonDocument { get; private set; }
 
     public static KustoResult FromHttpResponseMessage(HttpResponseMessage response)
     {
