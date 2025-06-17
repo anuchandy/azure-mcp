@@ -39,7 +39,7 @@ public class LiveTestFixture : LiveTestSettingsFixture
 #if DEBUG
         var clientOptions = new McpClientOptions
         {
-            InitializationTimeout = TimeSpan.FromMinutes(1)
+            InitializationTimeout = TimeSpan.FromMinutes(2)
         };
         Client = await McpClientFactory.CreateAsync(clientTransport, clientOptions);
 #else

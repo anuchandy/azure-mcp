@@ -43,15 +43,15 @@ To debug the `azmcp` process, it is necessary to:
 2. Start the MCP server in debug mode so it waits for the debugger to attach
 3. Ensure the MCP Client does not timeout while waiting to attach to the `azmcp` process
 
-By default, [`/eng/scripts/Build-Local.ps1`](https://github.com/Azure/azure-mcp/blob/main/eng/scripts/Build-Local.ps1) builds the `azure-mcp-0.1.1-alpha.xxxxxxxxxx.tgz` package in Release mode. The script supports a `-DebugBuild` argument to build the `azmcp` package with debug symbols.
+By default, [`./eng/scripts/Build-Local.ps1`](https://github.com/Azure/azure-mcp/blob/main/eng/scripts/Build-Local.ps1) builds the `azure-mcp-0.1.1-alpha.xxxxxxxxxx.tgz` package in Release mode. The script supports a `-DebugBuild` argument to build the `azmcp` package with debug symbols.
 
 The `azmcp` supports a `--debug` command-line argument. When this argument is provided and running in Debug mode, the server will wait for a debugger to attach. The live test harness is already configured to pass `--debug` to `azmcp` when running in Debug mode.
 
 ## Debugging the test
 
-1. Build the package with debug symbols by running `/eng/scripts/Build-Local.ps1 -DebugBuild`.
-2. Set a breakpoint in a command file (e.g., [`KeyValueListCommand.ExecuteAsync`](https://github.com/Azure/azure-mcp/blob/main/src/Commands/AppConfig/KeyValue/KeyValueListCommand.cs#L59)).
-3. In VS Code, right-click the test method (e.g., [`AppConfigCommandTests::Should_list_appconfig_kvs()`](https://github.com/Azure/azure-mcp/blob/main/tests/Client/AppConfigCommandTests.cs#L48)) and select **Debug Test** (🐞).
+1. Build the package with debug symbols by running `./eng/scripts/Build-Local.ps1 -DebugBuild`.
+2. Set a breakpoint in a command file (e.g., [`KeyValueListCommand.ExecuteAsync`](https://github.com/Azure/azure-mcp/blob/4ed650a0507921273acc7b382a79049809ef39c1/src/Commands/AppConfig/KeyValue/KeyValueListCommand.cs#L48)).
+3. In VS Code, right-click the test method (e.g., [`AppConfigCommandTests::Should_list_appconfig_kvs()`](https://github.com/Azure/azure-mcp/blob/4ed650a0507921273acc7b382a79049809ef39c1/tests/Client/AppConfigCommandTests.cs#L56)) and select **Debug Test** (🐞).
 4. Find the `azmcp` process ID 
 
 ```shell
