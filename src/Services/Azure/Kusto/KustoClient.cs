@@ -3,38 +3,33 @@ using Azure.Core;
 
 namespace AzureMcp.Services.Azure.Kusto;
 
-public class KustoClient(string clusterUri, HttpClient httpClient, TokenCredential tokenCredential)
+public class KustoClient(string clusterUri, HttpClient httpClient, TokenCredential tokenCredential, string userAgent)
 {
     private readonly string _clusterUri = clusterUri;
     private readonly HttpClient _httpClient = httpClient;
     private readonly TokenCredential _tokenCredential = tokenCredential;
+    private readonly string _userAgent = userAgent;
     private static readonly string s_application = "AzureMCP";
     private static readonly string s_clientRequestIdPrefix = "AzMcp";
     private static readonly string s_default_scope = "https://kusto.dev.kusto.windows.net/.default";
 
-    public async Task<KustoResult> ExecuteQueryAsync(string database, string text, CancellationToken cancellationToken)
-    {
-        var uri = _clusterUri + "/v1/rest/query";
-        var httpRequest = await GenerateHttpRequestMessage(uri, database, text, cancellationToken).ConfigureAwait(false);
+    public Task<KustoResult> ExecuteQueryAsync(string database, string text, CancellationToken cancellationToken)
+        => ExecuteCommandAsync("/v1/rest/query", database, text, cancellationToken);
 
+    public Task<KustoResult> ExecuteControlCommandAsync(string database, string text, CancellationToken cancellationToken)
+        => ExecuteCommandAsync("/v1/rest/mgmt", database, text, cancellationToken);
+
+    private async Task<KustoResult> ExecuteCommandAsync(string endpoint, string database, string text, CancellationToken cancellationToken)
+    {
+        var uri = _clusterUri + endpoint;
+        var httpRequest = await GenerateRequestAsync(uri, database, text, cancellationToken).ConfigureAwait(false);
         _httpClient.BaseAddress = new Uri(_clusterUri);
         return await SendRequestAsync(_httpClient, httpRequest, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<KustoResult> ExecuteControlCommandAsync(string database, string text, CancellationToken cancellationToken)
-    {
-        var uri = _clusterUri + "/v1/rest/mgmt";
-        var httpRequest = await GenerateHttpRequestMessage(uri, database, text, cancellationToken).ConfigureAwait(false);
-
-        _httpClient.BaseAddress = new Uri(_clusterUri);
-        return await SendRequestAsync(_httpClient, httpRequest, cancellationToken).ConfigureAwait(false);
-    }
-
-    private async Task<HttpRequestMessage> GenerateHttpRequestMessage(string uri, string database, string text, CancellationToken cancellationToken = default)
+    private async Task<HttpRequestMessage> GenerateRequestAsync(string uri, string database, string text, CancellationToken cancellationToken = default)
     {
         var httpRequest = new HttpRequestMessage(HttpMethod.Post, uri);
-
-        // Auth info
         var scopes = new string[]
         {
             s_default_scope
@@ -43,18 +38,22 @@ public class KustoClient(string clusterUri, HttpClient httpClient, TokenCredenti
         var tokenRequestContext = new TokenRequestContext(scopes, clientRequestId);
         var accessToken = await _tokenCredential.GetTokenAsync(tokenRequestContext, cancellationToken);
         httpRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("bearer", accessToken.Token);
+        httpRequest.Headers.Add("User-Agent", _userAgent);
 
         httpRequest.Headers.Add("x-ms-client-request-id", clientRequestId);
         httpRequest.Headers.Add("x-ms-app", s_application);
         httpRequest.Headers.Add("x-ms-client-version", "Kusto.Client.Light");
         httpRequest.Headers.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
 
-        // Body
-        var body = new JsonObject();
-        body.Add("db", database);
-        body.Add("csl", text);
-        var properties = new JsonObject();
-        properties.Add("ClientRequestId", clientRequestId); // TODO: Also add this as a header?
+        var body = new JsonObject
+        {
+            { "db", database },
+            { "csl", text }
+        };
+        var properties = new JsonObject
+        {
+            { "ClientRequestId", clientRequestId } // TODO: Also add this as a header?
+        };
         body.Add("properties", properties);
         var bodyStr = body.ToJsonString();
         httpRequest.Content = new StringContent(bodyStr);
