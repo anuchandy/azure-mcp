@@ -205,6 +205,30 @@ This will produce .tgz files in the `.dist` directory and set the `TestPackage` 
   "TestPackage": "file://D:\\repos\\azure-mcp\\.dist\\wrapper\\azure-mcp-0.0.12-alpha.1746488279.tgz"
 ```
 
+### Debugging live tests
+
+This section assumes that the necessary Azure resources for live tests are already deployed and that the `.testsettings.json` file with deployment information is located at the root of the local repository clone. Refer to the previous section for instructions if these steps have not been completed.
+
+To debug the Azure MCP Server (`azmcp`) when running live tests in VS Code, follow these steps
+
+1. Build the package with debug symbols by running `./eng/scripts/Build-Local.ps1 -DebugBuild`.
+2. Set a breakpoint in a command file (e.g., [`KeyValueListCommand.ExecuteAsync`](https://github.com/Azure/azure-mcp/blob/4ed650a0507921273acc7b382a79049809ef39c1/src/Commands/AppConfig/KeyValue/KeyValueListCommand.cs#L48)).
+3. In VS Code, navigate to a test method (e.g., [`AppConfigCommandTests::Should_list_appconfig_kvs()`](https://github.com/Azure/azure-mcp/blob/4ed650a0507921273acc7b382a79049809ef39c1/tests/Client/AppConfigCommandTests.cs#L56)), add a break point to `CallToolAsync` call in the test method then right-click select **Debug Test** . This will launch `azmcp` as a separate .NET process and trigger the breakpoint in the test method.
+4. Find the `azmcp` process ID
+
+```shell
+pgrep -fl azmcp
+```
+
+```powershell
+Get-Process | Where-Object { $_.ProcessName -like "*azmcp*" } | Select-Object Id, ProcessName, Path
+```
+
+5. Open the Command Palette (`Cmd+Shift+P` on Mac, `Ctrl+Shift+P` on Windows/Linux), select **Debug: Attach to .NET 5+ or .NET Core process**, and enter the `azmcp` process ID.
+
+6. Hit F5 to "Continue" debugging, the debugger should attach to `azmcp` and hit the breakpoint in command file.
+
+
 ## Code Style
 
 To ensure consistent code quality, code format checks will run during all PR and CI builds.
