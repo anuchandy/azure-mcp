@@ -184,6 +184,7 @@
         "onboarded",
         "oidc",
         "payg",
+        "pgrep",
         "pscore",
         "RediSearch",
         "resourcegroup",
