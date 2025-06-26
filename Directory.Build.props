@@ -3,6 +3,8 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- Only treat warnings as errors when not specifically disabled (e.g., disabled to generate AOT warnings) -->
+    <TreatWarningsAsErrors Condition="'$(DisableWarningsAsErrors)' == 'true'">false</TreatWarningsAsErrors>
+    <TreatWarningsAsErrors Condition="'$(DisableWarningsAsErrors)' != 'true'">true</TreatWarningsAsErrors>
   </PropertyGroup>
 </Project>
