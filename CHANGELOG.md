@@ -8,6 +8,8 @@
 
 ### Bugs Fixed
 
+- Fixed invalid modification to HttpClient in KustoClient. [#433](https://github.com/Azure/azure-mcp/issues/433)
+
 ### Other Changes
 
 ## 0.2.4 (2025-06-24)
