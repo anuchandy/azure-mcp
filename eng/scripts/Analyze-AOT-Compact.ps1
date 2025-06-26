@@ -127,7 +127,7 @@ $publishArgs = @(
     '--self-contained', 'true',
     '/p:PublishTrimmed=true',
     '/p:TrimmerSingleWarn=false',
-    '/p:DisableWarningsAsErrors=true'  # Disable treating warnings as errors so AOT warnings do not fail the analysis
+    '/p:TreatWarningsAsErrors=false'  # Disable treating warnings as errors so AOT warnings do not fail the analysis
 )
 
 Write-Host "Executing: dotnet $($publishArgs -join ' ')"
