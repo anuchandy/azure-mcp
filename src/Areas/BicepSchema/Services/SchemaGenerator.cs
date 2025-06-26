@@ -1,12 +1,13 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using System.Collections.Generic;
 using Azure.Bicep.Types;
-using Azure.Bicep.Types.Az;
 using AzureMcp.Areas.BicepSchema.Services.ResourceProperties;
 using AzureMcp.Areas.BicepSchema.Services.ResourceProperties.Entities;
 using AzureMcp.Services.Azure.BicepSchema.Support;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace AzureMcp.Areas.BicepSchema.Services;
 public static class SchemaGenerator
@@ -37,7 +38,12 @@ public static class SchemaGenerator
 
     public static void ConfigureServices(ServiceCollection services)
     {
-        services.AddSingleton<ITypeLoader, AzTypeLoader>();
+        services.AddHttpClient<GitHubBicepTypeLoader>();
+        services.AddSingleton<ITypeLoader>(sp => new GitHubBicepTypeLoader(
+            sp.GetRequiredService<System.Net.Http.HttpClient>(),
+            sp.GetRequiredService<Microsoft.Extensions.Caching.Memory.IMemoryCache>(),
+            sp.GetRequiredService<ILogger<GitHubBicepTypeLoader>>()));
         services.AddSingleton<ResourceVisitor>();
+        services.AddMemoryCache();
     }
 }
