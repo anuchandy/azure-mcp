@@ -6,26 +6,18 @@ using Azure.Core;
 
 namespace AzureMcp.Areas.Kusto.Services;
 
-public class KustoClient
+public class KustoClient(
+    string clusterUri,
+    TokenCredential tokenCredential,
+    string userAgent)
 {
-    private readonly string _clusterUri;
-    private readonly HttpClient _httpClient;
-    private readonly TokenCredential _tokenCredential;
-    private readonly string _userAgent;
+    private readonly string _clusterUri = clusterUri;
+    private readonly TokenCredential _tokenCredential = tokenCredential;
+    private readonly string _userAgent = userAgent;
+    private readonly HttpClient _httpClient = new() { BaseAddress = new Uri(clusterUri) };
     private static readonly string s_application = "AzureMCP";
     private static readonly string s_clientRequestIdPrefix = "AzMcp";
     private static readonly string s_default_scope = "https://kusto.kusto.windows.net/.default";
-
-    public KustoClient(string clusterUri, TokenCredential tokenCredential, string userAgent)
-    {
-        _clusterUri = clusterUri;
-        _tokenCredential = tokenCredential;
-        _userAgent = userAgent;
-        _httpClient = new HttpClient
-        {
-            BaseAddress = new Uri(clusterUri)
-        };
-    }
 
     public Task<KustoResult> ExecuteQueryCommandAsync(string database, string text, CancellationToken cancellationToken)
         => ExecuteCommandAsync("/v1/rest/query", database, text, cancellationToken);
