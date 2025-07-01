@@ -5,10 +5,8 @@ using System.Text;
 using Azure.Core;
 using Azure.Identity;
 using Azure.Identity.Broker;
-using AzureMcp.Helpers;
-using Microsoft.Extensions.Logging;
 
-namespace AzureMcp.Services.Azure.Authentication;
+namespace AzureMcp.Ext.Credential;
 
 /// <summary>
 /// A custom token credential that chains DefaultAzureCredential with a broker-enabled instance of
@@ -24,12 +22,24 @@ public class CustomChainedCredential(string? tenantId = null, ILogger<CustomChai
     private TokenCredential? _credential;
     private readonly ILogger<CustomChainedCredential>? _logger = logger;
 
+    /// <summary>
+    /// Synchronously acquires an access token.
+    /// </summary>
+    /// <param name="requestContext">The details of the authentication request.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/> to control the request lifetime.</param>
+    /// <returns>An <see cref="AccessToken"/> which can be used to authenticate service client calls.</returns>
     public override AccessToken GetToken(TokenRequestContext requestContext, CancellationToken cancellationToken)
     {
         _credential ??= CreateCredential(tenantId, _logger);
         return _credential.GetToken(requestContext, cancellationToken);
     }
 
+    /// <summary>
+    /// Asynchronously acquires an access token.
+    /// </summary>
+    /// <param name="requestContext">The details of the authentication request.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/> to control the request lifetime.</param>
+    /// <returns>A <see cref="ValueTask{AccessToken}"/> which will resolve to an <see cref="AccessToken"/>.</returns>
     public override ValueTask<AccessToken> GetTokenAsync(TokenRequestContext requestContext, CancellationToken cancellationToken)
     {
         _credential ??= CreateCredential(tenantId, _logger);
@@ -44,7 +54,19 @@ public class CustomChainedCredential(string? tenantId = null, ILogger<CustomChai
 
     private static bool ShouldUseOnlyBrokerCredential()
     {
-        return EnvironmentHelpers.GetEnvironmentVariableAsBool(OnlyUseBrokerCredentialEnvVarName);
+        return GetEnvironmentVariableAsBool(OnlyUseBrokerCredentialEnvVarName);
+    }
+
+    private static bool GetEnvironmentVariableAsBool(string envVarName)
+    {
+        return Environment.GetEnvironmentVariable(envVarName) switch
+        {
+            "true" => true,
+            "True" => true,
+            "T" => true,
+            "1" => true,
+            _ => false
+        };
     }
 
     private static TokenCredential CreateCredential(string? tenantId, ILogger<CustomChainedCredential>? logger = null)
@@ -125,7 +147,7 @@ public class CustomChainedCredential(string? tenantId = null, ILogger<CustomChai
 
     private static DefaultAzureCredential CreateDefaultCredential(string? tenantId)
     {
-        var includeProdCreds = EnvironmentHelpers.GetEnvironmentVariableAsBool(IncludeProductionCredentialEnvVarName);
+        var includeProdCreds = GetEnvironmentVariableAsBool(IncludeProductionCredentialEnvVarName);
 
         var defaultCredentialOptions = new DefaultAzureCredentialOptions
         {

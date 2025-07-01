@@ -7,7 +7,7 @@ using System.Text.Json.Serialization;
 using Azure.Core;
 using Azure.Monitor.Ingestion;
 using AzureMcp.Areas.Monitor.Services;
-using AzureMcp.Services.Azure.Authentication;
+using AzureMcp.Ext.Credential;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 

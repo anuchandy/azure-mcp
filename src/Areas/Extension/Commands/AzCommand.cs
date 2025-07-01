@@ -2,9 +2,10 @@
 // Licensed under the MIT License.
 
 using System.Runtime.InteropServices;
+using System.Text.Json;
 using AzureMcp.Areas.Extension.Options;
 using AzureMcp.Commands;
-using AzureMcp.Services.Azure.Authentication;
+using AzureMcp.Models;
 using AzureMcp.Services.ProcessExecution;
 using Microsoft.Extensions.Logging;
 
@@ -124,7 +125,7 @@ Your job is to answer questions about an Azure environment by executing Azure CL
             {
                 return _isAuthenticated;
             }
-            var credentials = AuthenticationUtils.GetAzureCredentials(logger);
+            var credentials = GetAzureCredentials(logger);
             if (credentials == null)
             {
                 logger.LogWarning("Invalid AZURE_CREDENTIALS format. Skipping authentication. Ensure it contains clientId, clientSecret, and tenantId.");
@@ -195,5 +196,31 @@ Your job is to answer questions about an Azure environment by executing Azure CL
         }
 
         return context.Response;
+    }
+
+    private static AzureCredentials? GetAzureCredentials(ILogger logger)
+    {
+        var credentialsJson = Environment.GetEnvironmentVariable("AZURE_CREDENTIALS");
+        if (string.IsNullOrEmpty(credentialsJson))
+        {
+            return null;
+        }
+
+        try
+        {
+            // Use source-generated serialization to avoid trimmer warnings
+            var credentials = JsonSerializer.Deserialize(credentialsJson, JsonSourceGenerationContext.Default.AzureCredentials);
+            if (credentials == null)
+            {
+                logger.LogWarning("Invalid AZURE_CREDENTIALS format. Ensure it contains clientId, clientSecret, and tenantId.");
+                return null;
+            }
+            return credentials;
+        }
+        catch (JsonException ex)
+        {
+            logger.LogWarning(ex, "Failed to deserialize AZURE_CREDENTIALS. Ensure it contains clientId, clientSecret, and tenantId.");
+            return null;
+        }
     }
 }

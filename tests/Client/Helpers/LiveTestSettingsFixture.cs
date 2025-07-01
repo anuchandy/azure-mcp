@@ -1,7 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Text.Json;
 using Azure.Core;
-using AzureMcp.Services.Azure.Authentication;
+using AzureMcp.Ext.Credential;
 using Xunit;
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.

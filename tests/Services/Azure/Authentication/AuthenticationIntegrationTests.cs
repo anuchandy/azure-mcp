@@ -7,7 +7,7 @@ using Azure.Core;
 using Azure.Identity;
 using Azure.Identity.Broker;
 using Azure.ResourceManager.Resources;
-using AzureMcp.Services.Azure.Authentication;
+using AzureMcp.Ext.Credential;
 using AzureMcp.Services.Azure.Subscription;
 using AzureMcp.Services.Azure.Tenant;
 using AzureMcp.Services.Caching;

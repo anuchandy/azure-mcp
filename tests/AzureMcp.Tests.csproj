@@ -13,6 +13,7 @@
   
   <ItemGroup>
     <PackageReference Include="Azure.Identity" />
+    <PackageReference Include="Azure.Identity.Broker" PrivateAssets="all" />
     <PackageReference Include="Azure.Monitor.Ingestion" />
     <PackageReference Include="Microsoft.Azure.Cosmos" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
@@ -35,6 +36,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\src\AzureMcp.csproj" />
+    <ProjectReference Include="..\ext\AzureMcp.Ext.Credential\AzureMcp.Ext.Credential.csproj" />
   </ItemGroup>
 
   <ItemGroup>

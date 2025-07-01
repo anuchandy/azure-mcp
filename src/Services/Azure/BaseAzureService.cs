@@ -5,8 +5,8 @@ using System.Reflection;
 using System.Runtime.Versioning;
 using Azure.Core;
 using Azure.ResourceManager;
+using AzureMcp.Ext.Credential;
 using AzureMcp.Options;
-using AzureMcp.Services.Azure.Authentication;
 using AzureMcp.Services.Azure.Tenant;
 using Microsoft.Extensions.Logging;
 
