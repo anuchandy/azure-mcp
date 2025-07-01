@@ -3,6 +3,7 @@
 
 using System.Text.Json.Nodes;
 using Azure.ResourceManager.CosmosDB;
+using AzureMcp.Areas.Cosmos.Exceptions;
 using AzureMcp.Options;
 using AzureMcp.Services.Azure;
 using AzureMcp.Services.Azure.Subscription;
@@ -96,7 +97,7 @@ public class CosmosService(ISubscriptionService subscriptionService, ITenantServ
         }
         catch (CosmosException ex)
         {
-            throw new Exception($"Failed to validate CosmosClient: {ex.StatusCode} - {ex.Message}", ex);
+            throw WrapCosmosException(ex, "Failed to validate CosmosClient");
         }
         catch (Exception ex)
         {
@@ -270,12 +271,23 @@ public class CosmosService(ISubscriptionService subscriptionService, ITenantServ
         }
         catch (CosmosException ex)
         {
-            throw new Exception($"Cosmos DB error occurred while querying items: {ex.StatusCode} - {ex.Message}", ex);
+            throw WrapCosmosException(ex, "Cosmos DB error occurred while querying items");
         }
         catch (Exception ex)
         {
             throw new Exception($"Error querying items: {ex.Message}", ex);
         }
+    }
+
+    private static CosmosOperationException WrapCosmosException(CosmosException cosmosEx, string operation)
+    {
+        return new CosmosOperationException(
+            message: $"{operation}: {cosmosEx.Message}",
+            statusCode: cosmosEx.StatusCode,
+            requestCharge: cosmosEx.RequestCharge,
+            activityId: cosmosEx.ActivityId,
+            retryAfter: cosmosEx.RetryAfter,
+            innerException: cosmosEx);
     }
 
     protected virtual async void Dispose(bool disposing)

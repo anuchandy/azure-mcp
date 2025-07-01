@@ -2,10 +2,10 @@
 // Licensed under the MIT License.
 
 using System.Diagnostics.CodeAnalysis;
+using AzureMcp.Areas.Cosmos.Exceptions;
 using AzureMcp.Areas.Cosmos.Options;
 using AzureMcp.Commands;
 using AzureMcp.Commands.Subscription;
-using Microsoft.Azure.Cosmos;
 
 namespace AzureMcp.Areas.Cosmos.Commands;
 
@@ -30,13 +30,13 @@ public abstract class BaseCosmosCommand<
 
     protected override string GetErrorMessage(Exception ex) => ex switch
     {
-        CosmosException cosmosEx => cosmosEx.Message,
+        CosmosOperationException cosmosEx => cosmosEx.Message,
         _ => base.GetErrorMessage(ex)
     };
 
     protected override int GetStatusCode(Exception ex) => ex switch
     {
-        CosmosException cosmosEx => (int)cosmosEx.StatusCode,
+        CosmosOperationException cosmosEx => (int)cosmosEx.StatusCode,
         _ => base.GetStatusCode(ex)
     };
 }
