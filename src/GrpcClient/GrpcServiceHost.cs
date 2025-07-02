@@ -16,7 +16,7 @@ public sealed class GrpcServiceHost : IDisposable
     private readonly ILogger<GrpcServiceHost> _logger;
     private readonly GrpcServiceConfig _config;
     private Process? _serviceProcess;
-    private string? _endpointUrl;
+    private string? _serviceEndpoint;
     private bool _disposed;
 
     public GrpcServiceHost(ILogger<GrpcServiceHost> logger, GrpcServiceConfig config)
@@ -25,7 +25,7 @@ public sealed class GrpcServiceHost : IDisposable
         _config = config ?? throw new ArgumentNullException(nameof(config));
     }
 
-    public string? EndpointUrl => _endpointUrl;
+    public string? EndpointUrl => _serviceEndpoint;
 
     public bool IsRunning => _serviceProcess is { HasExited: false };
 
@@ -35,14 +35,14 @@ public sealed class GrpcServiceHost : IDisposable
     {
         if (IsRunning)
         {
-            return _endpointUrl!;
+            return _serviceEndpoint!;
         }
 
         var port = GetAvailablePort();
-        _endpointUrl = $"http://localhost:{port}";
+        _serviceEndpoint = $"http://localhost:{port}";
 
         var executablePath = GetServiceExecutablePath();
-        _logger.LogInformation("Starting {ServiceName} service at {EndpointUrl}", _config.ServiceName, _endpointUrl);
+        _logger.LogInformation("Starting {ServiceName} service at {EndpointUrl}", _config.ServiceName, _serviceEndpoint);
 
         var startInfo = new ProcessStartInfo
         {
@@ -53,7 +53,7 @@ public sealed class GrpcServiceHost : IDisposable
             CreateNoWindow = true
         };
 
-        startInfo.Environment["ASPNETCORE_URLS"] = _endpointUrl;
+        startInfo.Environment["ASPNETCORE_URLS"] = _serviceEndpoint;
         if (_config.EnvironmentVariables != null)
         {
             foreach (var kvp in _config.EnvironmentVariables)
@@ -70,8 +70,8 @@ public sealed class GrpcServiceHost : IDisposable
                 throw new InvalidOperationException($"Failed to start {_config.ServiceName} process");
             }
             await WaitForServiceReadyAsync(cancellationToken);
-            _logger.LogInformation("{ServiceName} service started successfully on {EndpointUrl}", _config.ServiceName, _endpointUrl);
-            return _endpointUrl;
+            _logger.LogInformation("{ServiceName} service started successfully on {EndpointUrl}", _config.ServiceName, _serviceEndpoint);
+            return _serviceEndpoint;
         }
         catch (Exception ex)
         {
@@ -96,7 +96,7 @@ public sealed class GrpcServiceHost : IDisposable
                 }
                 _serviceProcess.Dispose();
                 _serviceProcess = null;
-                _endpointUrl = null;
+                _serviceEndpoint = null;
                 _logger.LogInformation("{ServiceName} service stopped", _config.ServiceName);
             }
             catch (Exception ex)
@@ -157,7 +157,7 @@ public sealed class GrpcServiceHost : IDisposable
 
         var maxAttempts = _config.StartupTimeoutSeconds;
         var delayBetweenAttempts = TimeSpan.FromSeconds(1);
-        var healthUrl = $"{_endpointUrl}{_config.HealthEndpoint}";
+        var healthUrl = $"{_serviceEndpoint}{_config.HealthEndpoint}";
 
         for (var attempt = 0; attempt < maxAttempts; attempt++)
         {

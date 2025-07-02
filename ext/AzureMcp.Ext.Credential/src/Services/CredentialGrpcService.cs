@@ -85,46 +85,38 @@ public class CredentialGrpcService : CredentialService.CredentialServiceBase
             ErrorType = exception.GetType().Name
         };
 
-        if (exception is Azure.Identity.AuthenticationFailedException authEx)
+        response.ErrorDetails = exception switch
         {
-            response.ErrorDetails = new ErrorDetails
+            Azure.Identity.CredentialUnavailableException ex => new ErrorDetails
+            {
+                IsAuthenticationFailure = false,
+                ErrorCode = "0",
+                ErrorContext = ex.Source ?? "Azure.Identity",
+                IsRetryable = true
+            },
+            Azure.Identity.AuthenticationFailedException ex => new ErrorDetails
             {
                 IsAuthenticationFailure = true,
-                ErrorCode = "AUTHENTICATION_FAILED",
-                ErrorContext = authEx.Source ?? "Azure.Identity",
-                IsRetryable = false 
-            };
-        }
-        else if (exception is Azure.Identity.CredentialUnavailableException credEx)
-        {
-            response.ErrorDetails = new ErrorDetails
+                ErrorCode = "1",
+                ErrorContext = ex.Source ?? "Azure.Identity",
+                IsRetryable = false
+            },
+            Azure.RequestFailedException ex => new ErrorDetails
+            {
+                IsAuthenticationFailure = ex.Status == 401 || ex.Status == 403,
+                ErrorCode = $"2_{ex.Status}",
+                ErrorContext = $"HTTP {ex.Status}: {ex.ErrorCode}",
+                IsRetryable = ex.Status >= 500
+            },
+            _ => new ErrorDetails
             {
                 IsAuthenticationFailure = false,
-                ErrorCode = "CREDENTIAL_UNAVAILABLE",
-                ErrorContext = credEx.Source ?? "Azure.Identity",
-                IsRetryable = true
-            };
-        }
-        else if (exception is Azure.RequestFailedException reqEx)
-        {
-            response.ErrorDetails = new ErrorDetails
-            {
-                IsAuthenticationFailure = reqEx.Status == 401 || reqEx.Status == 403,
-                ErrorCode = $"REQUEST_FAILED_{reqEx.Status}",
-                ErrorContext = $"HTTP {reqEx.Status}: {reqEx.ErrorCode}",
-                IsRetryable = reqEx.Status >= 500
-            };
-        }
-        else
-        {
-            response.ErrorDetails = new ErrorDetails
-            {
-                IsAuthenticationFailure = false,
-                ErrorCode = "UNKNOWN_ERROR",
+                ErrorCode = "3",
                 ErrorContext = exception.Source ?? "Unknown",
                 IsRetryable = false
-            };
-        }
+            }
+        };
+        
         return response;
     }
 

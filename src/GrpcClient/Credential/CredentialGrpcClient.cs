@@ -53,10 +53,10 @@ public sealed class CredentialGrpcClient : ICredentialGrpcClient, IDisposable
         var cacheKey = tenantId ?? string.Empty;
         if (!credentialsCache.TryGetValue(cacheKey, out var credential))
         {
-            var endpointUrl = await _serviceHost.StartServiceAsync(cancellationToken);
-            credential = new GrpcTokenCredential(endpointUrl, CreateLogger<GrpcTokenCredential>());
+            var serviceEndpoint = await _serviceHost.StartServiceAsync(cancellationToken);
+            credential = new GrpcTokenCredential(serviceEndpoint, CreateLogger<GrpcTokenCredential>());
             credentialsCache[cacheKey] = credential;
-            _logger.LogDebug("Created gRPC credential for tenant: {TenantId}", tenantId ?? "default");
+            _logger.LogDebug("Obtained credential for tenant: {TenantId}", tenantId ?? "default");
         }
         return credential;
     }

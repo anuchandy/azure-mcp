@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 using Azure.Core;
-using AzureMcp.Grpc.Client;
 using Grpc.Net.Client;
 using Microsoft.Extensions.Logging;
 using System.Net;
@@ -12,21 +11,17 @@ namespace AzureMcp.GrpcClient.Credential;
 /// <summary>
 /// TokenCredential implementation that communicates with the credential gRPC service.
 /// </summary>
-public sealed class GrpcTokenCredential : TokenCredential, IDisposable
+public sealed class GrpcTokenCredential(
+    string serviceEndpoint, 
+    ILogger<GrpcTokenCredential> logger, 
+    string? tenantId = null) : TokenCredential, IDisposable
 {
-    private readonly string _endpointUrl;
-    private readonly ILogger<GrpcTokenCredential> _logger;
-    private readonly string? _tenantId;
+    private readonly string _serviceEndpoint = serviceEndpoint ?? throw new ArgumentNullException(nameof(serviceEndpoint));
+    private readonly ILogger<GrpcTokenCredential> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    private readonly string? _tenantId = tenantId;
     private GrpcChannel? _channel;
     private AzureMcp.Grpc.Client.CredentialService.CredentialServiceClient? _client;
     private bool _disposed;
-
-    public GrpcTokenCredential(string endpointUrl, ILogger<GrpcTokenCredential> logger, string? tenantId = null)
-    {
-        _endpointUrl = endpointUrl ?? throw new ArgumentNullException(nameof(endpointUrl));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _tenantId = tenantId;
-    }
 
     public override AccessToken GetToken(TokenRequestContext requestContext, CancellationToken cancellationToken)
     {
@@ -52,24 +47,17 @@ public sealed class GrpcTokenCredential : TokenCredential, IDisposable
         }
         request.TimeoutSeconds = 30;
 
-        try
+        _logger.LogDebug("Acquiring token with scopes: {Scopes}", string.Join(", ", requestContext.Scopes));
+        var response = await _client!.GetTokenAsync(request, cancellationToken: cancellationToken);
+        return ParseResponse(response, _logger);
+    }
+
+    public void Dispose()
+    {
+        if (!_disposed)
         {
-            _logger.LogDebug("Requesting token with scopes: {Scopes}", string.Join(", ", requestContext.Scopes));
-            var response = await _client!.GetTokenAsync(request, cancellationToken: cancellationToken);
-            if (!response.Success)
-            {
-                var error = response.ErrorMessage ?? "Unknown error occurred.";
-                _logger.LogError("Token request failed: {ErrorMessage}.", error);
-                ThrowException(response);
-            }
-            var expiresOn = new DateTimeOffset(response.ExpiresOnTicks, TimeSpan.Zero);
-            _logger.LogDebug("Token acquired successfully, expires at: {ExpiresOn}.", expiresOn);
-            return new AccessToken(response.Token, expiresOn);
-        }
-        catch (Exception ex) when (!(ex is InvalidOperationException))
-        {
-            _logger.LogError(ex, "Failed to acquire token.");
-            throw new InvalidOperationException($"Failed to acquire token: {ex.Message}", ex);
+            _channel?.Dispose();
+            _disposed = true;
         }
     }
 
@@ -85,48 +73,53 @@ public sealed class GrpcTokenCredential : TokenCredential, IDisposable
                     DefaultVersionPolicy = HttpVersionPolicy.RequestVersionExact
                 }
             };
-            _channel = GrpcChannel.ForAddress(_endpointUrl, channelOptions);
-            _client = new AzureMcp.Grpc.Client.CredentialService.CredentialServiceClient(_channel);
+            _channel = GrpcChannel.ForAddress(_serviceEndpoint, channelOptions);
+            _client = new Grpc.Client.CredentialService.CredentialServiceClient(_channel);
         }
     }
 
-    private static void ThrowException(AzureMcp.Grpc.Client.TokenResponse response)
+    private static AccessToken ParseResponse(AzureMcp.Grpc.Client.TokenResponse response, ILogger logger)
     {
-        var errorMessage = response.ErrorMessage ?? "Unknown error occurred.";
-        var errorCode = response.ErrorDetails?.ErrorCode;
-        var errorContext = response.ErrorDetails?.ErrorContext;
-        var isRetryable = response.ErrorDetails?.IsRetryable ?? false;
+        if (!response.Success)
+        {
+            var error = response.ErrorMessage ?? "Unknown error occurred.";
+            logger.LogError("Token acquisition failed: {ErrorMessage}.", error);
+            throw ToException(error, response.ErrorDetails);
+        }
         
-        if (response.ErrorDetails != null)
-        {
-            if (response.ErrorDetails.IsAuthenticationFailure)
-            {
-                if (response.ErrorDetails.ErrorCode == "AUTHENTICATION_FAILED")
-                {
-                    throw new AuthenticationFailedException(errorMessage, errorCode, errorContext, isRetryable);
-                }
-                if (response.ErrorDetails.ErrorCode?.StartsWith("REQUEST_FAILED_") == true)
-                {
-                    if (int.TryParse(response.ErrorDetails.ErrorCode.Substring("REQUEST_FAILED_".Length), out var statusCode))
-                    {
-                        throw new Azure.RequestFailedException(statusCode, errorMessage);
-                    }
-                }
-            }
-            if (response.ErrorDetails.ErrorCode == "CREDENTIAL_UNAVAILABLE")
-            {
-                throw new CredentialUnavailableException(errorMessage, errorCode, errorContext, isRetryable);
-            }
-        }
-        throw new AuthenticationFailedException(errorMessage, errorCode, errorContext, isRetryable);
+        var expiresOn = new DateTimeOffset(response.ExpiresOnTicks, TimeSpan.Zero);
+        logger.LogDebug("Token acquired successfully, expires at: {ExpiresOn}.", expiresOn);
+        return new AccessToken(response.Token, expiresOn);
     }
 
-    public void Dispose()
+    private static Exception ToException(string errorMessage, Grpc.Client.ErrorDetails errorDetails)
     {
-        if (!_disposed)
+        var errorCode = errorDetails.ErrorCode;
+        var errorContext = errorDetails.ErrorContext;
+        var isRetryable = errorDetails.IsRetryable;
+
+        if (errorCode == "0")
         {
-            _channel?.Dispose();
-            _disposed = true;
+            return new CredentialUnavailableException(errorMessage, errorCode, errorContext, isRetryable);
+        }
+        else if (errorCode == "1")
+        {
+            return new AuthenticationFailedException(errorMessage, errorCode, errorContext, isRetryable);
+        }
+        else if (errorCode.StartsWith("2_"))
+        {
+            if (int.TryParse(errorCode.AsSpan(2), out var statusCode))
+            {
+                return new Azure.RequestFailedException(statusCode, errorMessage);
+            }
+            else
+            {
+                return new AuthenticationFailedException(errorMessage, errorCode, errorContext, isRetryable);
+            }
+        }
+        else
+        {
+            return new AuthenticationFailedException(errorMessage, errorCode, errorContext, isRetryable);
         }
     }
 }
