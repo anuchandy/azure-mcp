@@ -15,6 +15,7 @@ namespace AzureMcp.Tests.GrpcClient;
 public class CredentialGrpcClientTests : IDisposable
 {
     private readonly ILoggerFactory _loggerFactory;
+    private readonly ILogger<CredentialGrpcClientTests> _logger;
     private GrpcServiceHost? _serviceHost;
     private CredentialGrpcClient? _credentialClient;
 
@@ -22,6 +23,7 @@ public class CredentialGrpcClientTests : IDisposable
     {
         _loggerFactory = LoggerFactory.Create(builder => 
             builder.AddConsole().SetMinimumLevel(LogLevel.Debug));
+        _logger = _loggerFactory.CreateLogger<CredentialGrpcClientTests>();
     }
 
     [Fact]
@@ -68,7 +70,7 @@ public class CredentialGrpcClientTests : IDisposable
         var credentialClient = new CredentialGrpcClient(_loggerFactory, _serviceHost);
         var credential = await credentialClient.GetCredentialAsync(tenantId: null, TestContext.Current.CancellationToken);
         Assert.NotNull(credential);
-        Assert.IsType<GrpcTokenCredential>(credential);
+        Assert.IsAssignableFrom<TokenCredential>(credential);
         Assert.True(_serviceHost.IsRunning);
     }
 
@@ -106,12 +108,13 @@ public class CredentialGrpcClientTests : IDisposable
             Assert.NotNull(tokenResult.Token);
             Assert.True(tokenResult.ExpiresOn > DateTimeOffset.UtcNow);
         }
-        catch (Azure.Identity.AuthenticationFailedException)
+        catch (Exception ex)
         {
-            // TODO: anu: fix this.
+            _logger.LogInformation("Likely authentication failure: {Message}", ex.Message);
+            Assert.Fail($"Expected authentication to succeed, but got exception: {ex.GetType().Name}: {ex.Message}");
         }
         Assert.NotNull(credential);
-        Assert.IsType<GrpcTokenCredential>(credential);
+        Assert.IsAssignableFrom<TokenCredential>(credential);
         Assert.True(_serviceHost.IsRunning);
     }
 

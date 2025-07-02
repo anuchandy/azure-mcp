@@ -60,7 +60,7 @@ public sealed class GrpcTokenCredential : TokenCredential, IDisposable
             {
                 var error = response.ErrorMessage ?? "Unknown error occurred.";
                 _logger.LogError("Token request failed: {ErrorMessage}.", error);
-                throw new InvalidOperationException($"Authentication failed: {error}.");
+                ThrowException(response);
             }
             var expiresOn = new DateTimeOffset(response.ExpiresOnTicks, TimeSpan.Zero);
             _logger.LogDebug("Token acquired successfully, expires at: {ExpiresOn}.", expiresOn);
@@ -88,6 +88,37 @@ public sealed class GrpcTokenCredential : TokenCredential, IDisposable
             _channel = GrpcChannel.ForAddress(_endpointUrl, channelOptions);
             _client = new AzureMcp.Grpc.Client.CredentialService.CredentialServiceClient(_channel);
         }
+    }
+
+    private static void ThrowException(AzureMcp.Grpc.Client.TokenResponse response)
+    {
+        var errorMessage = response.ErrorMessage ?? "Unknown error occurred.";
+        var errorCode = response.ErrorDetails?.ErrorCode;
+        var errorContext = response.ErrorDetails?.ErrorContext;
+        var isRetryable = response.ErrorDetails?.IsRetryable ?? false;
+        
+        if (response.ErrorDetails != null)
+        {
+            if (response.ErrorDetails.IsAuthenticationFailure)
+            {
+                if (response.ErrorDetails.ErrorCode == "AUTHENTICATION_FAILED")
+                {
+                    throw new AuthenticationFailedException(errorMessage, errorCode, errorContext, isRetryable);
+                }
+                if (response.ErrorDetails.ErrorCode?.StartsWith("REQUEST_FAILED_") == true)
+                {
+                    if (int.TryParse(response.ErrorDetails.ErrorCode.Substring("REQUEST_FAILED_".Length), out var statusCode))
+                    {
+                        throw new Azure.RequestFailedException(statusCode, errorMessage);
+                    }
+                }
+            }
+            if (response.ErrorDetails.ErrorCode == "CREDENTIAL_UNAVAILABLE")
+            {
+                throw new CredentialUnavailableException(errorMessage, errorCode, errorContext, isRetryable);
+            }
+        }
+        throw new AuthenticationFailedException(errorMessage, errorCode, errorContext, isRetryable);
     }
 
     public void Dispose()

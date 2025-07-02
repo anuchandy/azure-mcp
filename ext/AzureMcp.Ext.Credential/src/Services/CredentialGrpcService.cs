@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using Azure.Core;
+using Azure.Identity;
 using AzureMcp.Ext.Credential.Grpc;
 using Grpc.Core;
 
@@ -77,12 +78,54 @@ public class CredentialGrpcService : CredentialService.CredentialServiceBase
 
     private static TokenResponse CreateErrorResponse(Exception exception)
     {
-        return new TokenResponse
+        var response = new TokenResponse
         {
             Success = false,
             ErrorMessage = exception.Message,
             ErrorType = exception.GetType().Name
         };
+
+        if (exception is AuthenticationFailedException authEx)
+        {
+            response.ErrorDetails = new ErrorDetails
+            {
+                IsAuthenticationFailure = true,
+                ErrorCode = "AUTHENTICATION_FAILED",
+                ErrorContext = authEx.Source ?? "Azure.Identity",
+                IsRetryable = false 
+            };
+        }
+        else if (exception is CredentialUnavailableException credEx)
+        {
+            response.ErrorDetails = new ErrorDetails
+            {
+                IsAuthenticationFailure = false,
+                ErrorCode = "CREDENTIAL_UNAVAILABLE",
+                ErrorContext = credEx.Source ?? "Azure.Identity",
+                IsRetryable = true
+            };
+        }
+        else if (exception is Azure.RequestFailedException reqEx)
+        {
+            response.ErrorDetails = new ErrorDetails
+            {
+                IsAuthenticationFailure = reqEx.Status == 401 || reqEx.Status == 403,
+                ErrorCode = $"REQUEST_FAILED_{reqEx.Status}",
+                ErrorContext = $"HTTP {reqEx.Status}: {reqEx.ErrorCode}",
+                IsRetryable = reqEx.Status >= 500
+            };
+        }
+        else
+        {
+            response.ErrorDetails = new ErrorDetails
+            {
+                IsAuthenticationFailure = false,
+                ErrorCode = "UNKNOWN_ERROR",
+                ErrorContext = exception.Source ?? "Unknown",
+                IsRetryable = false
+            };
+        }
+        return response;
     }
 
     private static CancellationToken CreateCancellationToken(TokenRequest request, ServerCallContext context)

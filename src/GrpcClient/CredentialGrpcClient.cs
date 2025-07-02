@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using Azure.Core;
+using Azure.Identity;
 using Microsoft.Extensions.Logging;
 
 namespace AzureMcp.GrpcClient;
@@ -14,7 +15,7 @@ public sealed class CredentialGrpcClient : ICredentialGrpcClient, IDisposable
     private readonly GrpcServiceHost _serviceHost;
     private readonly ILogger<CredentialGrpcClient> _logger;
     private readonly ILoggerFactory _loggerFactory;
-    private readonly Dictionary<string, GrpcTokenCredential> credentialsCache = new();
+    private readonly Dictionary<string, TokenCredential> credentialsCache = new();
     private bool _disposed;
 
     public CredentialGrpcClient(ILoggerFactory loggerFactory)
@@ -53,7 +54,7 @@ public sealed class CredentialGrpcClient : ICredentialGrpcClient, IDisposable
         if (!credentialsCache.TryGetValue(cacheKey, out var credential))
         {
             var endpointUrl = await _serviceHost.StartServiceAsync(cancellationToken);
-            credential = new GrpcTokenCredential(endpointUrl, CreateLogger<GrpcTokenCredential>(), tenantId);
+            credential = new GrpcTokenCredential(endpointUrl, CreateLogger<GrpcTokenCredential>());
             credentialsCache[cacheKey] = credential;
             _logger.LogDebug("Created gRPC credential for tenant: {TenantId}", tenantId ?? "default");
         }
@@ -66,7 +67,10 @@ public sealed class CredentialGrpcClient : ICredentialGrpcClient, IDisposable
         {
             foreach (var credential in credentialsCache.Values)
             {
-                credential.Dispose();
+                if (credential is IDisposable disposable)
+                {
+                    disposable.Dispose();
+                }
             }
             credentialsCache.Clear();
             _serviceHost.Dispose();
