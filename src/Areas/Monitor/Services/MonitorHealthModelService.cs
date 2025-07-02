@@ -3,14 +3,14 @@
 
 using System.Text.Json.Nodes;
 using Azure.Core;
-using AzureMcp.GrpcClient.Credential;
+using AzureMcp.LocalServiceClient.Identity;
 using AzureMcp.Options;
 using AzureMcp.Services.Azure;
 using AzureMcp.Services.Azure.Tenant;
 
 namespace AzureMcp.Areas.Monitor.Services;
 
-public class MonitorHealthModelService(ITenantService tenantService, ICredentialServiceClient credentialService)
+public class MonitorHealthModelService(ITenantService tenantService, IIdentityServiceClient credentialService)
     : BaseAzureService(credentialService, tenantService), IMonitorHealthModelService
 {
     private const int TokenExpirationBuffer = 300;

@@ -6,7 +6,7 @@ using Azure.Core;
 using Azure.Identity;
 using Azure.Identity.Broker;
 
-namespace AzureMcp.Ext.Credential;
+namespace AzureMcp.LocalService.Identity;
 
 /// <summary>
 /// A custom token credential that chains DefaultAzureCredential with a broker-enabled instance of

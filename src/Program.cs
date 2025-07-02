@@ -9,8 +9,8 @@ using AzureMcp.Services.Azure.Subscription;
 using AzureMcp.Services.Azure.Tenant;
 using AzureMcp.Services.Caching;
 using AzureMcp.Services.ProcessExecution;
-using AzureMcp.GrpcClient;
-using AzureMcp.GrpcClient.Credential;
+using AzureMcp.LocalServiceClient;
+using AzureMcp.LocalServiceClient.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -128,10 +128,10 @@ internal class Program
         services.AddSingleton<ISubscriptionService, SubscriptionService>();
         services.AddSingleton<CommandFactory>();
 
-        services.AddSingleton<ICredentialServiceClient>(provider =>
+        services.AddSingleton<IIdentityServiceClient>(provider =>
         {
             var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
-            return new CredentialServiceClient(loggerFactory);
+            return new IdentityServiceClient(loggerFactory);
         });
 
         foreach (var area in Areas)

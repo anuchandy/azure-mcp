@@ -8,7 +8,7 @@ using Azure.Search.Documents.Indexes;
 using Azure.Search.Documents.Indexes.Models;
 using Azure.Search.Documents.Models;
 using AzureMcp.Areas.Search.Models;
-using AzureMcp.GrpcClient.Credential;
+using AzureMcp.LocalServiceClient.Identity;
 using AzureMcp.Options;
 using AzureMcp.Services.Azure;
 using AzureMcp.Services.Azure.Subscription;
@@ -17,7 +17,7 @@ using static AzureMcp.Areas.Search.Commands.Index.IndexDescribeCommand;
 
 namespace AzureMcp.Areas.Search.Services;
 
-public sealed class SearchService(ISubscriptionService subscriptionService, ICacheService cacheService, ICredentialServiceClient credentialService) : BaseAzureService(credentialService), ISearchService
+public sealed class SearchService(ISubscriptionService subscriptionService, ICacheService cacheService, IIdentityServiceClient credentialService) : BaseAzureService(credentialService), ISearchService
 {
     private readonly ISubscriptionService _subscriptionService = subscriptionService ?? throw new ArgumentNullException(nameof(subscriptionService));
     private readonly ICacheService _cacheService = cacheService ?? throw new ArgumentNullException(nameof(cacheService));

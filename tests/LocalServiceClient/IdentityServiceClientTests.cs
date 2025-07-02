@@ -8,23 +8,23 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Xunit;
 using Azure.Core;
-using AzureMcp.GrpcClient;
-using AzureMcp.GrpcClient.Credential;
+using AzureMcp.LocalServiceClient;
+using AzureMcp.LocalServiceClient.Identity;
 
-namespace AzureMcp.Tests.GrpcClient;
+namespace AzureMcp.Tests.LocalServiceClient;
 
-public class CredentialServiceClientTests : IDisposable
+public class IdentityServiceClientTests : IDisposable
 {
     private readonly ILoggerFactory _loggerFactory;
-    private readonly ILogger<CredentialServiceClientTests> _logger;
+    private readonly ILogger<IdentityServiceClientTests> _logger;
     private GrpcServiceHost? _serviceHost;
-    private CredentialServiceClient? _credentialClient;
+    private IdentityServiceClient? _credentialClient;
 
-    public CredentialServiceClientTests()
+    public IdentityServiceClientTests()
     {
         _loggerFactory = LoggerFactory.Create(builder => 
             builder.AddConsole().SetMinimumLevel(LogLevel.Debug));
-        _logger = _loggerFactory.CreateLogger<CredentialServiceClientTests>();
+        _logger = _loggerFactory.CreateLogger<IdentityServiceClientTests>();
     }
 
     [Fact]
@@ -36,12 +36,12 @@ public class CredentialServiceClientTests : IDisposable
 
         var config = new GrpcServiceConfig
         {
-            ServiceName = "Credential",
+            ServiceName = "Identity",
             ExtensionPath = testDirectory,
             ExecutableNames = new[]
             {
-                "AzureMcp.Ext.Credential.exe",
-                "AzureMcp.Ext.Credential"
+                "AzureMcp.LocalService.Identity.exe",
+                "AzureMcp.LocalService.Identity"
             },
             StartupTimeoutSeconds = 10
         };
@@ -68,7 +68,7 @@ public class CredentialServiceClientTests : IDisposable
         Assert.Contains("healthy", healthContent);
 
         // Check if we can get a credential
-        var credentialClient = new CredentialServiceClient(_loggerFactory, _serviceHost);
+        var credentialClient = new IdentityServiceClient(_loggerFactory, _serviceHost);
         var credential = await credentialClient.GetCredentialAsync(tenantId: null, TestContext.Current.CancellationToken);
         Assert.NotNull(credential);
         Assert.IsAssignableFrom<TokenCredential>(credential);
@@ -84,19 +84,19 @@ public class CredentialServiceClientTests : IDisposable
         
         var config = new GrpcServiceConfig
         {
-            ServiceName = "Credential",
+            ServiceName = "Identity",
             ExtensionPath = testDirectory,
             ExecutableNames = new[]
             {
-                "AzureMcp.Ext.Credential.exe",
-                "AzureMcp.Ext.Credential"
+                "AzureMcp.LocalService.Identity.exe",
+                "AzureMcp.LocalService.Identity"
             },
             StartupTimeoutSeconds = 10
         };
 
         var logger = _loggerFactory.CreateLogger<GrpcServiceHost>();
         _serviceHost = new GrpcServiceHost(logger, config);
-        _credentialClient = new CredentialServiceClient(_loggerFactory, _serviceHost);
+        _credentialClient = new IdentityServiceClient(_loggerFactory, _serviceHost);
 
         // Act
         var credential = await _credentialClient.GetCredentialAsync(tenantId: null, TestContext.Current.CancellationToken);

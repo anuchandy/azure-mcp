@@ -3,7 +3,7 @@
 
 using Azure.Core;
 
-namespace AzureMcp.Ext.Credential;
+namespace AzureMcp.LocalService.Identity;
 
 /// <summary>
 /// A token credential that wraps another credential and adds a timeout to token acquisition.

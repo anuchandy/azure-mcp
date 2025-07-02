@@ -11,6 +11,7 @@ using Azure.Storage.Blobs.Models;
 using Azure.Storage.Files.DataLake;
 using AzureMcp.Areas.Storage.Models;
 using AzureMcp.GrpcClient.Credential;
+using AzureMcp.LocalServiceClient.Identity;
 using AzureMcp.Options;
 using AzureMcp.Services.Azure;
 using AzureMcp.Services.Azure.Subscription;
@@ -19,7 +20,7 @@ using AzureMcp.Services.Caching;
 
 namespace AzureMcp.Areas.Storage.Services;
 
-public class StorageService(ISubscriptionService subscriptionService, ITenantService tenantService, ICacheService cacheService, ICredentialServiceClient credentialService) : BaseAzureService(credentialService, tenantService), IStorageService
+public class StorageService(ISubscriptionService subscriptionService, ITenantService tenantService, ICacheService cacheService, IIdentityServiceClient credentialService) : BaseAzureService(credentialService, tenantService), IStorageService
 {
     private readonly ISubscriptionService _subscriptionService = subscriptionService ?? throw new ArgumentNullException(nameof(subscriptionService));
     private readonly ICacheService _cacheService = cacheService ?? throw new ArgumentNullException(nameof(cacheService));

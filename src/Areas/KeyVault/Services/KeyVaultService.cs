@@ -3,13 +3,13 @@
 
 using Azure.Security.KeyVault.Keys;
 using Azure.Security.KeyVault.Secrets;
-using AzureMcp.GrpcClient.Credential;
+using AzureMcp.LocalServiceClient.Identity;
 using AzureMcp.Options;
 using AzureMcp.Services.Azure;
 
 namespace AzureMcp.Areas.KeyVault.Services;
 
-public sealed class KeyVaultService(ICredentialServiceClient credentialService) : BaseAzureService(credentialService), IKeyVaultService
+public sealed class KeyVaultService(IIdentityServiceClient credentialService) : BaseAzureService(credentialService), IKeyVaultService
 {
     public async Task<List<string>> ListKeys(
         string vaultName,

@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace AzureMcp.GrpcClient;
+namespace AzureMcp.LocalServiceClient;
 
 /// <summary>
 /// Configuration for a gRPC service extension.
@@ -15,7 +15,7 @@ public sealed class GrpcServiceConfig
 
     /// <summary>
     /// The relative path to the extension executable from the base directory.
-    /// Example: "ext/AzureMcp.Ext.Credential"
+    /// Example: "localservices/AzureMcp.LocalService.Identity"
     /// </summary>
     public required string ExtensionPath { get; init; }
 

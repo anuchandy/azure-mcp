@@ -7,21 +7,21 @@ using Grpc.Net.Client;
 using Microsoft.Extensions.Logging;
 using System.Net;
 
-namespace AzureMcp.GrpcClient.Credential;
+namespace AzureMcp.LocalServiceClient.Identity;
 
 /// <summary>
 /// TokenCredential implementation that communicates with the credential gRPC service.
 /// </summary>
-public sealed class GrpcTokenCredential(
+public sealed class GrpcIdentityCredential(
     string serviceEndpoint, 
-    ILogger<GrpcTokenCredential> logger, 
+    ILogger<GrpcIdentityCredential> logger, 
     string? tenantId = null) : TokenCredential, IDisposable
 {
     private readonly string _serviceEndpoint = serviceEndpoint ?? throw new ArgumentNullException(nameof(serviceEndpoint));
-    private readonly ILogger<GrpcTokenCredential> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    private readonly ILogger<GrpcIdentityCredential> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     private readonly string? _tenantId = tenantId;
     private GrpcChannel? _channel;
-    private AzureMcp.Grpc.Client.CredentialService.CredentialServiceClient? _client;
+    private AzureMcp.LocalServiceClient.Identity.Grpc.IdentityService.IdentityServiceClient? _client;
     private bool _disposed;
 
     public override AccessToken GetToken(TokenRequestContext requestContext, CancellationToken cancellationToken)
@@ -32,7 +32,7 @@ public sealed class GrpcTokenCredential(
     public override async ValueTask<AccessToken> GetTokenAsync(TokenRequestContext requestContext, CancellationToken cancellationToken)
     {
         EnsureClient();
-        var request = new AzureMcp.Grpc.Client.TokenRequest();
+        var request = new AzureMcp.LocalServiceClient.Identity.Grpc.TokenRequest();
         request.Scopes.AddRange(requestContext.Scopes);
         if (!string.IsNullOrEmpty(requestContext.ParentRequestId))
         {
@@ -75,11 +75,11 @@ public sealed class GrpcTokenCredential(
                 }
             };
             _channel = GrpcChannel.ForAddress(_serviceEndpoint, channelOptions);
-            _client = new Grpc.Client.CredentialService.CredentialServiceClient(_channel);
+            _client = new AzureMcp.LocalServiceClient.Identity.Grpc.IdentityService.IdentityServiceClient(_channel);
         }
     }
 
-    private static AccessToken ParseResponse(AzureMcp.Grpc.Client.TokenResponse response, ILogger logger)
+    private static AccessToken ParseResponse(AzureMcp.LocalServiceClient.Identity.Grpc.TokenResponse response, ILogger logger)
     {
         if (!response.Success)
         {
@@ -93,7 +93,7 @@ public sealed class GrpcTokenCredential(
         return new AccessToken(response.Token, expiresOn);
     }
 
-    private static Exception ToException(string errorMessage, Grpc.Client.ErrorDetails errorDetails)
+    private static Exception ToException(string errorMessage, AzureMcp.LocalServiceClient.Identity.Grpc.ErrorDetails errorDetails)
     {
         var errorCode = errorDetails.ErrorCode;
         var errorContext = errorDetails.ErrorContext;

@@ -3,7 +3,7 @@
 
 using System.Text.Json;
 using AzureMcp.Areas.AppConfig.Services;
-using AzureMcp.GrpcClient.Credential;
+using AzureMcp.LocalServiceClient.Identity;
 using AzureMcp.Services.Azure.Subscription;
 using AzureMcp.Services.Azure.Tenant;
 using AzureMcp.Services.Caching;
@@ -29,7 +29,7 @@ public class AppConfigCommandTests : CommandTestsBase,
     {
         var memoryCache = new MemoryCache(Microsoft.Extensions.Options.Options.Create(new MemoryCacheOptions()));
         var cacheService = new CacheService(memoryCache);
-        var credentialService = Substitute.For<ICredentialServiceClient>();
+        var credentialService = Substitute.For<IIdentityServiceClient>();
         var tenantService = new TenantService(cacheService, credentialService);
         var subscriptionService = new SubscriptionService(cacheService, tenantService, credentialService);
         _appConfigService = new AppConfigService(subscriptionService, tenantService, credentialService);

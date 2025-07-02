@@ -6,7 +6,7 @@ using System.Net;
 using System.Net.Sockets;
 using Microsoft.Extensions.Logging;
 
-namespace AzureMcp.GrpcClient;
+namespace AzureMcp.LocalServiceClient;
 
 /// <summary>
 /// Host to start and manage a gRPC service.

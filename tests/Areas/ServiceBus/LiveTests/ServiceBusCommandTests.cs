@@ -4,7 +4,7 @@
 using System.Text.Json;
 using Azure.Messaging.ServiceBus;
 using AzureMcp.Areas.ServiceBus.Options;
-using AzureMcp.Ext.Credential;
+using AzureMcp.LocalService.Identity;
 using AzureMcp.Models.Option;
 using AzureMcp.Tests.Client;
 using AzureMcp.Tests.Client.Helpers;

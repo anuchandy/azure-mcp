@@ -3,14 +3,14 @@
 
 using AzureMcp.Areas.BicepSchema.Services.ResourceProperties;
 using AzureMcp.Areas.BicepSchema.Services.ResourceProperties.Entities;
-using AzureMcp.GrpcClient.Credential;
+using AzureMcp.LocalServiceClient.Identity;
 using AzureMcp.Services.Azure;
 using AzureMcp.Services.Azure.BicepSchema.Support;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AzureMcp.Areas.BicepSchema.Services
 {
-    public class BicepSchemaService(ICredentialServiceClient credentialService) : BaseAzureService(credentialService), IBicepSchemaService
+    public class BicepSchemaService(IIdentityServiceClient credentialService) : BaseAzureService(credentialService), IBicepSchemaService
     {
         public TypesDefinitionResult GetResourceTypeDefinitions(IServiceProvider serviceProvider, string resourceTypeName, string? apiVersion = null)
         {

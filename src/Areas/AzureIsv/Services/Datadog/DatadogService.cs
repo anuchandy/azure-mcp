@@ -3,7 +3,7 @@
 
 using Azure.Core;
 using Azure.ResourceManager.Datadog;
-using AzureMcp.GrpcClient.Credential;
+using AzureMcp.LocalServiceClient.Identity;
 using AzureMcp.Services.Azure;
 using AzureMcp.Services.Azure.Tenant;
 
@@ -11,7 +11,7 @@ namespace AzureMcp.Areas.AzureIsv.Services.Datadog;
 
 public partial class DatadogService : BaseAzureService, IDatadogService
 {
-    public DatadogService(ICredentialServiceClient credentialService, ITenantService? tenantService = null) : base(credentialService, tenantService)
+    public DatadogService(IIdentityServiceClient credentialService, ITenantService? tenantService = null) : base(credentialService, tenantService)
     {
     }
 

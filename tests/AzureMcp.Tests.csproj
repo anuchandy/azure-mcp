@@ -36,7 +36,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\src\AzureMcp.csproj" />
-    <ProjectReference Include="..\ext\AzureMcp.Ext.Credential\AzureMcp.Ext.Credential.csproj" />
+    <ProjectReference Include="..\localservices\AzureMcp.LocalService.Identity\AzureMcp.LocalService.Identity.csproj" />
   </ItemGroup>
 
   <ItemGroup>

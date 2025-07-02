@@ -3,24 +3,24 @@
 
 using Azure.Core;
 using Azure.Identity;
-using AzureMcp.Ext.Credential.Grpc;
+using AzureMcp.LocalService.Identity.Grpc;
 using Grpc.Core;
 
-namespace AzureMcp.Ext.Credential.Services;
+namespace AzureMcp.LocalService.Identity.Services;
 
 /// <summary>
-/// gRPC service for providing Azure credential token acquisition.
+/// gRPC service for providing Azure identity token acquisition.
 /// </summary>
-public class CredentialGrpcService : CredentialService.CredentialServiceBase
+public class IdentityGrpcService : IdentityService.IdentityServiceBase
 {
-    private readonly ILogger<CredentialGrpcService> _logger;
+    private readonly ILogger<IdentityGrpcService> _logger;
     private readonly CustomChainedCredential _credential;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="CredentialGrpcService"/> class.
+    /// Initializes a new instance of the <see cref="IdentityGrpcService"/> class.
     /// </summary>
     /// <param name="logger">The logger instance.</param>
-    public CredentialGrpcService(ILogger<CredentialGrpcService> logger)
+    public IdentityGrpcService(ILogger<IdentityGrpcService> logger)
     {
         _logger = logger;
         _credential = new CustomChainedCredential();

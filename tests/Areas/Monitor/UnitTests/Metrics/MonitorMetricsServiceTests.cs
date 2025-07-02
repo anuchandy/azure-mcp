@@ -6,7 +6,7 @@ using Azure.Core;
 using Azure.Monitor.Query;
 using Azure.Monitor.Query.Models;
 using AzureMcp.Areas.Monitor.Services;
-using AzureMcp.GrpcClient.Credential;
+using AzureMcp.LocalServiceClient.Identity;
 using AzureMcp.Options;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
@@ -18,7 +18,7 @@ public class MonitorMetricsServiceTests
 {
     private readonly IResourceResolverService _resourceResolverService;
     private readonly IMetricsQueryClientService _metricsQueryClientService;
-    private readonly ICredentialServiceClient _credentialService;
+    private readonly IIdentityServiceClient _credentialService;
     private readonly MetricsQueryClient _metricsQueryClient;
     private readonly MonitorMetricsService _service;
 
@@ -33,7 +33,7 @@ public class MonitorMetricsServiceTests
     {
         _resourceResolverService = Substitute.For<IResourceResolverService>();
         _metricsQueryClientService = Substitute.For<IMetricsQueryClientService>();
-        _credentialService = Substitute.For<ICredentialServiceClient>();
+        _credentialService = Substitute.For<IIdentityServiceClient>();
         _metricsQueryClient = Substitute.For<MetricsQueryClient>();
         _service = new MonitorMetricsService(_resourceResolverService, _metricsQueryClientService, _credentialService);
 

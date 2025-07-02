@@ -2,14 +2,14 @@
 // Licensed under the MIT License.
 
 using Azure.ResourceManager.Resources;
-using AzureMcp.GrpcClient.Credential;
+using AzureMcp.LocalServiceClient.Identity;
 using AzureMcp.Options;
 using AzureMcp.Services.Azure.Tenant;
 using AzureMcp.Services.Caching;
 
 namespace AzureMcp.Services.Azure.Subscription;
 
-public class SubscriptionService(ICacheService cacheService, ITenantService tenantService, ICredentialServiceClient credentialService)
+public class SubscriptionService(ICacheService cacheService, ITenantService tenantService, IIdentityServiceClient credentialService)
     : BaseAzureService(credentialService, tenantService), ISubscriptionService
 {
     private readonly ICacheService _cacheService = cacheService ?? throw new ArgumentNullException(nameof(cacheService));

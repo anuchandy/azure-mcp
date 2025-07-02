@@ -20,7 +20,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureMcp", "src\AzureMcp.cs
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureMcp.Tests", "tests\AzureMcp.Tests.csproj", "{FDC17C76-2711-174D-F717-820CB23D899E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureMcp.Ext.Credential", "ext\AzureMcp.Ext.Credential\AzureMcp.Ext.Credential.csproj", "{A1B2C3D4-E5F6-G7H8-I9J0-K1L2M3N4O5P6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureMcp.LocalService.Identity", "localservices/AzureMcp.LocalService.Identity/AzureMcp.LocalService.Identity.csproj", "{A1B2C3D4-E5F6-G7H8-I9J0-K1L2M3N4O5P6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -4,7 +4,7 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 
-namespace AzureMcp.Ext.Credential;
+namespace AzureMcp.LocalService.Identity;
 
 /// <summary>
 /// Provides window handle information for native authentication dialogs.

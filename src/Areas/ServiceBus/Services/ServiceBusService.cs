@@ -4,13 +4,13 @@
 using Azure.Messaging.ServiceBus;
 using Azure.Messaging.ServiceBus.Administration;
 using AzureMcp.Areas.ServiceBus.Models;
-using AzureMcp.GrpcClient.Credential;
+using AzureMcp.LocalServiceClient.Identity;
 using AzureMcp.Options;
 using AzureMcp.Services.Azure;
 
 namespace AzureMcp.Areas.ServiceBus.Services;
 
-public class ServiceBusService(ICredentialServiceClient credentialService) : BaseAzureService(credentialService), IServiceBusService
+public class ServiceBusService(IIdentityServiceClient credentialService) : BaseAzureService(credentialService), IServiceBusService
 {
     public async Task<QueueDetails> GetQueueDetails(
         string namespaceName,

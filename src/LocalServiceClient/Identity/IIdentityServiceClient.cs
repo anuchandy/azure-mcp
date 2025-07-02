@@ -3,12 +3,12 @@
 
 using Azure.Core;
 
-namespace AzureMcp.GrpcClient.Credential;
+namespace AzureMcp.LocalServiceClient.Identity;
 
 /// <summary>
 /// Service for managing credential acquisition with support for both direct and gRPC modes.
 /// </summary>
-public interface ICredentialServiceClient
+public interface IIdentityServiceClient
 {
     /// <summary>
     /// Gets a TokenCredential for the specified tenant.

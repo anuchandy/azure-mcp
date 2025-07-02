@@ -1,11 +1,11 @@
 syntax = "proto3";
 
-option csharp_namespace = "AzureMcp.Grpc.Client";
+option csharp_namespace = "AzureMcp.LocalService.Identity.Grpc";
 
-package credential;
+package identity;
 
-// The credential service provides Azure token authentication
-service CredentialService {
+// The identity service provides Azure token authentication
+service IdentityService {
   // Gets an access token
   rpc GetToken(TokenRequest) returns (TokenResponse);
 }

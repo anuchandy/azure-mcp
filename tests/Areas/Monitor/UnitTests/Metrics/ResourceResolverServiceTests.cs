@@ -8,7 +8,7 @@ using Azure;
 using Azure.Core;
 using Azure.ResourceManager.Resources;
 using AzureMcp.Areas.Monitor.Services;
-using AzureMcp.GrpcClient.Credential;
+using AzureMcp.LocalServiceClient.Identity;
 using AzureMcp.Options;
 using AzureMcp.Services.Azure.Subscription;
 using AzureMcp.Services.Azure.Tenant;
@@ -21,7 +21,7 @@ public class ResourceResolverServiceTests
 {
     private readonly ISubscriptionService _subscriptionService;
     private readonly ITenantService _tenantService;
-    private readonly ICredentialServiceClient _credentialService;
+    private readonly IIdentityServiceClient _credentialService;
     private readonly ResourceResolverService _service;
 
     private readonly SubscriptionResource _subscriptionResource = Substitute.For<SubscriptionResource>();
@@ -30,7 +30,7 @@ public class ResourceResolverServiceTests
     {
         _subscriptionService = Substitute.For<ISubscriptionService>();
         _tenantService = Substitute.For<ITenantService>();
-        _credentialService = Substitute.For<ICredentialServiceClient>();
+        _credentialService = Substitute.For<IIdentityServiceClient>();
         _service = new ResourceResolverService(_subscriptionService, _tenantService, _credentialService);
 
         _subscriptionService.GetSubscription(Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<RetryPolicyOptions?>())

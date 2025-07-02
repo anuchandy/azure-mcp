@@ -6,8 +6,8 @@
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <AssemblyName>AzureMcp.Ext.Credential</AssemblyName>
-    <RootNamespace>AzureMcp.Ext.Credential</RootNamespace>
+    <AssemblyName>AzureMcp.LocalService.Identity</AssemblyName>
+    <RootNamespace>AzureMcp.LocalService.Identity</RootNamespace>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <EnableDefaultContentItems>false</EnableDefaultContentItems>

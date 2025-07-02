@@ -8,12 +8,12 @@ using AzureMcp.Areas.Authorization.Models;
 using AzureMcp.Options;
 using AzureMcp.Services.Azure;
 using AzureMcp.Services.Azure.Tenant;
-using AzureMcp.GrpcClient;
-using AzureMcp.GrpcClient.Credential;
+using AzureMcp.LocalServiceClient;
+using AzureMcp.LocalServiceClient.Identity;
 
 namespace AzureMcp.Areas.Authorization.Services;
 
-public class AuthorizationService(ITenantService tenantService, ICredentialServiceClient credentialService)
+public class AuthorizationService(ITenantService tenantService, IIdentityServiceClient credentialService)
     : BaseAzureService(credentialService, tenantService), IAuthorizationService
 {
     public async Task<List<RoleAssignment>> ListRoleAssignments(

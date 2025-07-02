@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 using Azure.ResourceManager;
-using AzureMcp.GrpcClient.Credential;
+using AzureMcp.LocalServiceClient.Identity;
 using AzureMcp.Options;
 using AzureMcp.Services.Azure;
 using AzureMcp.Services.Azure.Tenant;
@@ -18,7 +18,7 @@ public class BaseAzureServiceTests
     private const string TenantName = "test-tenant-name";
 
     private readonly ITenantService _tenantService = Substitute.For<ITenantService>();
-    private readonly ICredentialServiceClient _credentialService = Substitute.For<ICredentialServiceClient>();
+    private readonly IIdentityServiceClient _credentialService = Substitute.For<IIdentityServiceClient>();
     private readonly TestAzureService _azureService;
 
     public BaseAzureServiceTests()
@@ -65,7 +65,7 @@ public class BaseAzureServiceTests
         Assert.Null(actual2);
     }
 
-    private sealed class TestAzureService(ICredentialServiceClient credentialService, ITenantService? tenantService = null) : BaseAzureService(credentialService, tenantService)
+    private sealed class TestAzureService(IIdentityServiceClient credentialService, ITenantService? tenantService = null) : BaseAzureService(credentialService, tenantService)
     {
         public Task<ArmClient> GetArmClientAsync(string? tenant = null, RetryPolicyOptions? retryPolicy = null) =>
             CreateArmClientAsync(tenant, retryPolicy);

@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using AzureMcp.Ext.Credential.Services;
+using AzureMcp.LocalService.Identity.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,7 +28,7 @@ builder.Logging.AddConsole();
 builder.Logging.SetMinimumLevel(LogLevel.Information);
 
 var app = builder.Build();
-app.MapGrpcService<CredentialGrpcService>();
+app.MapGrpcService<IdentityGrpcService>();
 
 if (app.Environment.IsDevelopment())
 {
@@ -36,10 +36,10 @@ if (app.Environment.IsDevelopment())
     app.MapGrpcReflectionService();
 }
 
-app.MapGet("/", () => "AzureMcp Credential gRPC Service is running");
+app.MapGet("/", () => "AzureMcp Identity gRPC Service is running");
 app.MapGet("/ishealthy", () => new { status = "healthy", timestamp = DateTime.UtcNow });
 
 var urls = Environment.GetEnvironmentVariable("ASPNETCORE_URLS") ?? "http://localhost:5000";
-app.Logger.LogInformation("AzureMcp Credential gRPC Service configured for URLs: {Urls}", urls);
+app.Logger.LogInformation("AzureMcp Identity gRPC Service configured for URLs: {Urls}", urls);
 
 app.Run();

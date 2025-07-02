@@ -5,41 +5,41 @@ using Azure.Core;
 using Azure.Identity;
 using Microsoft.Extensions.Logging;
 
-namespace AzureMcp.GrpcClient.Credential;
+namespace AzureMcp.LocalServiceClient.Identity;
 
 /// <summary>
 /// Service for managing credential acquisition with gRPC.
 /// </summary>
-public sealed class CredentialServiceClient : ICredentialServiceClient, IDisposable
+public sealed class IdentityServiceClient : IIdentityServiceClient, IDisposable
 {
     private readonly GrpcServiceHost _serviceHost;
-    private readonly ILogger<CredentialServiceClient> _logger;
+    private readonly ILogger<IdentityServiceClient> _logger;
     private readonly ILoggerFactory _loggerFactory;
     private readonly Dictionary<string, TokenCredential> credentialsCache = new();
     private bool _disposed;
 
-    public CredentialServiceClient(ILoggerFactory loggerFactory)
+    public IdentityServiceClient(ILoggerFactory loggerFactory)
         : this(loggerFactory, CreateDefaultServiceHost(loggerFactory))
     {
     }
 
-    public CredentialServiceClient(ILoggerFactory loggerFactory, GrpcServiceHost serviceHost)
+    public IdentityServiceClient(ILoggerFactory loggerFactory, GrpcServiceHost serviceHost)
     {
         _loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
         _serviceHost = serviceHost ?? throw new ArgumentNullException(nameof(serviceHost));
-        _logger = CreateLogger<CredentialServiceClient>();
+        _logger = CreateLogger<IdentityServiceClient>();
     }
 
     private static GrpcServiceHost CreateDefaultServiceHost(ILoggerFactory loggerFactory)
     {
         var config = new GrpcServiceConfig
         {
-            ServiceName = "Credential",
-            ExtensionPath = "/Users/anuchandy/code/azure-mcp/ext/AzureMcp.Ext.Credential/bin/Debug/net9.0/",  // Path.Combine("ext", "AzureMcp.Ext.Credential"),
+            ServiceName = "Identity",
+            ExtensionPath = Path.Combine("localservices", "AzureMcp.LocalService.Identity"),
             ExecutableNames = new[]
             {
-                "AzureMcp.Ext.Credential.exe",
-                "AzureMcp.Ext.Credential"
+                "AzureMcp.LocalService.Identity.exe",
+                "AzureMcp.LocalService.Identity"
             },
             HealthEndpoint = "/ishealthy",
             StartupTimeoutSeconds = 30
@@ -54,7 +54,7 @@ public sealed class CredentialServiceClient : ICredentialServiceClient, IDisposa
         if (!credentialsCache.TryGetValue(cacheKey, out var credential))
         {
             var serviceEndpoint = await _serviceHost.StartServiceAsync(cancellationToken);
-            credential = new GrpcTokenCredential(serviceEndpoint, CreateLogger<GrpcTokenCredential>());
+            credential = new GrpcIdentityCredential(serviceEndpoint, CreateLogger<GrpcIdentityCredential>());
             credentialsCache[cacheKey] = credential;
             _logger.LogDebug("Obtained credential for tenant: {TenantId}", tenantId ?? "default");
         }
