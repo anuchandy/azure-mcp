@@ -35,7 +35,7 @@ public sealed class CredentialServiceClient : ICredentialServiceClient, IDisposa
         var config = new GrpcServiceConfig
         {
             ServiceName = "Credential",
-            ExtensionPath = Path.Combine("ext", "AzureMcp.Ext.Credential"),
+            ExtensionPath = "/Users/anuchandy/code/azure-mcp/ext/AzureMcp.Ext.Credential/bin/Debug/net9.0/",  // Path.Combine("ext", "AzureMcp.Ext.Credential"),
             ExecutableNames = new[]
             {
                 "AzureMcp.Ext.Credential.exe",
