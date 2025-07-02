@@ -11,7 +11,7 @@ using Azure.Core;
 using AzureMcp.LocalServiceClient;
 using AzureMcp.LocalServiceClient.Identity;
 
-namespace AzureMcp.Tests.LocalServiceClient;
+namespace AzureMcp.Tests.LocalServiceClient.Identity;
 
 public class IdentityServiceClientTests : IDisposable
 {
