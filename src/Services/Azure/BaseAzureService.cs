@@ -8,6 +8,7 @@ using Azure.ResourceManager;
 using AzureMcp.Options;
 using AzureMcp.Services.Azure.Tenant;
 using AzureMcp.GrpcClient;
+using AzureMcp.GrpcClient.Credential;
 
 namespace AzureMcp.Services.Azure;
 

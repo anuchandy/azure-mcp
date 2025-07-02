@@ -9,6 +9,7 @@ using AzureMcp.Options;
 using AzureMcp.Services.Azure;
 using AzureMcp.Services.Azure.Tenant;
 using AzureMcp.GrpcClient;
+using AzureMcp.GrpcClient.Credential;
 
 namespace AzureMcp.Areas.Authorization.Services;
 

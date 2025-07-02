@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using Xunit;
 using Azure.Core;
 using AzureMcp.GrpcClient;
+using AzureMcp.GrpcClient.Credential;
 
 namespace AzureMcp.Tests.GrpcClient;
 

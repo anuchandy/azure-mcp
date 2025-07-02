@@ -5,7 +5,7 @@ using Azure.Core;
 using Azure.Identity;
 using Microsoft.Extensions.Logging;
 
-namespace AzureMcp.GrpcClient;
+namespace AzureMcp.GrpcClient.Credential;
 
 /// <summary>
 /// Service for managing credential acquisition with support for both direct and gRPC modes.

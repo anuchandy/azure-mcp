@@ -3,7 +3,7 @@
 
 using Azure.Core;
 
-namespace AzureMcp.GrpcClient;
+namespace AzureMcp.GrpcClient.Credential;
 
 /// <summary>
 /// Service for managing credential acquisition with support for both direct and gRPC modes.

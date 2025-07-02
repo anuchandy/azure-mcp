@@ -10,6 +10,7 @@ using AzureMcp.Services.Azure.Tenant;
 using AzureMcp.Services.Caching;
 using AzureMcp.Services.ProcessExecution;
 using AzureMcp.GrpcClient;
+using AzureMcp.GrpcClient.Credential;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 

@@ -85,7 +85,7 @@ public class CredentialGrpcService : CredentialService.CredentialServiceBase
             ErrorType = exception.GetType().Name
         };
 
-        if (exception is AuthenticationFailedException authEx)
+        if (exception is Azure.Identity.AuthenticationFailedException authEx)
         {
             response.ErrorDetails = new ErrorDetails
             {
@@ -95,7 +95,7 @@ public class CredentialGrpcService : CredentialService.CredentialServiceBase
                 IsRetryable = false 
             };
         }
-        else if (exception is CredentialUnavailableException credEx)
+        else if (exception is Azure.Identity.CredentialUnavailableException credEx)
         {
             response.ErrorDetails = new ErrorDetails
             {

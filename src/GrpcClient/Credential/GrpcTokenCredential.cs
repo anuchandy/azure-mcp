@@ -7,7 +7,7 @@ using Grpc.Net.Client;
 using Microsoft.Extensions.Logging;
 using System.Net;
 
-namespace AzureMcp.GrpcClient;
+namespace AzureMcp.GrpcClient.Credential;
 
 /// <summary>
 /// TokenCredential implementation that communicates with the credential gRPC service.
