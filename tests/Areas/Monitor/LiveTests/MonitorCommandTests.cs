@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using AzureMcp.Areas.Monitor.Services;
+using AzureMcp.GrpcClient.Credential;
 using AzureMcp.Services.Azure.ResourceGroup;
 using AzureMcp.Services.Azure.Subscription;
 using AzureMcp.Services.Azure.Tenant;
@@ -39,10 +40,11 @@ public class MonitorCommandTests(LiveTestFixture fixture, ITestOutputHelper outp
     {
         var memoryCache = new MemoryCache(Microsoft.Extensions.Options.Options.Create(new MemoryCacheOptions()));
         var cacheService = new CacheService(memoryCache);
-        var tenantService = new TenantService(cacheService);
-        var subscriptionService = new SubscriptionService(cacheService, tenantService);
-        var resourceGroupService = new ResourceGroupService(cacheService, subscriptionService);
-        return new MonitorService(subscriptionService, tenantService, resourceGroupService);
+        var credentialService = Substitute.For<ICredentialServiceClient>();
+        var tenantService = new TenantService(cacheService, credentialService);
+        var subscriptionService = new SubscriptionService(cacheService, tenantService, credentialService);
+        var resourceGroupService = new ResourceGroupService(cacheService, subscriptionService, credentialService);
+        return new MonitorService(subscriptionService, tenantService, resourceGroupService, credentialService);
     }
 
     [Fact]

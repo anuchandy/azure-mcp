@@ -2,13 +2,14 @@
 // Licensed under the MIT License.
 
 using Azure.Monitor.Query;
+using AzureMcp.GrpcClient.Credential;
 using AzureMcp.Options;
 using AzureMcp.Services.Azure;
 using AzureMcp.Services.Azure.Tenant;
 
 namespace AzureMcp.Areas.Monitor.Services;
 
-public class MetricsQueryClientService(ITenantService tenantService) : BaseAzureService(tenantService), IMetricsQueryClientService
+public class MetricsQueryClientService(ITenantService tenantService, ICredentialServiceClient credentialService) : BaseAzureService(credentialService, tenantService), IMetricsQueryClientService
 {
     public async Task<MetricsQueryClient> CreateClientAsync(string? tenant = null, RetryPolicyOptions? retryPolicy = null)
     {

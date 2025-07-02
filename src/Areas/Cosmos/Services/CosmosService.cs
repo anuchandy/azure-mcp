@@ -4,6 +4,7 @@
 using System.Text.Json.Nodes;
 using Azure.ResourceManager.CosmosDB;
 using AzureMcp.Areas.Cosmos.Exceptions;
+using AzureMcp.GrpcClient.Credential;
 using AzureMcp.Options;
 using AzureMcp.Services.Azure;
 using AzureMcp.Services.Azure.Subscription;
@@ -13,8 +14,8 @@ using Microsoft.Azure.Cosmos;
 
 namespace AzureMcp.Areas.Cosmos.Services;
 
-public class CosmosService(ISubscriptionService subscriptionService, ITenantService tenantService, ICacheService cacheService)
-    : BaseAzureService(tenantService), ICosmosService, IDisposable
+public class CosmosService(ISubscriptionService subscriptionService, ITenantService tenantService, ICacheService cacheService, ICredentialServiceClient credentialService)
+    : BaseAzureService(credentialService, tenantService), ICosmosService, IDisposable
 {
     private readonly ISubscriptionService _subscriptionService = subscriptionService ?? throw new ArgumentNullException(nameof(subscriptionService));
     private readonly ICacheService _cacheService = cacheService ?? throw new ArgumentNullException(nameof(cacheService));

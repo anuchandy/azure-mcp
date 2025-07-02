@@ -6,6 +6,7 @@ using Azure.Core;
 using Azure.Monitor.Query;
 using Azure.Monitor.Query.Models;
 using AzureMcp.Areas.Monitor.Services;
+using AzureMcp.GrpcClient.Credential;
 using AzureMcp.Options;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
@@ -17,6 +18,7 @@ public class MonitorMetricsServiceTests
 {
     private readonly IResourceResolverService _resourceResolverService;
     private readonly IMetricsQueryClientService _metricsQueryClientService;
+    private readonly ICredentialServiceClient _credentialService;
     private readonly MetricsQueryClient _metricsQueryClient;
     private readonly MonitorMetricsService _service;
 
@@ -31,8 +33,9 @@ public class MonitorMetricsServiceTests
     {
         _resourceResolverService = Substitute.For<IResourceResolverService>();
         _metricsQueryClientService = Substitute.For<IMetricsQueryClientService>();
+        _credentialService = Substitute.For<ICredentialServiceClient>();
         _metricsQueryClient = Substitute.For<MetricsQueryClient>();
-        _service = new MonitorMetricsService(_resourceResolverService, _metricsQueryClientService);
+        _service = new MonitorMetricsService(_resourceResolverService, _metricsQueryClientService, _credentialService);
 
         // Setup default behaviors
         _resourceResolverService.ResolveResourceIdAsync(
@@ -56,7 +59,7 @@ public class MonitorMetricsServiceTests
     public void Constructor_WithValidParameters_Succeeds()
     {
         // Act & Assert - Constructor should not throw
-        var service = new MonitorMetricsService(_resourceResolverService, _metricsQueryClientService);
+        var service = new MonitorMetricsService(_resourceResolverService, _metricsQueryClientService, _credentialService);
         Assert.NotNull(service);
     }
 
@@ -65,7 +68,7 @@ public class MonitorMetricsServiceTests
     {
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() =>
-            new MonitorMetricsService(null!, _metricsQueryClientService));
+            new MonitorMetricsService(null!, _metricsQueryClientService, _credentialService));
     }
 
     [Fact]
@@ -73,7 +76,7 @@ public class MonitorMetricsServiceTests
     {
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() =>
-            new MonitorMetricsService(_resourceResolverService, null!));
+            new MonitorMetricsService(_resourceResolverService, null!, _credentialService));
     }
 
     #endregion

@@ -2,14 +2,15 @@
 // Licensed under the MIT License.
 
 using Azure.ResourceManager.Resources;
+using AzureMcp.GrpcClient.Credential;
 using AzureMcp.Options;
 using AzureMcp.Services.Azure.Tenant;
 using AzureMcp.Services.Caching;
 
 namespace AzureMcp.Services.Azure.Subscription;
 
-public class SubscriptionService(ICacheService cacheService, ITenantService tenantService)
-    : BaseAzureService(tenantService), ISubscriptionService
+public class SubscriptionService(ICacheService cacheService, ITenantService tenantService, ICredentialServiceClient credentialService)
+    : BaseAzureService(credentialService, tenantService), ISubscriptionService
 {
     private readonly ICacheService _cacheService = cacheService ?? throw new ArgumentNullException(nameof(cacheService));
     private const string CacheGroup = "subscription";

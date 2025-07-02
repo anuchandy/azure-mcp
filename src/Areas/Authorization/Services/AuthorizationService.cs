@@ -14,7 +14,7 @@ using AzureMcp.GrpcClient.Credential;
 namespace AzureMcp.Areas.Authorization.Services;
 
 public class AuthorizationService(ITenantService tenantService, ICredentialServiceClient credentialService)
-    : BaseAzureService(tenantService, credentialService), IAuthorizationService
+    : BaseAzureService(credentialService, tenantService), IAuthorizationService
 {
     public async Task<List<RoleAssignment>> ListRoleAssignments(
         string? scope,

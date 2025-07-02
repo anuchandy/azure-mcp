@@ -6,6 +6,7 @@ using Azure.Data.AppConfiguration;
 using Azure.ResourceManager.AppConfiguration;
 using Azure.ResourceManager.Resources;
 using AzureMcp.Areas.AppConfig.Models;
+using AzureMcp.GrpcClient.Credential;
 using AzureMcp.Models.Identity;
 using AzureMcp.Options;
 using AzureMcp.Services.Azure;
@@ -14,8 +15,8 @@ using AzureMcp.Services.Azure.Tenant;
 
 namespace AzureMcp.Areas.AppConfig.Services;
 
-public class AppConfigService(ISubscriptionService subscriptionService, ITenantService tenantService)
-    : BaseAzureService(tenantService), IAppConfigService
+public class AppConfigService(ISubscriptionService subscriptionService, ITenantService tenantService, ICredentialServiceClient credentialService)
+    : BaseAzureService(credentialService, tenantService), IAppConfigService
 {
     private readonly ISubscriptionService _subscriptionService = subscriptionService ?? throw new ArgumentNullException(nameof(subscriptionService));
 

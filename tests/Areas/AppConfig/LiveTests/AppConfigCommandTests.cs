@@ -3,12 +3,14 @@
 
 using System.Text.Json;
 using AzureMcp.Areas.AppConfig.Services;
+using AzureMcp.GrpcClient.Credential;
 using AzureMcp.Services.Azure.Subscription;
 using AzureMcp.Services.Azure.Tenant;
 using AzureMcp.Services.Caching;
 using AzureMcp.Tests.Client;
 using AzureMcp.Tests.Client.Helpers;
 using Microsoft.Extensions.Caching.Memory;
+using NSubstitute;
 using Xunit;
 
 namespace AzureMcp.Tests.Areas.AppConfig.LiveTests;
@@ -27,9 +29,10 @@ public class AppConfigCommandTests : CommandTestsBase,
     {
         var memoryCache = new MemoryCache(Microsoft.Extensions.Options.Options.Create(new MemoryCacheOptions()));
         var cacheService = new CacheService(memoryCache);
-        var tenantService = new TenantService(cacheService);
-        var subscriptionService = new SubscriptionService(cacheService, tenantService);
-        _appConfigService = new AppConfigService(subscriptionService, tenantService);
+        var credentialService = Substitute.For<ICredentialServiceClient>();
+        var tenantService = new TenantService(cacheService, credentialService);
+        var subscriptionService = new SubscriptionService(cacheService, tenantService, credentialService);
+        _appConfigService = new AppConfigService(subscriptionService, tenantService, credentialService);
         _subscriptionId = Settings.SubscriptionId;
         _accountName = Settings.ResourceBaseName;
     }

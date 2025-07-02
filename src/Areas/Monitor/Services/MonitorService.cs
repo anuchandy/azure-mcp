@@ -8,6 +8,7 @@ using Azure.Monitor.Query;
 using Azure.Monitor.Query.Models;
 using Azure.ResourceManager.OperationalInsights;
 using AzureMcp.Areas.Monitor.Models;
+using AzureMcp.GrpcClient.Credential;
 using AzureMcp.Options;
 using AzureMcp.Services.Azure;
 using AzureMcp.Services.Azure.ResourceGroup;
@@ -21,8 +22,8 @@ public class MonitorService : BaseAzureService, IMonitorService
     private readonly ISubscriptionService _subscriptionService;
     private readonly IResourceGroupService _resourceGroupService;
 
-    public MonitorService(ISubscriptionService subscriptionService, ITenantService tenantService, IResourceGroupService resourceGroupService)
-        : base(tenantService)
+    public MonitorService(ISubscriptionService subscriptionService, ITenantService tenantService, IResourceGroupService resourceGroupService, ICredentialServiceClient credentialService)
+        : base(credentialService, tenantService)
     {
         _subscriptionService = subscriptionService ?? throw new ArgumentNullException(nameof(subscriptionService));
         _resourceGroupService = resourceGroupService ?? throw new ArgumentNullException(nameof(resourceGroupService));

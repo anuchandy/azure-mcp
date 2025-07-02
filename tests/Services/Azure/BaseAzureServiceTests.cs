@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using Azure.ResourceManager;
+using AzureMcp.GrpcClient.Credential;
 using AzureMcp.Options;
 using AzureMcp.Services.Azure;
 using AzureMcp.Services.Azure.Tenant;
@@ -17,11 +18,12 @@ public class BaseAzureServiceTests
     private const string TenantName = "test-tenant-name";
 
     private readonly ITenantService _tenantService = Substitute.For<ITenantService>();
+    private readonly ICredentialServiceClient _credentialService = Substitute.For<ICredentialServiceClient>();
     private readonly TestAzureService _azureService;
 
     public BaseAzureServiceTests()
     {
-        _azureService = new TestAzureService();
+        _azureService = new TestAzureService(_credentialService, _tenantService);
         _tenantService.GetTenantId(TenantName).Returns(TenantId);
     }
 
@@ -54,7 +56,7 @@ public class BaseAzureServiceTests
     [Fact]
     public async Task ResolveTenantIdAsync_ReturnsValueNoService()
     {
-        var testAzureService = new TestAzureService(null);
+        var testAzureService = new TestAzureService(_credentialService, null);
 
         string? actual = await testAzureService.ResolveTenantId(TenantName);
         Assert.Equal(TenantName, actual);
@@ -63,7 +65,7 @@ public class BaseAzureServiceTests
         Assert.Null(actual2);
     }
 
-    private sealed class TestAzureService(ITenantService? tenantService = null) : BaseAzureService(tenantService)
+    private sealed class TestAzureService(ICredentialServiceClient credentialService, ITenantService? tenantService = null) : BaseAzureService(credentialService, tenantService)
     {
         public Task<ArmClient> GetArmClientAsync(string? tenant = null, RetryPolicyOptions? retryPolicy = null) =>
             CreateArmClientAsync(tenant, retryPolicy);

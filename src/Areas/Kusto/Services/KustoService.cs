@@ -3,6 +3,7 @@
 
 using Azure.ResourceManager.Kusto;
 using AzureMcp.Commands.Kusto;
+using AzureMcp.GrpcClient.Credential;
 using AzureMcp.Options;
 using AzureMcp.Services.Azure;
 using AzureMcp.Services.Azure.Subscription;
@@ -15,7 +16,8 @@ namespace AzureMcp.Areas.Kusto.Services;
 public sealed class KustoService(
     ISubscriptionService subscriptionService,
     ITenantService tenantService,
-    ICacheService cacheService) : BaseAzureService(tenantService), IKustoService
+    ICacheService cacheService,
+    ICredentialServiceClient credentialService) : BaseAzureService(credentialService, tenantService), IKustoService
 {
     private readonly ISubscriptionService _subscriptionService = subscriptionService ?? throw new ArgumentNullException(nameof(subscriptionService));
     private readonly ICacheService _cacheService = cacheService ?? throw new ArgumentNullException(nameof(cacheService));

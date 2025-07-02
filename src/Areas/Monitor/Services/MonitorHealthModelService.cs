@@ -3,14 +3,15 @@
 
 using System.Text.Json.Nodes;
 using Azure.Core;
+using AzureMcp.GrpcClient.Credential;
 using AzureMcp.Options;
 using AzureMcp.Services.Azure;
 using AzureMcp.Services.Azure.Tenant;
 
 namespace AzureMcp.Areas.Monitor.Services;
 
-public class MonitorHealthModelService(ITenantService tenantService)
-    : BaseAzureService(tenantService), IMonitorHealthModelService
+public class MonitorHealthModelService(ITenantService tenantService, ICredentialServiceClient credentialService)
+    : BaseAzureService(credentialService, tenantService), IMonitorHealthModelService
 {
     private const int TokenExpirationBuffer = 300;
     private const string ManagementApiBaseUrl = "https://management.azure.com";

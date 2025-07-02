@@ -4,22 +4,18 @@
 using Azure;
 using Azure.Core;
 using Azure.ResourceManager.PostgreSql.FlexibleServers;
+using AzureMcp.GrpcClient.Credential;
 using AzureMcp.Services.Azure;
 using AzureMcp.Services.Azure.ResourceGroup;
 using Npgsql;
 
 namespace AzureMcp.Areas.Postgres.Services;
 
-public class PostgresService : BaseAzureService, IPostgresService
+public class PostgresService(IResourceGroupService resourceGroupService, ICredentialServiceClient credentialService) : BaseAzureService(credentialService), IPostgresService
 {
-    private readonly IResourceGroupService _resourceGroupService;
+    private readonly IResourceGroupService _resourceGroupService = resourceGroupService ?? throw new ArgumentNullException(nameof(resourceGroupService));
     private string? _cachedEntraIdAccessToken;
     private DateTime _tokenExpiryTime;
-
-    public PostgresService(IResourceGroupService resourceGroupService)
-    {
-        _resourceGroupService = resourceGroupService ?? throw new ArgumentNullException(nameof(resourceGroupService));
-    }
 
     private async Task<string> GetEntraIdAccessTokenAsync()
     {

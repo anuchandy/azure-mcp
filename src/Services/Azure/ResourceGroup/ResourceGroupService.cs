@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using Azure.ResourceManager.Resources;
+using AzureMcp.GrpcClient.Credential;
 using AzureMcp.Models.ResourceGroup;
 using AzureMcp.Options;
 using AzureMcp.Services.Azure.Subscription;
@@ -9,8 +10,8 @@ using AzureMcp.Services.Caching;
 
 namespace AzureMcp.Services.Azure.ResourceGroup;
 
-public class ResourceGroupService(ICacheService cacheService, ISubscriptionService subscriptionService)
-    : BaseAzureService, IResourceGroupService
+public class ResourceGroupService(ICacheService cacheService, ISubscriptionService subscriptionService, ICredentialServiceClient credentialService)
+    : BaseAzureService(credentialService), IResourceGroupService
 {
     private readonly ICacheService _cacheService = cacheService ?? throw new ArgumentNullException(nameof(cacheService));
     private readonly ISubscriptionService _subscriptionService = subscriptionService ?? throw new ArgumentNullException(nameof(subscriptionService));

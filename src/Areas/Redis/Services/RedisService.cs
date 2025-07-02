@@ -6,6 +6,7 @@ using Azure.ResourceManager.Redis.Models;
 using Azure.ResourceManager.RedisEnterprise;
 using AzureMcp.Areas.Redis.Models.CacheForRedis;
 using AzureMcp.Areas.Redis.Models.ManagedRedis;
+using AzureMcp.GrpcClient.Credential;
 using AzureMcp.Models.Identity;
 using AzureMcp.Options;
 using AzureMcp.Services.Azure;
@@ -15,8 +16,8 @@ using AzureMcp.Services.Azure.Tenant;
 
 namespace AzureMcp.Areas.Redis.Services;
 
-public class RedisService(ISubscriptionService _subscriptionService, IResourceGroupService _resourceGroupService, ITenantService tenantService)
-    : BaseAzureService(tenantService), IRedisService
+public class RedisService(ISubscriptionService _subscriptionService, IResourceGroupService _resourceGroupService, ITenantService tenantService, ICredentialServiceClient credentialService)
+    : BaseAzureService(credentialService, tenantService), IRedisService
 {
     public async Task<IEnumerable<Cache>> ListCachesAsync(
         string subscriptionId,

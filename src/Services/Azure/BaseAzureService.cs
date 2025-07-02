@@ -12,7 +12,7 @@ using AzureMcp.GrpcClient.Credential;
 
 namespace AzureMcp.Services.Azure;
 
-public abstract class BaseAzureService(ITenantService? tenantService = null, ICredentialServiceClient? credentialService = null)
+public abstract class BaseAzureService(ICredentialServiceClient credentialService, ITenantService? tenantService = null)
 {
     private static readonly UserAgentPolicy s_sharedUserAgentPolicy;
     internal static readonly string s_defaultUserAgent;
@@ -23,7 +23,7 @@ public abstract class BaseAzureService(ITenantService? tenantService = null, ICr
     private string? _lastArmClientTenantId;
     private RetryPolicyOptions? _lastRetryPolicy;
     private readonly ITenantService? _tenantService = tenantService;
-    private readonly ICredentialServiceClient? _credentialService = credentialService;
+    private readonly ICredentialServiceClient _credentialService = credentialService;
 
     static BaseAzureService()
     {
@@ -57,15 +57,7 @@ public abstract class BaseAzureService(ITenantService? tenantService = null, ICr
 
         try
         {
-            if (_credentialService != null)
-            {
-                _credential = await _credentialService.GetCredentialAsync(tenantId);
-            }
-            else
-            {
-                throw new InvalidOperationException("No credential service available");
-            }
-
+            _credential = await _credentialService.GetCredentialAsync(tenantId);
             _lastTenantId = tenantId;
             return _credential;
         }
