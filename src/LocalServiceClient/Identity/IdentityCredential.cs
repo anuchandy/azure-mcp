@@ -12,13 +12,13 @@ namespace AzureMcp.LocalServiceClient.Identity;
 /// <summary>
 /// TokenCredential implementation that communicates with the credential gRPC service.
 /// </summary>
-public sealed class GrpcIdentityCredential(
+internal sealed class IdentityCredential(
     string serviceEndpoint, 
-    ILogger<GrpcIdentityCredential> logger, 
+    ILogger<IdentityCredential> logger, 
     string? tenantId = null) : TokenCredential, IDisposable
 {
     private readonly string _serviceEndpoint = serviceEndpoint ?? throw new ArgumentNullException(nameof(serviceEndpoint));
-    private readonly ILogger<GrpcIdentityCredential> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    private readonly ILogger<IdentityCredential> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     private readonly string? _tenantId = tenantId;
     private GrpcChannel? _channel;
     private AzureMcp.LocalServiceClient.Identity.Grpc.IdentityService.IdentityServiceClient? _client;

@@ -54,7 +54,7 @@ public sealed class IdentityServiceClient : IIdentityServiceClient, IDisposable
         if (!credentialsCache.TryGetValue(cacheKey, out var credential))
         {
             var serviceEndpoint = await _serviceHost.StartServiceAsync(cancellationToken);
-            credential = new GrpcIdentityCredential(serviceEndpoint, CreateLogger<GrpcIdentityCredential>());
+            credential = new IdentityCredential(serviceEndpoint, CreateLogger<IdentityCredential>());
             credentialsCache[cacheKey] = credential;
             _logger.LogDebug("Obtained credential for tenant: {TenantId}", tenantId ?? "default");
         }
