@@ -128,10 +128,10 @@ internal class Program
         services.AddSingleton<ISubscriptionService, SubscriptionService>();
         services.AddSingleton<CommandFactory>();
 
-        services.AddSingleton<ICredentialGrpcClient>(provider =>
+        services.AddSingleton<ICredentialServiceClient>(provider =>
         {
             var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
-            return new CredentialGrpcClient(loggerFactory);
+            return new CredentialServiceClient(loggerFactory);
         });
 
         foreach (var area in Areas)

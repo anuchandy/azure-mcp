@@ -8,7 +8,7 @@ namespace AzureMcp.GrpcClient.Credential;
 /// <summary>
 /// Service for managing credential acquisition with support for both direct and gRPC modes.
 /// </summary>
-public interface ICredentialGrpcClient
+public interface ICredentialServiceClient
 {
     /// <summary>
     /// Gets a TokenCredential for the specified tenant.

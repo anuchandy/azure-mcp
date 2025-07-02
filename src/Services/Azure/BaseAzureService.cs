@@ -12,7 +12,7 @@ using AzureMcp.GrpcClient.Credential;
 
 namespace AzureMcp.Services.Azure;
 
-public abstract class BaseAzureService(ITenantService? tenantService = null, ICredentialGrpcClient? credentialService = null)
+public abstract class BaseAzureService(ITenantService? tenantService = null, ICredentialServiceClient? credentialService = null)
 {
     private static readonly UserAgentPolicy s_sharedUserAgentPolicy;
     internal static readonly string s_defaultUserAgent;
@@ -23,7 +23,7 @@ public abstract class BaseAzureService(ITenantService? tenantService = null, ICr
     private string? _lastArmClientTenantId;
     private RetryPolicyOptions? _lastRetryPolicy;
     private readonly ITenantService? _tenantService = tenantService;
-    private readonly ICredentialGrpcClient? _credentialService = credentialService;
+    private readonly ICredentialServiceClient? _credentialService = credentialService;
 
     static BaseAzureService()
     {

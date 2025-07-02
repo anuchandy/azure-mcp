@@ -13,7 +13,7 @@ using AzureMcp.GrpcClient.Credential;
 
 namespace AzureMcp.Areas.Authorization.Services;
 
-public class AuthorizationService(ITenantService tenantService, ICredentialGrpcClient credentialService)
+public class AuthorizationService(ITenantService tenantService, ICredentialServiceClient credentialService)
     : BaseAzureService(tenantService, credentialService), IAuthorizationService
 {
     public async Task<List<RoleAssignment>> ListRoleAssignments(

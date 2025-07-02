@@ -13,18 +13,18 @@ using AzureMcp.GrpcClient.Credential;
 
 namespace AzureMcp.Tests.GrpcClient;
 
-public class CredentialGrpcClientTests : IDisposable
+public class CredentialServiceClientTests : IDisposable
 {
     private readonly ILoggerFactory _loggerFactory;
-    private readonly ILogger<CredentialGrpcClientTests> _logger;
+    private readonly ILogger<CredentialServiceClientTests> _logger;
     private GrpcServiceHost? _serviceHost;
-    private CredentialGrpcClient? _credentialClient;
+    private CredentialServiceClient? _credentialClient;
 
-    public CredentialGrpcClientTests()
+    public CredentialServiceClientTests()
     {
         _loggerFactory = LoggerFactory.Create(builder => 
             builder.AddConsole().SetMinimumLevel(LogLevel.Debug));
-        _logger = _loggerFactory.CreateLogger<CredentialGrpcClientTests>();
+        _logger = _loggerFactory.CreateLogger<CredentialServiceClientTests>();
     }
 
     [Fact]
@@ -68,7 +68,7 @@ public class CredentialGrpcClientTests : IDisposable
         Assert.Contains("healthy", healthContent);
 
         // Check if we can get a credential
-        var credentialClient = new CredentialGrpcClient(_loggerFactory, _serviceHost);
+        var credentialClient = new CredentialServiceClient(_loggerFactory, _serviceHost);
         var credential = await credentialClient.GetCredentialAsync(tenantId: null, TestContext.Current.CancellationToken);
         Assert.NotNull(credential);
         Assert.IsAssignableFrom<TokenCredential>(credential);
@@ -96,7 +96,7 @@ public class CredentialGrpcClientTests : IDisposable
 
         var logger = _loggerFactory.CreateLogger<GrpcServiceHost>();
         _serviceHost = new GrpcServiceHost(logger, config);
-        _credentialClient = new CredentialGrpcClient(_loggerFactory, _serviceHost);
+        _credentialClient = new CredentialServiceClient(_loggerFactory, _serviceHost);
 
         // Act
         var credential = await _credentialClient.GetCredentialAsync(tenantId: null, TestContext.Current.CancellationToken);

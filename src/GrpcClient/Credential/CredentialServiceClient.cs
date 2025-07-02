@@ -10,24 +10,24 @@ namespace AzureMcp.GrpcClient.Credential;
 /// <summary>
 /// Service for managing credential acquisition with gRPC.
 /// </summary>
-public sealed class CredentialGrpcClient : ICredentialGrpcClient, IDisposable
+public sealed class CredentialServiceClient : ICredentialServiceClient, IDisposable
 {
     private readonly GrpcServiceHost _serviceHost;
-    private readonly ILogger<CredentialGrpcClient> _logger;
+    private readonly ILogger<CredentialServiceClient> _logger;
     private readonly ILoggerFactory _loggerFactory;
     private readonly Dictionary<string, TokenCredential> credentialsCache = new();
     private bool _disposed;
 
-    public CredentialGrpcClient(ILoggerFactory loggerFactory)
+    public CredentialServiceClient(ILoggerFactory loggerFactory)
         : this(loggerFactory, CreateDefaultServiceHost(loggerFactory))
     {
     }
 
-    public CredentialGrpcClient(ILoggerFactory loggerFactory, GrpcServiceHost serviceHost)
+    public CredentialServiceClient(ILoggerFactory loggerFactory, GrpcServiceHost serviceHost)
     {
         _loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
         _serviceHost = serviceHost ?? throw new ArgumentNullException(nameof(serviceHost));
-        _logger = CreateLogger<CredentialGrpcClient>();
+        _logger = CreateLogger<CredentialServiceClient>();
     }
 
     private static GrpcServiceHost CreateDefaultServiceHost(ILoggerFactory loggerFactory)
