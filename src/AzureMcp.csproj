@@ -84,7 +84,10 @@
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
     <PackageReference Include="Azure.Monitor.OpenTelemetry.AspNetCore" />
     <PackageReference Include="Microsoft.Extensions.Azure" />
-	<PackageReference Include="Azure.Search.Documents" />
+    <PackageReference Include="Azure.Search.Documents" />
+    <PackageReference Include="Grpc.Net.Client" />
+    <PackageReference Include="Google.Protobuf" />
+    <PackageReference Include="Grpc.Tools" PrivateAssets="All" />
   </ItemGroup>
 
   <ItemGroup>
@@ -106,7 +109,7 @@
   <ItemGroup>
     <Content Include="localservices.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
-  
+
   <!-- Remove Cosmos native files from the build output directory -->
   <Target Name="RemoveCosmosNativeFiles" BeforeTargets="Build">
     <ItemGroup>

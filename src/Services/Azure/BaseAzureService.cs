@@ -5,25 +5,24 @@ using System.Reflection;
 using System.Runtime.Versioning;
 using Azure.Core;
 using Azure.ResourceManager;
-using AzureMcp.Ext.Credential;
 using AzureMcp.Options;
 using AzureMcp.Services.Azure.Tenant;
-using Microsoft.Extensions.Logging;
+using AzureMcp.GrpcClient;
 
 namespace AzureMcp.Services.Azure;
 
-public abstract class BaseAzureService(ITenantService? tenantService = null, ILoggerFactory? loggerFactory = null)
+public abstract class BaseAzureService(ITenantService? tenantService = null, ICredentialGrpcClient? credentialService = null)
 {
     private static readonly UserAgentPolicy s_sharedUserAgentPolicy;
     internal static readonly string s_defaultUserAgent;
 
-    private CustomChainedCredential? _credential;
+    private TokenCredential? _credential;
     private string? _lastTenantId;
     private ArmClient? _armClient;
     private string? _lastArmClientTenantId;
     private RetryPolicyOptions? _lastRetryPolicy;
     private readonly ITenantService? _tenantService = tenantService;
-    private readonly ILoggerFactory? _loggerFactory = loggerFactory;
+    private readonly ICredentialGrpcClient? _credentialService = credentialService;
 
     static BaseAzureService()
     {
@@ -57,8 +56,15 @@ public abstract class BaseAzureService(ITenantService? tenantService = null, ILo
 
         try
         {
-            ILogger<CustomChainedCredential>? logger = _loggerFactory?.CreateLogger<CustomChainedCredential>();
-            _credential = new CustomChainedCredential(tenantId, logger);
+            if (_credentialService != null)
+            {
+                _credential = await _credentialService.GetCredentialAsync(tenantId);
+            }
+            else
+            {
+                throw new InvalidOperationException("No credential service available");
+            }
+
             _lastTenantId = tenantId;
             return _credential;
         }

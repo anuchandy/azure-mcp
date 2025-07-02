@@ -5,6 +5,14 @@ using AzureMcp.Ext.Credential.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.ConfigureEndpointDefaults(listenOptions =>
+    {
+        listenOptions.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http2;
+    });
+});
+
 builder.Services.AddGrpc();
 builder.Services.AddLogging();
 
@@ -28,7 +36,8 @@ if (app.Environment.IsDevelopment())
     app.MapGrpcReflectionService();
 }
 
-app.MapGet("/", () => "Use a gRPC client to use AzureMcp.Ext.Credential.Grpc service");
+app.MapGet("/", () => "AzureMcp Credential gRPC Service is running");
+app.MapGet("/ishealthy", () => new { status = "healthy", timestamp = DateTime.UtcNow });
 
 var urls = Environment.GetEnvironmentVariable("ASPNETCORE_URLS") ?? "http://localhost:5000";
 app.Logger.LogInformation("AzureMcp Credential gRPC Service configured for URLs: {Urls}", urls);

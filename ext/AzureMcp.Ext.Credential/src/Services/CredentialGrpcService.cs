@@ -7,29 +7,42 @@ using Grpc.Core;
 
 namespace AzureMcp.Ext.Credential.Services;
 
+/// <summary>
+/// gRPC service for providing Azure credential token acquisition.
+/// </summary>
 public class CredentialGrpcService : CredentialService.CredentialServiceBase
 {
     private readonly ILogger<CredentialGrpcService> _logger;
     private readonly CustomChainedCredential _credential;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CredentialGrpcService"/> class.
+    /// </summary>
+    /// <param name="logger">The logger instance.</param>
     public CredentialGrpcService(ILogger<CredentialGrpcService> logger)
     {
         _logger = logger;
         _credential = new CustomChainedCredential();
     }
 
+    /// <summary>
+    /// Gets an access token.
+    /// </summary>
+    /// <param name="request">The token request.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>The token response.</returns>
     public override Task<TokenResponse> GetToken(TokenRequest request, ServerCallContext context)
     {
         try
         {
             _logger.LogDebug("Received GetToken request for scopes: {Scopes}", string.Join(", ", request.Scopes));
 
-            var requestContext = ConvertToTokenRequestContext(request);
+            var requestContext = ToTokenRequestContext(request);
             var cancellationToken = CreateCancellationToken(request, context);
 
             var accessToken = _credential.GetToken(requestContext, cancellationToken);
 
-            var response = ConvertToTokenResponse(accessToken);
+            var response = ToTokenResponse(accessToken);
             _logger.LogDebug("Successfully obtained token, expires at: {ExpiresOn}", 
                 new DateTimeOffset(response.ExpiresOnTicks, TimeSpan.Zero));
 
@@ -42,31 +55,7 @@ public class CredentialGrpcService : CredentialService.CredentialServiceBase
         }
     }
 
-    public override async Task<TokenResponse> GetTokenAsync(TokenRequest request, ServerCallContext context)
-    {
-        try
-        {
-            _logger.LogDebug("Received GetTokenAsync request for scopes: {Scopes}", string.Join(", ", request.Scopes));
-
-            var requestContext = ConvertToTokenRequestContext(request);
-            var cancellationToken = CreateCancellationToken(request, context);
-
-            var accessToken = await _credential.GetTokenAsync(requestContext, cancellationToken);
-
-            var response = ConvertToTokenResponse(accessToken);
-            _logger.LogDebug("Successfully obtained token asynchronously, expires at: {ExpiresOn}", 
-                new DateTimeOffset(response.ExpiresOnTicks, TimeSpan.Zero));
-
-            return response;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to get access token asynchronously");
-            return CreateErrorResponse(ex);
-        }
-    }
-
-    private static TokenRequestContext ConvertToTokenRequestContext(TokenRequest request)
+    private static TokenRequestContext ToTokenRequestContext(TokenRequest request)
     {
         var scopes = request.Scopes.ToArray();
         var parentRequestId = request.HasParentRequestId ? request.ParentRequestId : null;
@@ -76,7 +65,7 @@ public class CredentialGrpcService : CredentialService.CredentialServiceBase
         return new TokenRequestContext(scopes, parentRequestId, claims, tenantId);
     }
 
-    private static TokenResponse ConvertToTokenResponse(AccessToken accessToken)
+    private static TokenResponse ToTokenResponse(AccessToken accessToken)
     {
         return new TokenResponse
         {
