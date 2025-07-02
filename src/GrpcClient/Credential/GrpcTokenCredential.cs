@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using Azure.Core;
+using AzureMcp.Models.Identity;
 using Grpc.Net.Client;
 using Microsoft.Extensions.Logging;
 using System.Net;

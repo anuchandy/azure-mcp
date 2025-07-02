@@ -3,6 +3,8 @@
 
 using System.Text.Json.Nodes;
 using AzureMcp.Options;
+using AzureMcp.Models.Identity;
+using Microsoft.Extensions.Logging;
 
 namespace AzureMcp.Areas.Monitor.Services;
 

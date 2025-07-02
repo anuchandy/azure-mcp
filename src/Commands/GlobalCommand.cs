@@ -5,8 +5,10 @@ using System.Diagnostics.CodeAnalysis;
 using Azure;
 using Azure.Core;
 using Azure.Identity;
+using AzureMcp.Models.Identity;
 using AzureMcp.Models.Option;
 using AzureMcp.Options;
+using Microsoft.Extensions.Logging;
 
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
 
@@ -110,7 +112,7 @@ public abstract class GlobalCommand<
 
     protected override string GetErrorMessage(Exception ex) => ex switch
     {
-        AuthenticationFailedException authEx =>
+        AzureMcp.Models.Identity.AuthenticationFailedException authEx =>
             $"Authentication failed. Please run 'az login' to sign in to Azure. Details: {authEx.Message}",
         RequestFailedException rfEx => rfEx.Message,
         HttpRequestException httpEx =>
@@ -120,7 +122,7 @@ public abstract class GlobalCommand<
 
     protected override int GetStatusCode(Exception ex) => ex switch
     {
-        AuthenticationFailedException => 401,
+        AzureMcp.Models.Identity.AuthenticationFailedException => 401,
         RequestFailedException rfEx => rfEx.Status,
         HttpRequestException => 503,
         _ => 500

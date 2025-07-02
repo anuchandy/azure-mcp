@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace AzureMcp.GrpcClient.Credential;
+namespace AzureMcp.Models.Identity;
 
 public sealed class CredentialUnavailableException : Exception
 {
