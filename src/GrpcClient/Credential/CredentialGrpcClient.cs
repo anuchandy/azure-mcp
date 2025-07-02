@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 namespace AzureMcp.GrpcClient.Credential;
 
 /// <summary>
-/// Service for managing credential acquisition with support for both direct and gRPC modes.
+/// Service for managing credential acquisition with gRPC.
 /// </summary>
 public sealed class CredentialGrpcClient : ICredentialGrpcClient, IDisposable
 {
