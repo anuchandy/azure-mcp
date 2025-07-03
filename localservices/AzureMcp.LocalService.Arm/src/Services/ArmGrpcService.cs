@@ -30,6 +30,44 @@ public class ArmGrpcService : ArmService.ArmServiceBase
         _serviceProvider = serviceProvider;
     }
 
+    /// <summary>
+    /// Gets the status of the Identity service connectivity.
+    /// </summary>
+    /// <param name="request">The status request containing optional tenant and scopes.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>A response indicating the Identity service status.</returns>
+    public override async Task<IdentityServiceStatusResponse> GetIdentityServiceStatus(
+        IdentityServiceStatusRequest request,
+        ServerCallContext context)
+    {
+        try
+        {
+            var scopes = request.Scopes?.Count > 0
+                ? request.Scopes.ToArray()
+                : new[] { "https://management.azure.com/.default" };
+
+            var token = await _identityClient.GetTokenAsync(
+                scopes,
+                string.IsNullOrWhiteSpace(request.TenantId) ? null : request.TenantId,
+                context.CancellationToken);
+
+            return new IdentityServiceStatusResponse
+            {
+                IsSuccess = true,
+                Details = $"Successfully obtained token for scopes: {string.Join(", ", scopes)}"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new IdentityServiceStatusResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message,
+                Details = $"Failed to obtain token from Identity service: {ex.GetType().Name}"
+            };
+        }
+    }
+
     // TODO: anu Add ARM operation methods here
     // Example usage in gRPC methods:
     // 
@@ -49,7 +87,7 @@ public class ArmGrpcService : ArmService.ArmServiceBase
     private ArmClient CreateArmClient(string? tenantId = null)
     {
         var credential = new IdentityCredential(
-            _identityClient, 
+            _identityClient,
             _serviceProvider.GetRequiredService<ILogger<IdentityCredential>>(),
             tenantId);
         _logger.LogDebug("Created ArmClient for tenant: {TenantId}", tenantId ?? "default");
