@@ -17,6 +17,11 @@ public sealed class IdentityServiceClient : IIdentityServiceClient, IDisposable
     private readonly Dictionary<string, TokenCredential> credentialsCache = new();
     private bool _disposed;
 
+    /// <summary>
+    /// Gets the gRPC identity service endpoint URL that this client is associated with.
+    /// </summary>
+    public string ServiceEndpoint => _serviceHost.EndpointUrl ?? string.Empty;
+
     public IdentityServiceClient(ILoggerFactory loggerFactory)
         : this(loggerFactory, CreateDefaultServiceHost(loggerFactory))
     {
@@ -43,7 +48,6 @@ public sealed class IdentityServiceClient : IIdentityServiceClient, IDisposable
             HealthEndpoint = "/ishealthy",
             StartupTimeoutSeconds = 30
         };
-
         return new GrpcServiceHost(loggerFactory.CreateLogger<GrpcServiceHost>(), config);
     }
 

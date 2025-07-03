@@ -11,6 +11,11 @@ namespace AzureMcp.LocalServiceClient.Identity;
 public interface IIdentityServiceClient
 {
     /// <summary>
+    /// Gets the gRPC service endpoint URL that this client is associated with.
+    /// </summary>
+    string ServiceEndpoint { get; }
+
+    /// <summary>
     /// Gets a TokenCredential for the specified tenant.
     /// </summary>
     /// <param name="tenantId">Optional tenant ID</param>
