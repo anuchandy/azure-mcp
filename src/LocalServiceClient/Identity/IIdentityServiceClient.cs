@@ -8,13 +8,8 @@ namespace AzureMcp.LocalServiceClient.Identity;
 /// <summary>
 /// Service for managing credential acquisition with support for both direct and gRPC modes.
 /// </summary>
-public interface IIdentityServiceClient
+public interface IIdentityServiceClient : IInitializableServiceClient
 {
-    /// <summary>
-    /// Gets the gRPC service endpoint URL that this client is associated with.
-    /// </summary>
-    string ServiceEndpoint { get; }
-
     /// <summary>
     /// Gets a TokenCredential for the specified tenant.
     /// </summary>

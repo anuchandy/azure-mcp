@@ -11,16 +11,14 @@ namespace AzureMcp.LocalServiceClient.Identity;
 /// </summary>
 public sealed class IdentityServiceClient : IIdentityServiceClient, IDisposable
 {
+    private const string LocalServiceName = "AzureMcp.LocalService.Identity";
+    
     private readonly GrpcServiceHost _serviceHost;
     private readonly ILogger<IdentityServiceClient> _logger;
     private readonly ILoggerFactory _loggerFactory;
     private readonly Dictionary<string, TokenCredential> credentialsCache = new();
+    private readonly Lazy<Task<string>> _initTask;
     private bool _disposed;
-
-    /// <summary>
-    /// Gets the gRPC identity service endpoint URL that this client is associated with.
-    /// </summary>
-    public string ServiceEndpoint => _serviceHost.EndpointUrl ?? string.Empty;
 
     public IdentityServiceClient(ILoggerFactory loggerFactory)
         : this(loggerFactory, CreateDefaultServiceHost(loggerFactory))
@@ -32,31 +30,35 @@ public sealed class IdentityServiceClient : IIdentityServiceClient, IDisposable
         _loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
         _serviceHost = serviceHost ?? throw new ArgumentNullException(nameof(serviceHost));
         _logger = CreateLogger<IdentityServiceClient>();
+
+        _initTask = new Lazy<Task<string>>(async () =>
+        {
+            var logInit = !_serviceHost.IsRunning;
+            if (logInit)
+            {
+                _logger.LogDebug("Starting {LocalServiceName}", LocalServiceName);
+            }
+            var endpoint = await _serviceHost.StartServiceAsync();
+            if (logInit)
+            {
+                _logger.LogInformation("{LocalServiceName} initialized at {Endpoint}", LocalServiceName, endpoint);
+            }
+            return endpoint;
+        });
     }
 
-    private static GrpcServiceHost CreateDefaultServiceHost(ILoggerFactory loggerFactory)
+    public async Task<string> EnsureInitializedAsync(CancellationToken cancellationToken = default)
     {
-        var config = new GrpcServiceConfig
-        {
-            ServiceName = "Identity",
-            ExtensionPath = Path.Combine("localservices", "AzureMcp.LocalService.Identity"),
-            ExecutableNames = new[]
-            {
-                "AzureMcp.LocalService.Identity.exe",
-                "AzureMcp.LocalService.Identity"
-            },
-            HealthEndpoint = "/ishealthy",
-            StartupTimeoutSeconds = 30
-        };
-        return new GrpcServiceHost(loggerFactory.CreateLogger<GrpcServiceHost>(), config);
+        using var combined = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        return await _initTask.Value.WaitAsync(combined.Token);
     }
 
     public async Task<TokenCredential> GetCredentialAsync(string? tenantId = null, CancellationToken cancellationToken = default)
     {
+        var serviceEndpoint = await EnsureInitializedAsync(cancellationToken);
         var cacheKey = tenantId ?? string.Empty;
         if (!credentialsCache.TryGetValue(cacheKey, out var credential))
         {
-            var serviceEndpoint = await _serviceHost.StartServiceAsync(cancellationToken);
             credential = new IdentityCredential(serviceEndpoint, CreateLogger<IdentityCredential>());
             credentialsCache[cacheKey] = credential;
             _logger.LogDebug("Obtained credential for tenant: {TenantId}", tenantId ?? "default");
@@ -82,4 +84,21 @@ public sealed class IdentityServiceClient : IIdentityServiceClient, IDisposable
     }
 
     private ILogger<T> CreateLogger<T>() => _loggerFactory.CreateLogger<T>();
+
+    private static GrpcServiceHost CreateDefaultServiceHost(ILoggerFactory loggerFactory)
+    {
+        var config = new GrpcServiceConfig
+        {
+            ServiceName = "Identity",
+            ExtensionPath = Path.Combine("localservices", LocalServiceName),
+            ExecutableNames = new[]
+            {
+                $"{LocalServiceName}.exe",
+                LocalServiceName
+            },
+            HealthEndpoint = "/ishealthy",
+            StartupTimeoutSeconds = 30
+        };
+        return new GrpcServiceHost(loggerFactory.CreateLogger<GrpcServiceHost>(), config);
+    }
 }
