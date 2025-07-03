@@ -16,7 +16,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
 {
     private const string LocalServiceName = "AzureMcp.LocalService.Arm";
     
-    private readonly GrpcServiceHost _serviceHost;
+    private readonly GrpcServiceHost _armServiceHost;
     private readonly IServiceClient _identityService;
     private readonly ILogger<ArmServiceClient> _logger;
     private readonly ILoggerFactory _loggerFactory;
@@ -30,25 +30,30 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
     {
     }
 
-    public ArmServiceClient(ILoggerFactory loggerFactory, IIdentityServiceClient identityServiceClient, GrpcServiceHost serviceHost)
+    public ArmServiceClient(ILoggerFactory loggerFactory, IIdentityServiceClient identityServiceClient, GrpcServiceHost armServiceHost)
     {
         _loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
         _identityService = identityServiceClient ?? throw new ArgumentNullException(nameof(identityServiceClient));
-        _serviceHost = serviceHost ?? throw new ArgumentNullException(nameof(serviceHost));
+        _armServiceHost = armServiceHost ?? throw new ArgumentNullException(nameof(armServiceHost));
         _logger = CreateLogger<ArmServiceClient>();
 
         _initServiceTask = new Lazy<Task<string>>(async () =>
         {
-            var logInit = !_serviceHost.IsRunning;
+            var logInit = !_armServiceHost.IsRunning;
             if (logInit)
             {
                 _logger.LogDebug("Starting {LocalServiceName}", LocalServiceName);
             }
             var identityEndpoint = await _identityService.EnsureServiceStartedAsync();
-            var endpoint = await _serviceHost.StartServiceAsync();
+            var envVars = new Dictionary<string, string>
+            {
+                ["AzureMcp__LocalService__Arm__IdentityServiceEndpoint"] = identityEndpoint
+            };
+            var endpoint = await _armServiceHost.StartServiceAsync(envVars);
             if (logInit)
             {
-                _logger.LogInformation("{LocalServiceName} initialized at {Endpoint}", LocalServiceName, endpoint);
+                _logger.LogInformation("{LocalServiceName} initialized at {Endpoint} with Identity service at {IdentityEndpoint}", 
+                    LocalServiceName, endpoint, identityEndpoint);
             }
             return endpoint;
         });
@@ -102,7 +107,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         if (!_disposed)
         {
             _channel?.Dispose();
-            _serviceHost.Dispose();
+            _armServiceHost.Dispose();
             _disposed = true;
         }
     }

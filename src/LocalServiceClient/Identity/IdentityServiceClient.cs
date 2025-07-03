@@ -13,7 +13,7 @@ public sealed class IdentityServiceClient : IIdentityServiceClient, IDisposable
 {
     private const string LocalServiceName = "AzureMcp.LocalService.Identity";
     
-    private readonly GrpcServiceHost _serviceHost;
+    private readonly GrpcServiceHost _identityServiceHost;
     private readonly ILogger<IdentityServiceClient> _logger;
     private readonly ILoggerFactory _loggerFactory;
     private readonly Dictionary<string, TokenCredential> credentialsCache = new();
@@ -25,20 +25,20 @@ public sealed class IdentityServiceClient : IIdentityServiceClient, IDisposable
     {
     }
 
-    public IdentityServiceClient(ILoggerFactory loggerFactory, GrpcServiceHost serviceHost)
+    public IdentityServiceClient(ILoggerFactory loggerFactory, GrpcServiceHost identityServiceHost)
     {
         _loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
-        _serviceHost = serviceHost ?? throw new ArgumentNullException(nameof(serviceHost));
+        _identityServiceHost = identityServiceHost ?? throw new ArgumentNullException(nameof(identityServiceHost));
         _logger = CreateLogger<IdentityServiceClient>();
 
         _initServiceTask = new Lazy<Task<string>>(async () =>
         {
-            var logInit = !_serviceHost.IsRunning;
+            var logInit = !_identityServiceHost.IsRunning;
             if (logInit)
             {
                 _logger.LogDebug("Starting {LocalServiceName}", LocalServiceName);
             }
-            var endpoint = await _serviceHost.StartServiceAsync();
+            var endpoint = await _identityServiceHost.StartServiceAsync();
             if (logInit)
             {
                 _logger.LogInformation("{LocalServiceName} initialized at {Endpoint}", LocalServiceName, endpoint);
@@ -78,7 +78,7 @@ public sealed class IdentityServiceClient : IIdentityServiceClient, IDisposable
                 }
             }
             credentialsCache.Clear();
-            _serviceHost.Dispose();
+            _identityServiceHost.Dispose();
             _disposed = true;
         }
     }

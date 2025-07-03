@@ -33,6 +33,11 @@ public sealed class GrpcServiceHost : IDisposable
 
     public async Task<string> StartServiceAsync(CancellationToken cancellationToken = default)
     {
+        return await StartServiceAsync(null, cancellationToken);
+    }
+
+    public async Task<string> StartServiceAsync(Dictionary<string, string>? additionalEnvironmentVariables, CancellationToken cancellationToken = default)
+    {
         if (IsRunning)
         {
             return _serviceEndpoint!;
@@ -57,6 +62,14 @@ public sealed class GrpcServiceHost : IDisposable
         if (_config.EnvironmentVariables != null)
         {
             foreach (var kvp in _config.EnvironmentVariables)
+            {
+                startInfo.Environment[kvp.Key] = kvp.Value;
+            }
+        }
+        if (additionalEnvironmentVariables != null)
+        {
+            // Add dynamic configs (can override _config level variables).
+            foreach (var kvp in additionalEnvironmentVariables)
             {
                 startInfo.Environment[kvp.Key] = kvp.Value;
             }
