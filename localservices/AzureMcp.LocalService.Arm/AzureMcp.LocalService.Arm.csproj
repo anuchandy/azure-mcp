@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <AssemblyName>AzureMcp.LocalService.Arm</AssemblyName>
+    <RootNamespace>AzureMcp.LocalService.Arm</RootNamespace>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <EnableDefaultContentItems>false</EnableDefaultContentItems>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Azure.ResourceManager" />
+    <PackageReference Include="Azure.ResourceManager.Authorization" />
+    <PackageReference Include="Azure.ResourceManager.CosmosDB" />
+    <PackageReference Include="Azure.ResourceManager.Datadog" />
+    <PackageReference Include="Azure.ResourceManager.Kusto" />
+    <PackageReference Include="Azure.ResourceManager.OperationalInsights" />
+    <PackageReference Include="Azure.ResourceManager.PostgreSql" />
+    <PackageReference Include="Azure.ResourceManager.Redis" />
+    <PackageReference Include="Azure.ResourceManager.RedisEnterprise" />
+    <PackageReference Include="Azure.ResourceManager.Search" />
+    <PackageReference Include="Azure.ResourceManager.Storage" />
+    <PackageReference Include="Grpc.AspNetCore" />
+    <PackageReference Include="Grpc.AspNetCore.Server.Reflection" />
+    <PackageReference Include="Grpc.Tools" PrivateAssets="All" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="src/**/*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Protobuf Include="protos/*.proto" GrpcServices="Server" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="src/appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="src/appsettings.Development.json" CopyToOutputDirectory="PreserveNewest" Condition="Exists('src/appsettings.Development.json')" />
+  </ItemGroup>
+
+</Project>
