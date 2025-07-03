@@ -1,0 +1,113 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+using System;
+using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Xunit;
+using AzureMcp.LocalServiceClient;
+using AzureMcp.LocalServiceClient.Identity;
+using AzureMcp.LocalServiceClient.Arm;
+
+namespace AzureMcp.Tests.LocalServiceClient.Arm;
+
+public class ArmServiceClientTests : IDisposable
+{
+    private readonly ILoggerFactory _loggerFactory;
+    private readonly ILogger<ArmServiceClientTests> _logger;
+    private GrpcServiceHost? _identityServiceHost;
+    private GrpcServiceHost? _armServiceHost;
+    private IdentityServiceClient? _identityServiceClient;
+    private ArmServiceClient? _armServiceClient;
+
+    public ArmServiceClientTests()
+    {
+        _loggerFactory = LoggerFactory.Create(builder => 
+            builder.AddConsole().SetMinimumLevel(LogLevel.Debug));
+        _logger = _loggerFactory.CreateLogger<ArmServiceClientTests>();
+    }
+
+    [Fact]
+    public async Task CanAttemptToGetIdentityServiceStatusThroughGrpcCall()
+    {
+        // Arrange
+        var testAssemblyLocation = System.Reflection.Assembly.GetExecutingAssembly().Location;
+        var testDirectory = Path.GetDirectoryName(testAssemblyLocation)!;
+        
+        var workspaceRoot = Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(testDirectory))))!;
+        var identityServicePath = Path.Combine(workspaceRoot, "localservices", "AzureMcp.LocalService.Identity", "bin", "Debug", "net9.0");
+        var armServicePath = Path.Combine(workspaceRoot, "localservices", "AzureMcp.LocalService.Arm", "bin", "Debug", "net9.0");
+
+        // Set up Identity service
+        var identityConfig = new GrpcServiceConfig
+        {
+            ServiceName = "Identity",
+            ExtensionPath = identityServicePath,
+            ExecutableNames = new[]
+            {
+                "AzureMcp.LocalService.Identity.exe",
+                "AzureMcp.LocalService.Identity"
+            },
+            StartupTimeoutSeconds = 15
+        };
+
+        var identityLogger = _loggerFactory.CreateLogger<GrpcServiceHost>();
+        _identityServiceHost = new GrpcServiceHost(identityLogger, identityConfig);
+        _identityServiceClient = new IdentityServiceClient(_loggerFactory, _identityServiceHost);
+
+        // Set up ARM service
+        var armConfig = new GrpcServiceConfig
+        {
+            ServiceName = "Arm",
+            ExtensionPath = armServicePath,
+            ExecutableNames = new[]
+            {
+                "AzureMcp.LocalService.Arm.exe",
+                "AzureMcp.LocalService.Arm"
+            },
+            StartupTimeoutSeconds = 15
+        };
+
+        var armLogger = _loggerFactory.CreateLogger<GrpcServiceHost>();
+        _armServiceHost = new GrpcServiceHost(armLogger, armConfig);
+        _armServiceClient = new ArmServiceClient(_loggerFactory, _identityServiceClient, _armServiceHost);
+
+        // Act
+        try
+        {
+            var status = await _armServiceClient.GetIdentityServiceStatusAsync(
+                tenantId: null, 
+                scopes: new[] { "https://management.azure.com/.default" }, 
+                cancellationToken: TestContext.Current.CancellationToken);
+
+            // Assert
+            Assert.NotNull(status);
+            _logger.LogInformation("Identity service status: IsSuccess={IsSuccess}, Details={Details}", 
+                status.IsSuccess, status.Details);
+            if (!status.IsSuccess && !string.IsNullOrEmpty(status.ErrorMessage))
+            {
+                Assert.Fail($"Expected authentication status check to succeed, but got error {status.ErrorMessage}");
+                _logger.LogInformation("Expected authentication failure: {ErrorMessage}", status.ErrorMessage);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to call GetIdentityServiceStatusAsync");
+            Assert.Fail($"Expected gRPC call to succeed or return a proper error response, but got exception: {ex.GetType().Name}: {ex.Message}");
+        }
+
+        Assert.True(_identityServiceHost.IsRunning);
+        Assert.True(_armServiceHost.IsRunning);
+    }
+
+    public void Dispose()
+    {
+        _armServiceClient?.Dispose();
+        _identityServiceClient?.Dispose();
+        _armServiceHost?.Dispose();
+        _identityServiceHost?.Dispose();
+        _loggerFactory?.Dispose();
+    }
+}
