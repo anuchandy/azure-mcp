@@ -31,6 +31,46 @@ public interface IArmServiceClient : IServiceClient
     Task<ListSubscriptionsResult> ListSubscriptionsAsync(
         string? tenantId = null,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets storage accounts for a subscription.
+    /// </summary>
+    /// <param name="subscriptionId">Subscription ID to get storage accounts for</param>
+    /// <param name="tenantId">Optional tenant ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A response containing the list of storage accounts</returns>
+    Task<GetStorageAccountsResult> GetStorageAccountsAsync(
+        string subscriptionId,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets storage account keys for a specific storage account.
+    /// </summary>
+    /// <param name="accountName">Storage account name</param>
+    /// <param name="subscriptionId">Subscription ID where the storage account exists</param>
+    /// <param name="tenantId">Optional tenant ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A response containing the storage account keys</returns>
+    Task<GetStorageAccountKeysResult> GetStorageAccountKeysAsync(
+        string accountName,
+        string subscriptionId,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets connection string for a specific storage account.
+    /// </summary>
+    /// <param name="accountName">Storage account name</param>
+    /// <param name="subscriptionId">Subscription ID where the storage account exists</param>
+    /// <param name="tenantId">Optional tenant ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A response containing the storage account connection string</returns>
+    Task<GetStorageAccountConnectionStringResult> GetStorageAccountConnectionStringAsync(
+        string accountName,
+        string subscriptionId,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -99,4 +139,88 @@ public class SubscriptionData
     /// The subscription state (e.g., "Enabled", "Disabled").
     /// </summary>
     public required string State { get; init; }
+}
+
+/// <summary>
+/// Result of getting storage accounts.
+/// </summary>
+public class GetStorageAccountsResult
+{
+    /// <summary>
+    /// Whether the operation was successful.
+    /// </summary>
+    public bool IsSuccess { get; init; }
+
+    /// <summary>
+    /// Error message if operation failed.
+    /// </summary>
+    public string? ErrorMessage { get; init; }
+
+    /// <summary>
+    /// List of storage account names.
+    /// </summary>
+    public IReadOnlyList<string> StorageAccounts { get; init; } = Array.Empty<string>();
+}
+
+/// <summary>
+/// Result of getting storage account keys.
+/// </summary>
+public class GetStorageAccountKeysResult
+{
+    /// <summary>
+    /// Whether the operation was successful.
+    /// </summary>
+    public bool IsSuccess { get; init; }
+
+    /// <summary>
+    /// Error message if operation failed.
+    /// </summary>
+    public string? ErrorMessage { get; init; }
+
+    /// <summary>
+    /// List of storage account keys.
+    /// </summary>
+    public IReadOnlyList<StorageAccountKeyData> Keys { get; init; } = Array.Empty<StorageAccountKeyData>();
+}
+
+/// <summary>
+/// Result of getting storage account connection string.
+/// </summary>
+public class GetStorageAccountConnectionStringResult
+{
+    /// <summary>
+    /// Whether the operation was successful.
+    /// </summary>
+    public bool IsSuccess { get; init; }
+
+    /// <summary>
+    /// Error message if operation failed.
+    /// </summary>
+    public string? ErrorMessage { get; init; }
+
+    /// <summary>
+    /// The connection string.
+    /// </summary>
+    public string? ConnectionString { get; init; }
+}
+
+/// <summary>
+/// Storage account key information.
+/// </summary>
+public class StorageAccountKeyData
+{
+    /// <summary>
+    /// The key name (e.g., "key1", "key2").
+    /// </summary>
+    public required string KeyName { get; init; }
+
+    /// <summary>
+    /// The key value.
+    /// </summary>
+    public required string KeyValue { get; init; }
+
+    /// <summary>
+    /// The permissions for this key.
+    /// </summary>
+    public required string Permissions { get; init; }
 }

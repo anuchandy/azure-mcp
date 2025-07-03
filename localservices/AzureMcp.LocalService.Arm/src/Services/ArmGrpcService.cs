@@ -3,6 +3,8 @@
 
 using Azure.ResourceManager;
 using Azure.ResourceManager.Resources;
+using Azure.ResourceManager.Storage;
+using Azure.ResourceManager.Storage.Models;
 using AzureMcp.LocalService.Arm.Grpc;
 using AzureMcp.LocalService.Arm.Clients;
 using Grpc.Core;
@@ -129,6 +131,216 @@ public class ArmGrpcService : ArmService.ArmServiceBase
             tenantId);
         _logger.LogDebug("Created ArmClient for tenant: {TenantId}", tenantId ?? "default");
         return new ArmClient(credential);
+    }
+
+    /// <summary>
+    /// Gets storage accounts for a subscription.
+    /// </summary>
+    /// <param name="request">The request containing subscription ID and optional tenant.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>A response containing the list of storage accounts.</returns>
+    public override async Task<GetStorageAccountsResponse> GetStorageAccounts(
+        GetStorageAccountsRequest request,
+        ServerCallContext context)
+    {
+        try
+        {
+            ValidateRequiredParameters(request.SubscriptionId);
+
+            var cacheKey = string.IsNullOrEmpty(request.TenantId)
+                ? $"storage_accounts_{request.SubscriptionId}"
+                : $"storage_accounts_{request.SubscriptionId}_{request.TenantId}";
+
+            if (_cache.TryGetValue(cacheKey, out List<string>? cachedAccounts) && cachedAccounts != null)
+            {
+                var cachedResponse = new GetStorageAccountsResponse { IsSuccess = true };
+                cachedResponse.StorageAccounts.AddRange(cachedAccounts);
+                return cachedResponse;
+            }
+
+            var subscriptions = await GetSubscriptionsAsync(request.TenantId);
+            var subscription = subscriptions.FirstOrDefault(s => s.SubscriptionId == request.SubscriptionId);
+            if (subscription == null)
+            {
+                return new GetStorageAccountsResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"Subscription '{request.SubscriptionId}' not found"
+                };
+            }
+
+            var armClient = CreateArmClient(request.TenantId);
+            var subscriptionResource = armClient.GetSubscriptionResource(SubscriptionResource.CreateResourceIdentifier(subscription.SubscriptionId));
+
+            var accounts = new List<string>();
+            await foreach (var account in subscriptionResource.GetStorageAccountsAsync())
+            {
+                if (account?.Data?.Name != null)
+                {
+                    accounts.Add(account.Data.Name);
+                }
+            }
+
+            _cache.Set(cacheKey, accounts, TimeSpan.FromHours(1));
+
+            var response = new GetStorageAccountsResponse { IsSuccess = true };
+            response.StorageAccounts.AddRange(accounts);
+            return response;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get storage accounts for subscription: {SubscriptionId}", request.SubscriptionId);
+            return new GetStorageAccountsResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message
+            };
+        }
+    }
+
+    /// <summary>
+    /// Gets storage account keys for a specific storage account.
+    /// </summary>
+    /// <param name="request">The request containing account name, subscription ID and optional tenant.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>A response containing the storage account keys.</returns>
+    public override async Task<GetStorageAccountKeysResponse> GetStorageAccountKeys(
+        GetStorageAccountKeysRequest request,
+        ServerCallContext context)
+    {
+        try
+        {
+            ValidateRequiredParameters(request.AccountName, request.SubscriptionId);
+
+            var subscriptions = await GetSubscriptionsAsync(request.TenantId);
+            var subscription = subscriptions.FirstOrDefault(s => s.SubscriptionId == request.SubscriptionId);
+            if (subscription == null)
+            {
+                return new GetStorageAccountKeysResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"Subscription '{request.SubscriptionId}' not found"
+                };
+            }
+
+            var armClient = CreateArmClient(request.TenantId);
+            var subscriptionResource = armClient.GetSubscriptionResource(SubscriptionResource.CreateResourceIdentifier(subscription.SubscriptionId));
+
+            StorageAccountResource? storageAccount = null;
+            await foreach (var account in subscriptionResource.GetStorageAccountsAsync())
+            {
+                if (account.Data.Name == request.AccountName)
+                {
+                    storageAccount = account;
+                    break;
+                }
+            }
+
+            if (storageAccount == null)
+            {
+                return new GetStorageAccountKeysResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"Storage account '{request.AccountName}' not found in subscription '{request.SubscriptionId}'"
+                };
+            }
+
+            var response = new GetStorageAccountKeysResponse { IsSuccess = true };
+            await foreach (var key in storageAccount.GetKeysAsync())
+            {
+                response.Keys.Add(new Grpc.StorageAccountKey
+                {
+                    KeyName = key.KeyName ?? string.Empty,
+                    KeyValue = key.Value ?? string.Empty,
+                    Permissions = key.Permissions?.ToString() ?? string.Empty
+                });
+            }
+
+            return response;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get storage account keys for account: {AccountName}", request.AccountName);
+            return new GetStorageAccountKeysResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message
+            };
+        }
+    }
+
+    /// <summary>
+    /// Gets connection string for a specific storage account.
+    /// </summary>
+    /// <param name="request">The request containing account name, subscription ID and optional tenant.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>A response containing the storage account connection string.</returns>
+    public override async Task<GetStorageAccountConnectionStringResponse> GetStorageAccountConnectionString(
+        GetStorageAccountConnectionStringRequest request,
+        ServerCallContext context)
+    {
+        try
+        {
+            ValidateRequiredParameters(request.AccountName, request.SubscriptionId);
+
+            var subscriptions = await GetSubscriptionsAsync(request.TenantId);
+            var subscription = subscriptions.FirstOrDefault(s => s.SubscriptionId == request.SubscriptionId);
+            if (subscription == null)
+            {
+                return new GetStorageAccountConnectionStringResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"Subscription '{request.SubscriptionId}' not found"
+                };
+            }
+
+            var armClient = CreateArmClient(request.TenantId);
+            var subscriptionResource = armClient.GetSubscriptionResource(SubscriptionResource.CreateResourceIdentifier(subscription.SubscriptionId));
+
+            StorageAccountResource? storageAccount = null;
+            await foreach (var account in subscriptionResource.GetStorageAccountsAsync())
+            {
+                if (account.Data.Name == request.AccountName)
+                {
+                    storageAccount = account;
+                    break;
+                }
+            }
+
+            if (storageAccount == null)
+            {
+                return new GetStorageAccountConnectionStringResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"Storage account '{request.AccountName}' not found in subscription '{request.SubscriptionId}'"
+                };
+            }
+
+            await foreach (var key in storageAccount.GetKeysAsync())
+            {
+                var connectionString = $"DefaultEndpointsProtocol=https;AccountName={request.AccountName};AccountKey={key.Value};EndpointSuffix=core.windows.net";
+                return new GetStorageAccountConnectionStringResponse
+                {
+                    IsSuccess = true,
+                    ConnectionString = connectionString
+                };
+            }
+
+            return new GetStorageAccountConnectionStringResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = $"No keys found for storage account '{request.AccountName}'"
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get connection string for storage account: {AccountName}", request.AccountName);
+            return new GetStorageAccountConnectionStringResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message
+            };
+        }
     }
 
     #region Subscription related internal methods.

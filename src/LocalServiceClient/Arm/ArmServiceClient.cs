@@ -144,6 +144,125 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         }
     }
 
+    public async Task<GetStorageAccountsResult> GetStorageAccountsAsync(
+        string subscriptionId,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var endpoint = await EnsureServiceStartedAsync(cancellationToken);
+        try
+        {
+            EnsureClient(endpoint);
+            var request = new GetStorageAccountsRequest
+            {
+                SubscriptionId = subscriptionId,
+                TenantId = tenantId ?? string.Empty
+            };
+
+            var response = await _client!.GetStorageAccountsAsync(request, cancellationToken: cancellationToken);
+
+            return new GetStorageAccountsResult
+            {
+                IsSuccess = response.IsSuccess,
+                ErrorMessage = string.IsNullOrEmpty(response.ErrorMessage) ? null : response.ErrorMessage,
+                StorageAccounts = response.StorageAccounts.ToArray()
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to call ARM LocalService for storage accounts");
+            return new GetStorageAccountsResult
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message,
+                StorageAccounts = Array.Empty<string>()
+            };
+        }
+    }
+
+    public async Task<GetStorageAccountKeysResult> GetStorageAccountKeysAsync(
+        string accountName,
+        string subscriptionId,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var endpoint = await EnsureServiceStartedAsync(cancellationToken);
+        try
+        {
+            EnsureClient(endpoint);
+            var request = new GetStorageAccountKeysRequest
+            {
+                AccountName = accountName,
+                SubscriptionId = subscriptionId,
+                TenantId = tenantId ?? string.Empty
+            };
+
+            var response = await _client!.GetStorageAccountKeysAsync(request, cancellationToken: cancellationToken);
+
+            var keys = response.Keys.Select(k => new StorageAccountKeyData
+            {
+                KeyName = k.KeyName,
+                KeyValue = k.KeyValue,
+                Permissions = k.Permissions
+            }).ToList();
+
+            return new GetStorageAccountKeysResult
+            {
+                IsSuccess = response.IsSuccess,
+                ErrorMessage = string.IsNullOrEmpty(response.ErrorMessage) ? null : response.ErrorMessage,
+                Keys = keys
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to call ARM LocalService for storage account keys");
+            return new GetStorageAccountKeysResult
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message,
+                Keys = Array.Empty<StorageAccountKeyData>()
+            };
+        }
+    }
+
+    public async Task<GetStorageAccountConnectionStringResult> GetStorageAccountConnectionStringAsync(
+        string accountName,
+        string subscriptionId,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var endpoint = await EnsureServiceStartedAsync(cancellationToken);
+        try
+        {
+            EnsureClient(endpoint);
+            var request = new GetStorageAccountConnectionStringRequest
+            {
+                AccountName = accountName,
+                SubscriptionId = subscriptionId,
+                TenantId = tenantId ?? string.Empty
+            };
+
+            var response = await _client!.GetStorageAccountConnectionStringAsync(request, cancellationToken: cancellationToken);
+
+            return new GetStorageAccountConnectionStringResult
+            {
+                IsSuccess = response.IsSuccess,
+                ErrorMessage = string.IsNullOrEmpty(response.ErrorMessage) ? null : response.ErrorMessage,
+                ConnectionString = string.IsNullOrEmpty(response.ConnectionString) ? null : response.ConnectionString
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to call ARM LocalService for storage account connection string");
+            return new GetStorageAccountConnectionStringResult
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message,
+                ConnectionString = null
+            };
+        }
+    }
+
     public void Dispose()
     {
         if (!_disposed)

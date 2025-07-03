@@ -11,6 +11,15 @@ service ArmService {
   
   // List all accessible subscriptions for the specified tenant
   rpc ListSubscriptions(ListSubscriptionsRequest) returns (ListSubscriptionsResponse);
+  
+  // Get storage accounts for a subscription
+  rpc GetStorageAccounts(GetStorageAccountsRequest) returns (GetStorageAccountsResponse);
+  
+  // Get storage account keys for a specific storage account
+  rpc GetStorageAccountKeys(GetStorageAccountKeysRequest) returns (GetStorageAccountKeysResponse);
+  
+  // Get storage account connection string for a specific storage account
+  rpc GetStorageAccountConnectionString(GetStorageAccountConnectionStringRequest) returns (GetStorageAccountConnectionStringResponse);
 }
 
 // Request for checking Identity service status
@@ -57,4 +66,72 @@ message SubscriptionData {
   string tenant_id = 3;
   // The subscription state (e.g., "Enabled", "Disabled")
   string state = 4;
+}
+
+// Request for getting storage accounts
+message GetStorageAccountsRequest {
+  // Subscription ID to get storage accounts for
+  string subscription_id = 1;
+  // Optional tenant ID
+  string tenant_id = 2;
+}
+
+// Response containing list of storage accounts
+message GetStorageAccountsResponse {
+  // List of storage account names
+  repeated string storage_accounts = 1;
+  // Whether the operation was successful
+  bool is_success = 2;
+  // Error message if operation failed
+  string error_message = 3;
+}
+
+// Request for getting storage account keys
+message GetStorageAccountKeysRequest {
+  // Storage account name
+  string account_name = 1;
+  // Subscription ID where the storage account exists
+  string subscription_id = 2;
+  // Optional tenant ID
+  string tenant_id = 3;
+}
+
+// Response containing storage account keys
+message GetStorageAccountKeysResponse {
+  // List of storage account keys
+  repeated StorageAccountKey keys = 1;
+  // Whether the operation was successful
+  bool is_success = 2;
+  // Error message if operation failed
+  string error_message = 3;
+}
+
+// Request for getting storage account connection string
+message GetStorageAccountConnectionStringRequest {
+  // Storage account name
+  string account_name = 1;
+  // Subscription ID where the storage account exists
+  string subscription_id = 2;
+  // Optional tenant ID
+  string tenant_id = 3;
+}
+
+// Response containing storage account connection string
+message GetStorageAccountConnectionStringResponse {
+  // The connection string
+  string connection_string = 1;
+  // Whether the operation was successful
+  bool is_success = 2;
+  // Error message if operation failed
+  string error_message = 3;
+}
+
+// Storage account key data
+message StorageAccountKey {
+  // The key name (e.g., "key1", "key2")
+  string key_name = 1;
+  // The key value
+  string key_value = 2;
+  // The permissions for this key
+  string permissions = 3;
 }

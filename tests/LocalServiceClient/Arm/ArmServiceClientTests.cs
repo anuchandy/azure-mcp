@@ -3,6 +3,7 @@
 
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -21,6 +22,8 @@ public class ArmServiceClientTests : IDisposable
     private GrpcServiceHost? _armServiceHost;
     private IdentityServiceClient? _identityServiceClient;
     private ArmServiceClient? _armServiceClient;
+
+    private const string DefaultSubscription = "Azure SDK Developer Playground";
 
     public ArmServiceClientTests()
     {
@@ -137,6 +140,66 @@ public class ArmServiceClientTests : IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to call ListSubscriptionsAsync");
+            Assert.Fail($"Expected gRPC call to succeed or return a proper error response, but got exception: {ex.GetType().Name}: {ex.Message}");
+        }
+
+        Assert.NotNull(_identityServiceHost);
+        Assert.NotNull(_armServiceHost);
+        Assert.True(_identityServiceHost.IsRunning);
+        Assert.True(_armServiceHost.IsRunning);
+    }
+
+    [Fact]
+    public async Task CanAttemptToGetStorageAccountsThroughGrpcCall()
+    {
+        // Arrange
+        SetupServices();
+
+        // Act
+        try
+        {
+            Assert.NotNull(_armServiceClient);
+            var subscriptionsResult = await _armServiceClient.ListSubscriptionsAsync(
+                tenantId: null, 
+                cancellationToken: TestContext.Current.CancellationToken);
+
+            Assert.NotNull(subscriptionsResult);
+            if (!subscriptionsResult.IsSuccess)
+            {
+                Assert.Fail($"Expected subscription list to succeed, but got error: {subscriptionsResult.ErrorMessage}");
+            }
+            Assert.True(subscriptionsResult.IsSuccess, "ListSubscriptionsAsync should succeed");
+            Assert.NotNull(subscriptionsResult.Subscriptions);
+            Assert.True(subscriptionsResult.Subscriptions.Count > 0, "Should have at least one subscription");
+
+            var targetSubscription = subscriptionsResult.Subscriptions.FirstOrDefault(s => 
+                s.DisplayName.Equals(DefaultSubscription, StringComparison.OrdinalIgnoreCase));
+            
+            if (targetSubscription == null)
+            {
+                Assert.Fail($"Could not find '{DefaultSubscription}' subscription. Available subscriptions: " + 
+                    string.Join(", ", subscriptionsResult.Subscriptions.Select(s => s.DisplayName)));
+            }
+
+            var subscriptionId = targetSubscription.SubscriptionId;
+
+            var result = await _armServiceClient.GetStorageAccountsAsync(
+                subscriptionId: subscriptionId,
+                tenantId: null, 
+                cancellationToken: TestContext.Current.CancellationToken);
+
+            // Assert
+            Assert.NotNull(result);
+            if (!result.IsSuccess)
+            {
+                Assert.Fail($"Expected storage accounts call to succeed, but got error: {result.ErrorMessage}");
+            }
+            Assert.True(result.IsSuccess, "GetStorageAccountsAsync should succeed");
+            Assert.True(result.StorageAccounts.Count > 0, $"Should have at least one storage account in {DefaultSubscription} subscription");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to call GetStorageAccountsAsync");
             Assert.Fail($"Expected gRPC call to succeed or return a proper error response, but got exception: {ex.GetType().Name}: {ex.Message}");
         }
 
