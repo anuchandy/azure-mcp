@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+option csharp_namespace = "AzureMcp.LocalService.Arm.Grpc";
+
+package arm;
+
+// The ARM service provides Azure Resource Manager operations
+service ArmService {
+  // TODO: Add ARM operations here
+}

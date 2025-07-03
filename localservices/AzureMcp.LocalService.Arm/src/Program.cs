@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using AzureMcp.LocalService.Arm.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.WebHost.ConfigureKestrel(options =>
@@ -26,8 +28,7 @@ builder.Logging.AddConsole();
 builder.Logging.SetMinimumLevel(LogLevel.Information);
 
 var app = builder.Build();
-
-// TODO: Add MapGrpcService calls here when gRPC services are implemented
+app.MapGrpcService<ArmGrpcService>();
 
 if (app.Environment.IsDevelopment())
 {
