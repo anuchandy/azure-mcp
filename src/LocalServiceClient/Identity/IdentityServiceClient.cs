@@ -47,7 +47,7 @@ public sealed class IdentityServiceClient : IIdentityServiceClient, IDisposable
         });
     }
 
-    public async Task<string> EnsureInitializedAsync(CancellationToken cancellationToken = default)
+    public async Task<string> EnsureServiceStartedAsync(CancellationToken cancellationToken = default)
     {
         using var combined = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         return await _initTask.Value.WaitAsync(combined.Token);
@@ -55,7 +55,7 @@ public sealed class IdentityServiceClient : IIdentityServiceClient, IDisposable
 
     public async Task<TokenCredential> GetCredentialAsync(string? tenantId = null, CancellationToken cancellationToken = default)
     {
-        var serviceEndpoint = await EnsureInitializedAsync(cancellationToken);
+        var serviceEndpoint = await EnsureServiceStartedAsync(cancellationToken);
         var cacheKey = tenantId ?? string.Empty;
         if (!credentialsCache.TryGetValue(cacheKey, out var credential))
         {

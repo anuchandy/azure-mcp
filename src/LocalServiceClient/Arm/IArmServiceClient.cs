@@ -1,12 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using AzureMcp.LocalServiceClient;
+
 namespace AzureMcp.LocalServiceClient.Arm;
 
 /// <summary>
 /// Service for managing Azure Resource Manager operations via gRPC.
 /// </summary>
-public interface IArmServiceClient
+public interface IArmServiceClient : IServiceClient
 {
     /// <summary>
     /// Gets the status of the Identity service connectivity.

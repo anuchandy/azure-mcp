@@ -4,9 +4,9 @@
 namespace AzureMcp.LocalServiceClient;
 
 /// <summary>
-/// Defines a contract for service clients that support async initialization.
+/// Defines a contract for service clients that support async service startup.
 /// </summary>
-public interface IInitializableServiceClient
+public interface IServiceClient
 {
     /// <summary>
     /// Ensures the service client for local service is fully initialized and ready for use.
@@ -14,5 +14,5 @@ public interface IInitializableServiceClient
     /// </summary>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A task that represents the initialization operation and returns the local service endpoint URL.</returns>
-    Task<string> EnsureInitializedAsync(CancellationToken cancellationToken = default);
+    Task<string> EnsureServiceStartedAsync(CancellationToken cancellationToken = default);
 }
