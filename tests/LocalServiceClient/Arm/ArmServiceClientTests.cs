@@ -29,10 +29,8 @@ public class ArmServiceClientTests : IDisposable
         _logger = _loggerFactory.CreateLogger<ArmServiceClientTests>();
     }
 
-    [Fact]
-    public async Task CanAttemptToGetIdentityServiceStatusThroughGrpcCall()
+    private void SetupServices()
     {
-        // Arrange
         var testAssemblyLocation = System.Reflection.Assembly.GetExecutingAssembly().Location;
         var testDirectory = Path.GetDirectoryName(testAssemblyLocation)!;
         
@@ -73,10 +71,18 @@ public class ArmServiceClientTests : IDisposable
         var armLogger = _loggerFactory.CreateLogger<GrpcServiceHost>();
         _armServiceHost = new GrpcServiceHost(armLogger, armConfig);
         _armServiceClient = new ArmServiceClient(_loggerFactory, _identityServiceClient, _armServiceHost);
+    }
+
+    [Fact]
+    public async Task CanAttemptToGetIdentityServiceStatusThroughGrpcCall()
+    {
+        // Arrange
+        SetupServices();
 
         // Act
         try
         {
+            Assert.NotNull(_armServiceClient);
             var status = await _armServiceClient.GetIdentityServiceStatusAsync(
                 tenantId: null, 
                 scopes: new[] { "https://management.azure.com/.default" }, 
@@ -98,6 +104,44 @@ public class ArmServiceClientTests : IDisposable
             Assert.Fail($"Expected gRPC call to succeed or return a proper error response, but got exception: {ex.GetType().Name}: {ex.Message}");
         }
 
+        Assert.NotNull(_identityServiceHost);
+        Assert.NotNull(_armServiceHost);
+        Assert.True(_identityServiceHost.IsRunning);
+        Assert.True(_armServiceHost.IsRunning);
+    }
+
+    [Fact]
+    public async Task CanAttemptToListSubscriptionsThroughGrpcCall()
+    {
+        // Arrange
+        SetupServices();
+
+        // Act
+        try
+        {
+            Assert.NotNull(_armServiceClient);
+            var result = await _armServiceClient.ListSubscriptionsAsync(
+                tenantId: null, 
+                cancellationToken: TestContext.Current.CancellationToken);
+
+            // Assert
+            Assert.NotNull(result);
+            if (!result.IsSuccess)
+            {
+                Assert.Fail($"Expected subscription list to succeed, but got error: {result.ErrorMessage}");
+            }
+            Assert.True(result.IsSuccess, "ListSubscriptionsAsync should succeed");
+            Assert.NotNull(result.Subscriptions);
+            Assert.True(result.Subscriptions.Count > 0, "Should have at least one subscription");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to call ListSubscriptionsAsync");
+            Assert.Fail($"Expected gRPC call to succeed or return a proper error response, but got exception: {ex.GetType().Name}: {ex.Message}");
+        }
+
+        Assert.NotNull(_identityServiceHost);
+        Assert.NotNull(_armServiceHost);
         Assert.True(_identityServiceHost.IsRunning);
         Assert.True(_armServiceHost.IsRunning);
     }

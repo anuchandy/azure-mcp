@@ -102,6 +102,48 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         }
     }
 
+    public async Task<ListSubscriptionsResult> ListSubscriptionsAsync(
+        string? tenantId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var endpoint = await EnsureServiceStartedAsync(cancellationToken);
+        try
+        {
+            EnsureClient(endpoint);
+            var request = new ListSubscriptionsRequest
+            {
+                TenantId = tenantId ?? string.Empty
+            };
+            
+            var response = await _client!.ListSubscriptionsAsync(request, cancellationToken: cancellationToken);
+            
+            var subscriptions = response.Subscriptions.Select(s => new SubscriptionData
+            {
+                SubscriptionId = s.SubscriptionId,
+                DisplayName = s.DisplayName,
+                TenantId = s.TenantId,
+                State = s.State
+            }).ToList();
+
+            return new ListSubscriptionsResult
+            {
+                IsSuccess = response.IsSuccess,
+                ErrorMessage = string.IsNullOrEmpty(response.ErrorMessage) ? null : response.ErrorMessage,
+                Subscriptions = subscriptions
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to call ARM LocalService for subscription list");
+            return new ListSubscriptionsResult
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message,
+                Subscriptions = Array.Empty<SubscriptionData>()
+            };
+        }
+    }
+
     public void Dispose()
     {
         if (!_disposed)

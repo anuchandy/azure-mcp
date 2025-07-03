@@ -9,7 +9,8 @@ service ArmService {
   // Get the status of the Identity service connectivity
   rpc GetIdentityServiceStatus(IdentityServiceStatusRequest) returns (IdentityServiceStatusResponse);
   
-  // TODO: Add ARM operations here
+  // List all accessible subscriptions for the specified tenant
+  rpc ListSubscriptions(ListSubscriptionsRequest) returns (ListSubscriptionsResponse);
 }
 
 // Request for checking Identity service status
@@ -28,4 +29,32 @@ message IdentityServiceStatusResponse {
   string error_message = 2;
   // Additional details about the check
   string details = 3;
+}
+
+// Request for listing subscriptions
+message ListSubscriptionsRequest {
+  // Optional tenant ID to list subscriptions for specific tenant
+  string tenant_id = 1;
+}
+
+// Response containing list of subscriptions
+message ListSubscriptionsResponse {
+  // List of subscription data
+  repeated SubscriptionData subscriptions = 1;
+  // Whether the operation was successful
+  bool is_success = 2;
+  // Error message if operation failed
+  string error_message = 3;
+}
+
+// Subscription data message
+message SubscriptionData {
+  // The subscription ID (GUID)
+  string subscription_id = 1;
+  // The display name of the subscription
+  string display_name = 2;
+  // The tenant ID this subscription belongs to
+  string tenant_id = 3;
+  // The subscription state (e.g., "Enabled", "Disabled")
+  string state = 4;
 }
