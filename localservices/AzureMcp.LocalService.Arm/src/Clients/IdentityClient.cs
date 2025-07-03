@@ -3,7 +3,7 @@
 
 using Azure.Core;
 using Grpc.Net.Client;
-using AzureMcp.LocalServiceClient.Identity.Grpc;
+using AzureMcp.LocalService.Identity.Grpc;
 
 namespace AzureMcp.LocalService.Arm.Clients;
 

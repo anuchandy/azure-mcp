@@ -17,7 +17,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
     private const string LocalServiceName = "AzureMcp.LocalService.Arm";
     
     private readonly GrpcServiceHost _serviceHost;
-    private readonly IServiceClient _identityServiceClient;
+    private readonly IServiceClient _identityService;
     private readonly ILogger<ArmServiceClient> _logger;
     private readonly ILoggerFactory _loggerFactory;
     private readonly Lazy<Task<string>> _initServiceTask;
@@ -33,7 +33,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
     public ArmServiceClient(ILoggerFactory loggerFactory, IIdentityServiceClient identityServiceClient, GrpcServiceHost serviceHost)
     {
         _loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
-        _identityServiceClient = identityServiceClient ?? throw new ArgumentNullException(nameof(identityServiceClient));
+        _identityService = identityServiceClient ?? throw new ArgumentNullException(nameof(identityServiceClient));
         _serviceHost = serviceHost ?? throw new ArgumentNullException(nameof(serviceHost));
         _logger = CreateLogger<ArmServiceClient>();
 
@@ -44,7 +44,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
             {
                 _logger.LogDebug("Starting {LocalServiceName}", LocalServiceName);
             }
-            var identityEndpoint = await _identityServiceClient.EnsureServiceStartedAsync();
+            var identityEndpoint = await _identityService.EnsureServiceStartedAsync();
             var endpoint = await _serviceHost.StartServiceAsync();
             if (logInit)
             {

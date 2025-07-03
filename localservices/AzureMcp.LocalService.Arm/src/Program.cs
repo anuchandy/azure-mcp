@@ -7,8 +7,11 @@ using AzureMcp.LocalService.Arm.Clients;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.Configure<Configuration>(
-    builder.Configuration.GetSection("AzureMcp.LocalService.Arm"));
+builder.Services.Configure<Configuration>(config =>
+{
+    // Environment variable: AzureMcp__LocalService__Arm__IdentityServiceEndpoint
+    config.IdentityServiceEndpoint = builder.Configuration["AzureMcp:LocalService:Arm:IdentityServiceEndpoint"] ?? string.Empty;
+});
 
 builder.Services.AddSingleton<IdentityClient>(serviceProvider =>
 {
