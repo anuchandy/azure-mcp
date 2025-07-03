@@ -36,7 +36,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Protobuf Include="protos/*.proto" GrpcServices="Server" />
+    <Protobuf Include="protos/arm_service.proto" GrpcServices="Server" />
+    <Protobuf Include="protos/identity_service.proto" GrpcServices="Client" />
   </ItemGroup>
 
   <ItemGroup>

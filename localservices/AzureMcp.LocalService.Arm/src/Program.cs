@@ -1,9 +1,22 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using Microsoft.Extensions.Options;
 using AzureMcp.LocalService.Arm.Services;
+using AzureMcp.LocalService.Arm.Clients;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.Configure<Configuration>(
+    builder.Configuration.GetSection("AzureMcp.LocalService.Arm"));
+
+builder.Services.AddSingleton<IdentityClient>(serviceProvider =>
+{
+    var config = serviceProvider.GetRequiredService<IOptions<Configuration>>().Value;
+    config.Validate();
+    var logger = serviceProvider.GetRequiredService<ILogger<IdentityClient>>();
+    return new IdentityClient(config.IdentityServiceEndpoint, logger);
+});
 
 builder.WebHost.ConfigureKestrel(options =>
 {
@@ -43,3 +56,32 @@ var urls = Environment.GetEnvironmentVariable("ASPNETCORE_URLS") ?? "http://loca
 app.Logger.LogInformation("AzureMcp ARM gRPC Service configured for URLs: {Urls}", urls);
 
 app.Run();
+
+/// <summary>
+/// Configuration type for Arm LocalService.
+/// </summary>
+public class Configuration
+{
+    /// <summary>
+    /// The gRPC endpoint URL for the Identity LocalService.
+    /// </summary>
+    public string IdentityServiceEndpoint { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Validates the configuration.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">Thrown when configuration is invalid.</exception>
+    public void Validate()
+    {
+        if (string.IsNullOrWhiteSpace(IdentityServiceEndpoint))
+        {
+            throw new InvalidOperationException("IdentityServiceEndpoint must be configured");
+        }
+
+        if (!Uri.TryCreate(IdentityServiceEndpoint, UriKind.Absolute, out var uri) || 
+            (uri.Scheme != "http" && uri.Scheme != "https"))
+        {
+            throw new InvalidOperationException($"IdentityServiceEndpoint must be a valid HTTP/HTTPS URL: {IdentityServiceEndpoint}");
+        }
+    }
+}
