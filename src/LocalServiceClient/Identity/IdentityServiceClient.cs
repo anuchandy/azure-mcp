@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 using Azure.Core;
-using Azure.Identity;
 using Microsoft.Extensions.Logging;
 
 namespace AzureMcp.LocalServiceClient.Identity;
