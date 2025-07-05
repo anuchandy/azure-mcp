@@ -98,12 +98,10 @@ public class ArmServiceClientTests : IDisposable
             if (!status.IsSuccess && !string.IsNullOrEmpty(status.ErrorMessage))
             {
                 Assert.Fail($"Expected authentication status check to succeed, but got error {status.ErrorMessage}");
-                _logger.LogInformation("Expected authentication failure: {ErrorMessage}", status.ErrorMessage);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to call GetIdentityServiceStatusAsync");
             Assert.Fail($"Expected gRPC call to succeed or return a proper error response, but got exception: {ex.GetType().Name}: {ex.Message}");
         }
 
@@ -139,7 +137,6 @@ public class ArmServiceClientTests : IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to call ListSubscriptionsAsync");
             Assert.Fail($"Expected gRPC call to succeed or return a proper error response, but got exception: {ex.GetType().Name}: {ex.Message}");
         }
 
@@ -199,7 +196,82 @@ public class ArmServiceClientTests : IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to call GetStorageAccountsAsync");
+            Assert.Fail($"Expected gRPC call to succeed or return a proper error response, but got exception: {ex.GetType().Name}: {ex.Message}");
+        }
+
+        Assert.NotNull(_identityServiceHost);
+        Assert.NotNull(_armServiceHost);
+        Assert.True(_identityServiceHost.IsRunning);
+        Assert.True(_armServiceHost.IsRunning);
+    }
+
+    [Fact]
+    public async Task CanAttemptToGetCosmosAccountThroughGrpcCall()
+    {
+        // Arrange
+        SetupServices();
+
+        // Act
+        try
+        {
+            Assert.NotNull(_armServiceClient);
+            var subscriptionsResult = await _armServiceClient.ListSubscriptionsAsync(
+                tenantId: null, 
+                cancellationToken: TestContext.Current.CancellationToken);
+
+            Assert.NotNull(subscriptionsResult);
+            if (!subscriptionsResult.IsSuccess)
+            {
+                Assert.Fail($"Expected subscription list to succeed, but got error: {subscriptionsResult.ErrorMessage}");
+            }
+            Assert.True(subscriptionsResult.IsSuccess, "ListSubscriptionsAsync should succeed");
+            Assert.NotNull(subscriptionsResult.Subscriptions);
+            Assert.True(subscriptionsResult.Subscriptions.Count > 0, "Should have at least one subscription");
+
+            var targetSubscription = subscriptionsResult.Subscriptions.FirstOrDefault(s => 
+                s.DisplayName.Equals(DefaultSubscription, StringComparison.OrdinalIgnoreCase));
+            
+            if (targetSubscription == null)
+            {
+                Assert.Fail($"Could not find '{DefaultSubscription}' subscription. Available subscriptions: " + 
+                    string.Join(", ", subscriptionsResult.Subscriptions.Select(s => s.DisplayName)));
+            }
+
+            var subscriptionId = targetSubscription.SubscriptionId;
+
+            var accountsResult = await _armServiceClient.GetCosmosAccountsAsync(
+                subscriptionId: subscriptionId,
+                tenantId: null, 
+                cancellationToken: TestContext.Current.CancellationToken);
+
+            Assert.NotNull(accountsResult);
+            if (!accountsResult.IsSuccess)
+            {
+                Assert.Fail($"Expected Cosmos accounts call to succeed, but got error: {accountsResult.ErrorMessage}");
+            }
+            Assert.True(accountsResult.IsSuccess, "GetCosmosAccountsAsync should succeed");
+            Assert.NotNull(accountsResult.CosmosAccounts);
+            Assert.True(accountsResult.CosmosAccounts.Count > 0, $"Should have at least one Cosmos DB account in {DefaultSubscription} subscription");
+
+            var firstAccountName = accountsResult.CosmosAccounts[0];
+            var accountResult = await _armServiceClient.GetCosmosAccountAsync(
+                accountName: firstAccountName,
+                subscriptionId: subscriptionId,
+                tenantId: null, 
+                cancellationToken: TestContext.Current.CancellationToken);
+
+            // Assert
+            Assert.NotNull(accountResult);
+            if (!accountResult.IsSuccess)
+            {
+                Assert.Fail($"Expected Cosmos account call to succeed, but got error: {accountResult.ErrorMessage}");
+            }
+            Assert.True(accountResult.IsSuccess, "GetCosmosAccountAsync should succeed");
+            Assert.NotNull(accountResult.Account);
+            Assert.Equal(firstAccountName, accountResult.Account.Name);
+        }
+        catch (Exception ex)
+        {
             Assert.Fail($"Expected gRPC call to succeed or return a proper error response, but got exception: {ex.GetType().Name}: {ex.Message}");
         }
 

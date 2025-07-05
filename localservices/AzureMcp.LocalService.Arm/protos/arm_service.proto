@@ -20,6 +20,12 @@ service ArmService {
   
   // Get storage account connection string for a specific storage account
   rpc GetStorageAccountConnectionString(GetStorageAccountConnectionStringRequest) returns (GetStorageAccountConnectionStringResponse);
+  
+  // Get Cosmos DB accounts for a subscription
+  rpc GetCosmosAccounts(GetCosmosAccountsRequest) returns (GetCosmosAccountsResponse);
+  
+  // Get a specific Cosmos DB account details
+  rpc GetCosmosAccount(GetCosmosAccountRequest) returns (GetCosmosAccountResponse);
 }
 
 // Request for checking Identity service status
@@ -134,4 +140,60 @@ message StorageAccountKey {
   string key_value = 2;
   // The permissions for this key
   string permissions = 3;
+}
+
+// Request for getting Cosmos DB accounts
+message GetCosmosAccountsRequest {
+  // Subscription ID to get Cosmos DB accounts for
+  string subscription_id = 1;
+  // Optional tenant ID
+  string tenant_id = 2;
+}
+
+// Response containing list of Cosmos DB accounts
+message GetCosmosAccountsResponse {
+  // List of Cosmos DB account names
+  repeated string cosmos_accounts = 1;
+  // Whether the operation was successful
+  bool is_success = 2;
+  // Error message if operation failed
+  string error_message = 3;
+}
+
+// Request for getting a specific Cosmos DB account
+message GetCosmosAccountRequest {
+  // Cosmos DB account name
+  string account_name = 1;
+  // Subscription ID where the Cosmos DB account exists
+  string subscription_id = 2;
+  // Optional tenant ID
+  string tenant_id = 3;
+}
+
+// Response containing Cosmos DB account details
+message GetCosmosAccountResponse {
+  // The Cosmos DB account data
+  CosmosAccountData account = 1;
+  // Whether the operation was successful
+  bool is_success = 2;
+  // Error message if operation failed
+  string error_message = 3;
+}
+
+// Cosmos DB account data
+message CosmosAccountData {
+  // The account name
+  string name = 1;
+  // The account ID (resource ID)
+  string id = 2;
+  // The account location
+  string location = 3;
+  // The account type (e.g., "DocumentDB")
+  string account_type = 4;
+  // The resource group name
+  string resource_group = 5;
+  // The provisioning state
+  string provisioning_state = 6;
+  // The document endpoint URL
+  string document_endpoint = 7;
 }

@@ -263,6 +263,95 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         }
     }
 
+    public async Task<GetCosmosAccountsResult> GetCosmosAccountsAsync(
+        string subscriptionId,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var endpoint = await EnsureServiceStartedAsync(cancellationToken);
+        try
+        {
+            EnsureClient(endpoint);
+            var request = new GetCosmosAccountsRequest
+            {
+                SubscriptionId = subscriptionId,
+                TenantId = tenantId ?? string.Empty
+            };
+
+            var response = await _client!.GetCosmosAccountsAsync(request, cancellationToken: cancellationToken);
+
+            return new GetCosmosAccountsResult
+            {
+                IsSuccess = response.IsSuccess,
+                ErrorMessage = string.IsNullOrEmpty(response.ErrorMessage) ? null : response.ErrorMessage,
+                CosmosAccounts = response.CosmosAccounts.ToArray()
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to call ARM LocalService for Cosmos DB accounts");
+            return new GetCosmosAccountsResult
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message,
+                CosmosAccounts = Array.Empty<string>()
+            };
+        }
+    }
+
+    public async Task<GetCosmosAccountResult> GetCosmosAccountAsync(
+        string accountName,
+        string subscriptionId,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var endpoint = await EnsureServiceStartedAsync(cancellationToken);
+        try
+        {
+            EnsureClient(endpoint);
+            var request = new GetCosmosAccountRequest
+            {
+                AccountName = accountName,
+                SubscriptionId = subscriptionId,
+                TenantId = tenantId ?? string.Empty
+            };
+
+            var response = await _client!.GetCosmosAccountAsync(request, cancellationToken: cancellationToken);
+
+            CosmosAccountData? accountData = null;
+            if (response.Account != null)
+            {
+                accountData = new CosmosAccountData
+                {
+                    Name = response.Account.Name,
+                    Id = response.Account.Id,
+                    Location = response.Account.Location,
+                    AccountType = response.Account.AccountType,
+                    ResourceGroup = response.Account.ResourceGroup,
+                    ProvisioningState = response.Account.ProvisioningState,
+                    DocumentEndpoint = response.Account.DocumentEndpoint
+                };
+            }
+
+            return new GetCosmosAccountResult
+            {
+                IsSuccess = response.IsSuccess,
+                ErrorMessage = string.IsNullOrEmpty(response.ErrorMessage) ? null : response.ErrorMessage,
+                Account = accountData
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to call ARM LocalService for Cosmos DB account");
+            return new GetCosmosAccountResult
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message,
+                Account = null
+            };
+        }
+    }
+
     public void Dispose()
     {
         if (!_disposed)

@@ -5,6 +5,7 @@ using Azure.ResourceManager;
 using Azure.ResourceManager.Resources;
 using Azure.ResourceManager.Storage;
 using Azure.ResourceManager.Storage.Models;
+using Azure.ResourceManager.CosmosDB;
 using AzureMcp.LocalService.Arm.Grpc;
 using AzureMcp.LocalService.Arm.Clients;
 using Grpc.Core;
@@ -296,7 +297,6 @@ public class ArmGrpcService : ArmService.ArmServiceBase
 
             var armClient = CreateArmClient(request.TenantId);
             var subscriptionResource = armClient.GetSubscriptionResource(SubscriptionResource.CreateResourceIdentifier(subscription.SubscriptionId));
-
             StorageAccountResource? storageAccount = null;
             await foreach (var account in subscriptionResource.GetStorageAccountsAsync())
             {
@@ -336,6 +336,132 @@ public class ArmGrpcService : ArmService.ArmServiceBase
         {
             _logger.LogError(ex, "Failed to get connection string for storage account: {AccountName}", request.AccountName);
             return new GetStorageAccountConnectionStringResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message
+            };
+        }
+    }
+
+    /// <summary>
+    /// Gets Cosmos DB accounts for a subscription.
+    /// </summary>
+    /// <param name="request">The request containing subscription ID and optional tenant.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>A response containing the list of Cosmos DB accounts.</returns>
+    public override async Task<GetCosmosAccountsResponse> GetCosmosAccounts(
+        GetCosmosAccountsRequest request,
+        ServerCallContext context)
+    {
+        try
+        {
+            ValidateRequiredParameters(request.SubscriptionId);
+
+            var subscriptions = await GetSubscriptionsAsync(request.TenantId);
+            var subscription = subscriptions.FirstOrDefault(s => s.SubscriptionId == request.SubscriptionId);
+            if (subscription == null)
+            {
+                return new GetCosmosAccountsResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"Subscription '{request.SubscriptionId}' not found"
+                };
+            }
+
+            var armClient = CreateArmClient(request.TenantId);
+            var subscriptionResource = armClient.GetSubscriptionResource(SubscriptionResource.CreateResourceIdentifier(subscription.SubscriptionId));
+            var accounts = new List<string>();
+            await foreach (var account in subscriptionResource.GetCosmosDBAccountsAsync())
+            {
+                if (account?.Data?.Name != null)
+                {
+                    accounts.Add(account.Data.Name);
+                }
+            }
+
+            var response = new GetCosmosAccountsResponse { IsSuccess = true };
+            response.CosmosAccounts.AddRange(accounts);
+            return response;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get Cosmos DB accounts for subscription: {SubscriptionId}", request.SubscriptionId);
+            return new GetCosmosAccountsResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message
+            };
+        }
+    }
+
+    /// <summary>
+    /// Gets a specific Cosmos DB account details.
+    /// </summary>
+    /// <param name="request">The request containing account name, subscription ID and optional tenant.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>A response containing the Cosmos DB account details.</returns>
+    public override async Task<GetCosmosAccountResponse> GetCosmosAccount(
+        GetCosmosAccountRequest request,
+        ServerCallContext context)
+    {
+        try
+        {
+            ValidateRequiredParameters(request.AccountName, request.SubscriptionId);
+
+            var subscriptions = await GetSubscriptionsAsync(request.TenantId);
+            var subscription = subscriptions.FirstOrDefault(s => s.SubscriptionId == request.SubscriptionId);
+            if (subscription == null)
+            {
+                return new GetCosmosAccountResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"Subscription '{request.SubscriptionId}' not found"
+                };
+            }
+
+            var armClient = CreateArmClient(request.TenantId);
+            var subscriptionResource = armClient.GetSubscriptionResource(SubscriptionResource.CreateResourceIdentifier(subscription.SubscriptionId));
+
+            CosmosDBAccountResource? cosmosAccount = null;
+            await foreach (var account in subscriptionResource.GetCosmosDBAccountsAsync())
+            {
+                if (account.Data.Name == request.AccountName)
+                {
+                    cosmosAccount = account;
+                    break;
+                }
+            }
+
+            if (cosmosAccount == null)
+            {
+                return new GetCosmosAccountResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"Cosmos DB account '{request.AccountName}' not found in subscription '{request.SubscriptionId}'"
+                };
+            }
+
+            var accountData = new CosmosAccountData
+            {
+                Name = cosmosAccount.Data.Name,
+                Id = cosmosAccount.Data.Id.ToString(),
+                Location = cosmosAccount.Data.Location.Name ?? string.Empty,
+                AccountType = cosmosAccount.Data.Kind?.ToString() ?? "DocumentDB",
+                ResourceGroup = cosmosAccount.Data.Id.ResourceGroupName ?? string.Empty,
+                ProvisioningState = cosmosAccount.Data.ProvisioningState?.ToString() ?? "Unknown",
+                DocumentEndpoint = cosmosAccount.Data.DocumentEndpoint ?? string.Empty
+            };
+
+            return new GetCosmosAccountResponse
+            {
+                IsSuccess = true,
+                Account = accountData
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get Cosmos DB account: {AccountName}", request.AccountName);
+            return new GetCosmosAccountResponse
             {
                 IsSuccess = false,
                 ErrorMessage = ex.Message

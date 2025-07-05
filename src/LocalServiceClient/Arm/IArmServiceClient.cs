@@ -71,6 +71,32 @@ public interface IArmServiceClient : IServiceClient
         string subscriptionId,
         string? tenantId = null,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets Cosmos DB accounts for a subscription.
+    /// </summary>
+    /// <param name="subscriptionId">Subscription ID to get Cosmos DB accounts for</param>
+    /// <param name="tenantId">Optional tenant ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A response containing the list of Cosmos DB accounts</returns>
+    Task<GetCosmosAccountsResult> GetCosmosAccountsAsync(
+        string subscriptionId,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets a specific Cosmos DB account details.
+    /// </summary>
+    /// <param name="accountName">Cosmos DB account name</param>
+    /// <param name="subscriptionId">Subscription ID where the Cosmos DB account exists</param>
+    /// <param name="tenantId">Optional tenant ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A response containing the Cosmos DB account details</returns>
+    Task<GetCosmosAccountResult> GetCosmosAccountAsync(
+        string accountName,
+        string subscriptionId,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -223,4 +249,87 @@ public class StorageAccountKeyData
     /// The permissions for this key.
     /// </summary>
     public required string Permissions { get; init; }
+}
+
+/// <summary>
+/// Result of getting Cosmos DB accounts.
+/// </summary>
+public class GetCosmosAccountsResult
+{
+    /// <summary>
+    /// Whether the operation was successful.
+    /// </summary>
+    public bool IsSuccess { get; init; }
+
+    /// <summary>
+    /// Error message if operation failed.
+    /// </summary>
+    public string? ErrorMessage { get; init; }
+
+    /// <summary>
+    /// List of Cosmos DB account names.
+    /// </summary>
+    public IReadOnlyList<string> CosmosAccounts { get; init; } = Array.Empty<string>();
+}
+
+/// <summary>
+/// Result of getting a Cosmos DB account.
+/// </summary>
+public class GetCosmosAccountResult
+{
+    /// <summary>
+    /// Whether the operation was successful.
+    /// </summary>
+    public bool IsSuccess { get; init; }
+
+    /// <summary>
+    /// Error message if operation failed.
+    /// </summary>
+    public string? ErrorMessage { get; init; }
+
+    /// <summary>
+    /// The Cosmos DB account data.
+    /// </summary>
+    public CosmosAccountData? Account { get; init; }
+}
+
+/// <summary>
+/// Cosmos DB account information.
+/// </summary>
+public class CosmosAccountData
+{
+    /// <summary>
+    /// The account name.
+    /// </summary>
+    public required string Name { get; init; }
+
+    /// <summary>
+    /// The account ID (resource ID).
+    /// </summary>
+    public required string Id { get; init; }
+
+    /// <summary>
+    /// The account location.
+    /// </summary>
+    public required string Location { get; init; }
+
+    /// <summary>
+    /// The account type (e.g., "DocumentDB").
+    /// </summary>
+    public required string AccountType { get; init; }
+
+    /// <summary>
+    /// The resource group name.
+    /// </summary>
+    public required string ResourceGroup { get; init; }
+
+    /// <summary>
+    /// The provisioning state.
+    /// </summary>
+    public required string ProvisioningState { get; init; }
+
+    /// <summary>
+    /// The document endpoint URL.
+    /// </summary>
+    public required string DocumentEndpoint { get; init; }
 }
