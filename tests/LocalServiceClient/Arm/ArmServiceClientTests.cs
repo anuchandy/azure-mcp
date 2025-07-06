@@ -287,6 +287,60 @@ public class ArmServiceClientTests : IDisposable
         Assert.True(_armServiceHost.IsRunning);
     }
 
+    [Fact]
+    public async Task CanAttemptToGetKustoClusterThroughGrpcCall()
+    {
+        // Arrange
+        SetupServices();
+
+        // Act
+        try
+        {
+            Assert.NotNull(_armServiceClient);
+            var subscriptionId = await GetTargetSubscriptionIdAsync(_armServiceClient, TestContext.Current.CancellationToken);
+
+            var clustersResult = await _armServiceClient.GetKustoClustersAsync(
+                subscriptionId: subscriptionId,
+                tenantId: null, 
+                cancellationToken: TestContext.Current.CancellationToken);
+
+            Assert.NotNull(clustersResult);
+            if (!clustersResult.IsSuccess)
+            {
+                Assert.Fail($"Expected GetKustoClustersAsync call to succeed, but got error: {clustersResult.ErrorMessage}");
+            }
+            Assert.NotNull(clustersResult.KustoClusters);
+            Assert.True(clustersResult.KustoClusters.Count > 0, $"Should have at least one Kusto cluster in {DefaultSubscription} subscription");
+
+            var firstClusterName = clustersResult.KustoClusters[0];
+            var clusterResult = await _armServiceClient.GetKustoClusterAsync(
+                clusterName: firstClusterName,
+                subscriptionId: subscriptionId,
+                tenantId: null, 
+                cancellationToken: TestContext.Current.CancellationToken);
+
+            // Assert
+            Assert.NotNull(clusterResult);
+            if (!clusterResult.IsSuccess)
+            {
+                Assert.Fail($"Expected GetKustoClusterAsync call to succeed, but got error: {clusterResult.ErrorMessage}");
+            }
+            Assert.NotNull(clusterResult.Cluster);
+            Assert.Equal(firstClusterName, clusterResult.Cluster.ClusterName);
+            Assert.False(string.IsNullOrEmpty(clusterResult.Cluster.ClusterUri), "Kusto cluster URI should not be empty");
+            Assert.False(string.IsNullOrEmpty(clusterResult.Cluster.Location), "Kusto cluster location should not be empty");
+        }
+        catch (Exception ex)
+        {
+            Assert.Fail($"Expected gRPC call to succeed or return a proper error response, but got exception: {ex.GetType().Name}: {ex.Message}");
+        }
+
+        Assert.NotNull(_identityServiceHost);
+        Assert.NotNull(_armServiceHost);
+        Assert.True(_identityServiceHost.IsRunning);
+        Assert.True(_armServiceHost.IsRunning);
+    }
+
     private async Task<string> GetTargetSubscriptionIdAsync(ArmServiceClient armServiceClient, CancellationToken cancellationToken)
     {
         var subscriptionsResult = await armServiceClient.ListSubscriptionsAsync(

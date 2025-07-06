@@ -123,6 +123,32 @@ public interface IArmServiceClient : IServiceClient
         string subscriptionId,
         string? tenantId = null,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets Kusto clusters for a subscription.
+    /// </summary>
+    /// <param name="subscriptionId">Subscription ID to get Kusto clusters for</param>
+    /// <param name="tenantId">Optional tenant ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A response containing the list of Kusto clusters</returns>
+    Task<GetKustoClustersResult> GetKustoClustersAsync(
+        string subscriptionId,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets a specific Kusto cluster details.
+    /// </summary>
+    /// <param name="clusterName">Kusto cluster name</param>
+    /// <param name="subscriptionId">Subscription ID where the Kusto cluster exists</param>
+    /// <param name="tenantId">Optional tenant ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A response containing the Kusto cluster details</returns>
+    Task<GetKustoClusterResult> GetKustoClusterAsync(
+        string clusterName,
+        string subscriptionId,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -553,4 +579,132 @@ public class EncryptionData
     /// Whether identity client ID is valid.
     /// </summary>
     public bool IsIdentityClientIdValid { get; init; }
+}
+
+/// <summary>
+/// Result of getting Kusto clusters for a subscription.
+/// </summary>
+public class GetKustoClustersResult
+{
+    /// <summary>
+    /// Whether the operation was successful.
+    /// </summary>
+    public bool IsSuccess { get; init; }
+
+    /// <summary>
+    /// Error message if the operation failed.
+    /// </summary>
+    public string? ErrorMessage { get; init; }
+
+    /// <summary>
+    /// List of Kusto cluster names.
+    /// </summary>
+    public IReadOnlyList<string> KustoClusters { get; init; } = Array.Empty<string>();
+}
+
+/// <summary>
+/// Result of getting a specific Kusto cluster.
+/// </summary>
+public class GetKustoClusterResult
+{
+    /// <summary>
+    /// Whether the operation was successful.
+    /// </summary>
+    public bool IsSuccess { get; init; }
+
+    /// <summary>
+    /// Error message if the operation failed.
+    /// </summary>
+    public string? ErrorMessage { get; init; }
+
+    /// <summary>
+    /// The Kusto cluster data.
+    /// </summary>
+    public KustoClusterData? Cluster { get; init; }
+}
+
+/// <summary>
+/// Kusto cluster data.
+/// </summary>
+public class KustoClusterData
+{
+    /// <summary>
+    /// The cluster name.
+    /// </summary>
+    public string ClusterName { get; init; } = string.Empty;
+
+    /// <summary>
+    /// The cluster URI.
+    /// </summary>
+    public string ClusterUri { get; init; } = string.Empty;
+
+    /// <summary>
+    /// The cluster location.
+    /// </summary>
+    public string Location { get; init; } = string.Empty;
+
+    /// <summary>
+    /// The resource group name.
+    /// </summary>
+    public string ResourceGroupName { get; init; } = string.Empty;
+
+    /// <summary>
+    /// The subscription ID.
+    /// </summary>
+    public string SubscriptionId { get; init; } = string.Empty;
+
+    /// <summary>
+    /// The SKU information.
+    /// </summary>
+    public string Sku { get; init; } = string.Empty;
+
+    /// <summary>
+    /// The availability zones.
+    /// </summary>
+    public string Zones { get; init; } = string.Empty;
+
+    /// <summary>
+    /// The identity information.
+    /// </summary>
+    public string Identity { get; init; } = string.Empty;
+
+    /// <summary>
+    /// The ETag.
+    /// </summary>
+    public string ETag { get; init; } = string.Empty;
+
+    /// <summary>
+    /// The cluster state.
+    /// </summary>
+    public string State { get; init; } = string.Empty;
+
+    /// <summary>
+    /// The provisioning state.
+    /// </summary>
+    public string ProvisioningState { get; init; } = string.Empty;
+
+    /// <summary>
+    /// The data ingestion URI.
+    /// </summary>
+    public string DataIngestionUri { get; init; } = string.Empty;
+
+    /// <summary>
+    /// The state reason.
+    /// </summary>
+    public string StateReason { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Whether streaming ingest is enabled.
+    /// </summary>
+    public bool IsStreamingIngestEnabled { get; init; }
+
+    /// <summary>
+    /// The engine type.
+    /// </summary>
+    public string EngineType { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Whether auto stop is enabled.
+    /// </summary>
+    public bool IsAutoStopEnabled { get; init; }
 }

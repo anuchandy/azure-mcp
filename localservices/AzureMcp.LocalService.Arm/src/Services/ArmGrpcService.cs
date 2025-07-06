@@ -7,6 +7,7 @@ using Azure.ResourceManager.Storage;
 using Azure.ResourceManager.Storage.Models;
 using Azure.ResourceManager.CosmosDB;
 using Azure.ResourceManager.AppConfiguration;
+using Azure.ResourceManager.Kusto;
 using AzureMcp.LocalService.Arm.Grpc;
 using AzureMcp.LocalService.Arm.Clients;
 using Grpc.Core;
@@ -637,6 +638,155 @@ public class ArmGrpcService : ArmService.ArmServiceBase
         {
             _logger.LogError(ex, "Failed to get App Configuration account endpoint: {AccountName}", request.AccountName);
             return new GetAppConfigAccountEndpointResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message
+            };
+        }
+    }
+
+    /// <summary>
+    /// Gets Kusto clusters for a subscription.
+    /// </summary>
+    /// <param name="request">The request containing subscription ID and optional tenant.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>A response containing the list of Kusto clusters.</returns>
+    public override async Task<GetKustoClustersResponse> GetKustoClusters(
+        GetKustoClustersRequest request,
+        ServerCallContext context)
+    {
+        try
+        {
+            ValidateRequiredParameters(request.SubscriptionId);
+
+            var cacheKey = string.IsNullOrEmpty(request.TenantId)
+                ? $"kusto_clusters_{request.SubscriptionId}"
+                : $"kusto_clusters_{request.SubscriptionId}_{request.TenantId}";
+
+            if (_cache.TryGetValue(cacheKey, out List<string>? cachedClusters) && cachedClusters != null)
+            {
+                var cachedResponse = new GetKustoClustersResponse { IsSuccess = true };
+                cachedResponse.KustoClusters.AddRange(cachedClusters);
+                return cachedResponse;
+            }
+
+            var subscriptions = await GetSubscriptionsAsync(request.TenantId);
+            var subscription = subscriptions.FirstOrDefault(s => s.SubscriptionId == request.SubscriptionId);
+            if (subscription == null)
+            {
+                return new GetKustoClustersResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"Subscription '{request.SubscriptionId}' not found"
+                };
+            }
+
+            var armClient = CreateArmClient(request.TenantId);
+            var subscriptionResource = armClient.GetSubscriptionResource(SubscriptionResource.CreateResourceIdentifier(subscription.SubscriptionId));
+
+            var clusters = new List<string>();
+            await foreach (var cluster in subscriptionResource.GetKustoClustersAsync())
+            {
+                if (cluster?.Data?.Name != null)
+                {
+                    clusters.Add(cluster.Data.Name);
+                }
+            }
+
+            _cache.Set(cacheKey, clusters, TimeSpan.FromHours(1));
+
+            var response = new GetKustoClustersResponse { IsSuccess = true };
+            response.KustoClusters.AddRange(clusters);
+            return response;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get Kusto clusters for subscription: {SubscriptionId}", request.SubscriptionId);
+            return new GetKustoClustersResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message
+            };
+        }
+    }
+
+    /// <summary>
+    /// Gets a specific Kusto cluster details.
+    /// </summary>
+    /// <param name="request">The request containing cluster name, subscription ID and optional tenant.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>A response containing the Kusto cluster details.</returns>
+    public override async Task<GetKustoClusterResponse> GetKustoCluster(
+        GetKustoClusterRequest request,
+        ServerCallContext context)
+    {
+        try
+        {
+            ValidateRequiredParameters(request.ClusterName, request.SubscriptionId);
+
+            var subscriptions = await GetSubscriptionsAsync(request.TenantId);
+            var subscription = subscriptions.FirstOrDefault(s => s.SubscriptionId == request.SubscriptionId);
+            if (subscription == null)
+            {
+                return new GetKustoClusterResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"Subscription '{request.SubscriptionId}' not found"
+                };
+            }
+
+            var armClient = CreateArmClient(request.TenantId);
+            var subscriptionResource = armClient.GetSubscriptionResource(SubscriptionResource.CreateResourceIdentifier(subscription.SubscriptionId));
+
+            KustoClusterResource? kustoCluster = null;
+            await foreach (var cluster in subscriptionResource.GetKustoClustersAsync())
+            {
+                if (cluster.Data.Name == request.ClusterName)
+                {
+                    kustoCluster = cluster;
+                    break;
+                }
+            }
+
+            if (kustoCluster == null)
+            {
+                return new GetKustoClusterResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"Kusto cluster '{request.ClusterName}' not found in subscription '{request.SubscriptionId}'"
+                };
+            }
+
+            var clusterData = new Grpc.KustoClusterData
+            {
+                ClusterName = kustoCluster.Data.Name,
+                ClusterUri = kustoCluster.Data.ClusterUri?.ToString() ?? string.Empty,
+                Location = kustoCluster.Data.Location.Name ?? string.Empty,
+                ResourceGroupName = kustoCluster.Data.Id.ResourceGroupName ?? string.Empty,
+                SubscriptionId = kustoCluster.Data.Id.SubscriptionId ?? string.Empty,
+                Sku = kustoCluster.Data.Sku?.Capacity.ToString() ?? string.Empty,
+                Zones = string.Join(",", kustoCluster.Data.Zones?.ToList() ?? new List<string>()),
+                Identity = kustoCluster.Data.Identity?.ManagedServiceIdentityType.ToString() ?? string.Empty,
+                Etag = kustoCluster.Data.ETag?.ToString() ?? string.Empty,
+                State = kustoCluster.Data.State?.ToString() ?? string.Empty,
+                ProvisioningState = kustoCluster.Data.ProvisioningState?.ToString() ?? string.Empty,
+                DataIngestionUri = kustoCluster.Data.DataIngestionUri?.ToString() ?? string.Empty,
+                StateReason = kustoCluster.Data.StateReason ?? string.Empty,
+                IsStreamingIngestEnabled = kustoCluster.Data.IsStreamingIngestEnabled ?? false,
+                EngineType = kustoCluster.Data.EngineType?.ToString() ?? string.Empty,
+                IsAutoStopEnabled = kustoCluster.Data.IsAutoStopEnabled ?? false
+            };
+
+            return new GetKustoClusterResponse
+            {
+                IsSuccess = true,
+                Cluster = clusterData
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get Kusto cluster: {ClusterName}", request.ClusterName);
+            return new GetKustoClusterResponse
             {
                 IsSuccess = false,
                 ErrorMessage = ex.Message

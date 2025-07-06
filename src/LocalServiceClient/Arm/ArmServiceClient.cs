@@ -462,6 +462,100 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         }
     }
 
+    public async Task<GetKustoClustersResult> GetKustoClustersAsync(
+        string subscriptionId,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var endpoint = await EnsureServiceStartedAsync(cancellationToken);
+        try
+        {
+            EnsureClient(endpoint);
+
+            var request = new GetKustoClustersRequest
+            {
+                SubscriptionId = subscriptionId,
+                TenantId = tenantId ?? string.Empty
+            };
+
+            var response = await _client!.GetKustoClustersAsync(request, cancellationToken: cancellationToken);
+
+            return new GetKustoClustersResult
+            {
+                IsSuccess = response.IsSuccess,
+                ErrorMessage = string.IsNullOrEmpty(response.ErrorMessage) ? null : response.ErrorMessage,
+                KustoClusters = response.KustoClusters.ToArray()
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to call ARM LocalService for Kusto clusters");
+            return new GetKustoClustersResult
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message,
+                KustoClusters = Array.Empty<string>()
+            };
+        }
+    }
+
+    public async Task<GetKustoClusterResult> GetKustoClusterAsync(
+        string clusterName,
+        string subscriptionId,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var endpoint = await EnsureServiceStartedAsync(cancellationToken);
+        try
+        {
+            EnsureClient(endpoint);
+
+            var request = new GetKustoClusterRequest
+            {
+                ClusterName = clusterName,
+                SubscriptionId = subscriptionId,
+                TenantId = tenantId ?? string.Empty
+            };
+
+            var response = await _client!.GetKustoClusterAsync(request, cancellationToken: cancellationToken);
+
+            return new GetKustoClusterResult
+            {
+                IsSuccess = response.IsSuccess,
+                ErrorMessage = string.IsNullOrEmpty(response.ErrorMessage) ? null : response.ErrorMessage,
+                Cluster = response.Cluster == null ? null : new KustoClusterData
+                {
+                    ClusterName = response.Cluster.ClusterName,
+                    ClusterUri = response.Cluster.ClusterUri,
+                    Location = response.Cluster.Location,
+                    ResourceGroupName = response.Cluster.ResourceGroupName,
+                    SubscriptionId = response.Cluster.SubscriptionId,
+                    Sku = response.Cluster.Sku,
+                    Zones = response.Cluster.Zones,
+                    Identity = response.Cluster.Identity,
+                    ETag = response.Cluster.Etag,
+                    State = response.Cluster.State,
+                    ProvisioningState = response.Cluster.ProvisioningState,
+                    DataIngestionUri = response.Cluster.DataIngestionUri,
+                    StateReason = response.Cluster.StateReason,
+                    IsStreamingIngestEnabled = response.Cluster.IsStreamingIngestEnabled,
+                    EngineType = response.Cluster.EngineType,
+                    IsAutoStopEnabled = response.Cluster.IsAutoStopEnabled
+                }
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to call ARM LocalService for Kusto cluster");
+            return new GetKustoClusterResult
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message,
+                Cluster = null
+            };
+        }
+    }
+
     public void Dispose()
     {
         if (!_disposed)

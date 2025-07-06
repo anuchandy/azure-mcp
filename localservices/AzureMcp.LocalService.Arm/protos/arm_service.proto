@@ -32,6 +32,12 @@ service ArmService {
   
   // Get App Configuration account endpoint for creating configuration client
   rpc GetAppConfigAccountEndpoint(GetAppConfigAccountEndpointRequest) returns (GetAppConfigAccountEndpointResponse);
+  
+  // Get Kusto clusters for a subscription
+  rpc GetKustoClusters(GetKustoClustersRequest) returns (GetKustoClustersResponse);
+  
+  // Get a specific Kusto cluster details
+  rpc GetKustoCluster(GetKustoClusterRequest) returns (GetKustoClusterResponse);
 }
 
 // Request for checking Identity service status
@@ -309,4 +315,78 @@ message EncryptionProperties {
   bool is_key_vault_key_identifier_valid = 3;
   // Whether identity client ID is valid
   bool is_identity_client_id_valid = 4;
+}
+
+// Request for getting Kusto clusters
+message GetKustoClustersRequest {
+  // Subscription ID to get Kusto clusters for
+  string subscription_id = 1;
+  // Optional tenant ID
+  string tenant_id = 2;
+}
+
+// Response containing list of Kusto clusters
+message GetKustoClustersResponse {
+  // List of Kusto cluster names
+  repeated string kusto_clusters = 1;
+  // Whether the operation was successful
+  bool is_success = 2;
+  // Error message if operation failed
+  string error_message = 3;
+}
+
+// Request for getting a specific Kusto cluster
+message GetKustoClusterRequest {
+  // Kusto cluster name
+  string cluster_name = 1;
+  // Subscription ID where the Kusto cluster exists
+  string subscription_id = 2;
+  // Optional tenant ID
+  string tenant_id = 3;
+}
+
+// Response containing Kusto cluster details
+message GetKustoClusterResponse {
+  // The Kusto cluster data
+  KustoClusterData cluster = 1;
+  // Whether the operation was successful
+  bool is_success = 2;
+  // Error message if operation failed
+  string error_message = 3;
+}
+
+// Kusto cluster data
+message KustoClusterData {
+  // The cluster name
+  string cluster_name = 1;
+  // The cluster URI
+  string cluster_uri = 2;
+  // The cluster location
+  string location = 3;
+  // The resource group name
+  string resource_group_name = 4;
+  // The subscription ID
+  string subscription_id = 5;
+  // The SKU information
+  string sku = 6;
+  // The availability zones
+  string zones = 7;
+  // The identity information
+  string identity = 8;
+  // The ETag
+  string etag = 9;
+  // The cluster state
+  string state = 10;
+  // The provisioning state
+  string provisioning_state = 11;
+  // The data ingestion URI
+  string data_ingestion_uri = 12;
+  // The state reason
+  string state_reason = 13;
+  // Whether streaming ingest is enabled
+  bool is_streaming_ingest_enabled = 14;
+  // The engine type
+  string engine_type = 15;
+  // Whether auto stop is enabled
+  bool is_auto_stop_enabled = 16;
 }
