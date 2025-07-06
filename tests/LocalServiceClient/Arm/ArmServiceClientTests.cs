@@ -76,6 +76,14 @@ public class ArmServiceClientTests : IDisposable
         _armServiceClient = new ArmServiceClient(_loggerFactory, _identityServiceClient, _armServiceHost);
     }
 
+    private void AssertServicesAreRunning()
+    {
+        Assert.NotNull(_identityServiceHost);
+        Assert.NotNull(_armServiceHost);
+        Assert.True(_identityServiceHost.IsRunning);
+        Assert.True(_armServiceHost.IsRunning);
+    }
+
     [Fact]
     public async Task CanAttemptToGetIdentityServiceStatusThroughGrpcCall()
     {
@@ -105,10 +113,7 @@ public class ArmServiceClientTests : IDisposable
             Assert.Fail($"Expected gRPC call to succeed or return a proper error response, but got exception: {ex.GetType().Name}: {ex.Message}");
         }
 
-        Assert.NotNull(_identityServiceHost);
-        Assert.NotNull(_armServiceHost);
-        Assert.True(_identityServiceHost.IsRunning);
-        Assert.True(_armServiceHost.IsRunning);
+        AssertServicesAreRunning();
     }
 
     [Fact]
@@ -140,10 +145,7 @@ public class ArmServiceClientTests : IDisposable
             Assert.Fail($"Expected gRPC call to succeed or return a proper error response, but got exception: {ex.GetType().Name}: {ex.Message}");
         }
 
-        Assert.NotNull(_identityServiceHost);
-        Assert.NotNull(_armServiceHost);
-        Assert.True(_identityServiceHost.IsRunning);
-        Assert.True(_armServiceHost.IsRunning);
+        AssertServicesAreRunning();
     }
 
     [Fact]
@@ -176,10 +178,7 @@ public class ArmServiceClientTests : IDisposable
             Assert.Fail($"Expected gRPC call to succeed or return a proper error response, but got exception: {ex.GetType().Name}: {ex.Message}");
         }
 
-        Assert.NotNull(_identityServiceHost);
-        Assert.NotNull(_armServiceHost);
-        Assert.True(_identityServiceHost.IsRunning);
-        Assert.True(_armServiceHost.IsRunning);
+        AssertServicesAreRunning();
     }
 
     [Fact]
@@ -228,10 +227,7 @@ public class ArmServiceClientTests : IDisposable
             Assert.Fail($"Expected gRPC call to succeed or return a proper error response, but got exception: {ex.GetType().Name}: {ex.Message}");
         }
 
-        Assert.NotNull(_identityServiceHost);
-        Assert.NotNull(_armServiceHost);
-        Assert.True(_identityServiceHost.IsRunning);
-        Assert.True(_armServiceHost.IsRunning);
+        AssertServicesAreRunning();
     }
 
     [Fact]
@@ -281,10 +277,7 @@ public class ArmServiceClientTests : IDisposable
             Assert.Fail($"Expected gRPC call to succeed or return a proper error response, but got exception: {ex.GetType().Name}: {ex.Message}");
         }
 
-        Assert.NotNull(_identityServiceHost);
-        Assert.NotNull(_armServiceHost);
-        Assert.True(_identityServiceHost.IsRunning);
-        Assert.True(_armServiceHost.IsRunning);
+        AssertServicesAreRunning();
     }
 
     [Fact]
@@ -335,10 +328,59 @@ public class ArmServiceClientTests : IDisposable
             Assert.Fail($"Expected gRPC call to succeed or return a proper error response, but got exception: {ex.GetType().Name}: {ex.Message}");
         }
 
-        Assert.NotNull(_identityServiceHost);
-        Assert.NotNull(_armServiceHost);
-        Assert.True(_identityServiceHost.IsRunning);
-        Assert.True(_armServiceHost.IsRunning);
+        AssertServicesAreRunning();
+    }
+
+    [Fact]
+    public async Task CanAttemptToGetResourceGroupsThroughGrpcCall()
+    {
+        SetupServices();
+        var cancellationToken = new CancellationTokenSource(TimeSpan.FromMinutes(2)).Token;
+
+        try
+        {
+            var subscriptionId = await GetTargetSubscriptionIdAsync(_armServiceClient!, cancellationToken);
+
+            var resourceGroupsResult = await _armServiceClient!.GetResourceGroupsAsync(
+                subscriptionId,
+                tenantId: null,
+                cancellationToken: cancellationToken);
+
+            Assert.NotNull(resourceGroupsResult);
+            if (!resourceGroupsResult.IsSuccess)
+            {
+                Assert.Fail($"Expected GetResourceGroupsAsync call to succeed, but got error: {resourceGroupsResult.ErrorMessage}");
+            }
+            Assert.NotNull(resourceGroupsResult.ResourceGroups);
+            Assert.True(resourceGroupsResult.ResourceGroups.Count > 0, $"Should have at least one resource group in {DefaultSubscription} subscription");
+
+            var firstResourceGroup = resourceGroupsResult.ResourceGroups.First();
+            Assert.False(string.IsNullOrEmpty(firstResourceGroup.Name), "Resource group name should not be empty");
+            Assert.False(string.IsNullOrEmpty(firstResourceGroup.Id), "Resource group ID should not be empty");
+            Assert.False(string.IsNullOrEmpty(firstResourceGroup.Location), "Resource group location should not be empty");
+
+            var resourceGroupResult = await _armServiceClient!.GetResourceGroupAsync(
+                firstResourceGroup.Name,
+                subscriptionId,
+                tenantId: null,
+                cancellationToken: cancellationToken);
+
+            Assert.NotNull(resourceGroupResult);
+            if (!resourceGroupResult.IsSuccess)
+            {
+                Assert.Fail($"Expected GetResourceGroupAsync call to succeed, but got error: {resourceGroupResult.ErrorMessage}");
+            }
+            Assert.NotNull(resourceGroupResult.ResourceGroup);
+            Assert.Equal(firstResourceGroup.Name, resourceGroupResult.ResourceGroup.Name);
+            Assert.Equal(firstResourceGroup.Id, resourceGroupResult.ResourceGroup.Id);
+            Assert.Equal(firstResourceGroup.Location, resourceGroupResult.ResourceGroup.Location);
+        }
+        catch (Exception ex)
+        {
+            Assert.Fail($"Expected gRPC call to succeed or return a proper error response, but got exception: {ex.GetType().Name}: {ex.Message}");
+        }
+
+        AssertServicesAreRunning();
     }
 
     private async Task<string> GetTargetSubscriptionIdAsync(ArmServiceClient armServiceClient, CancellationToken cancellationToken)

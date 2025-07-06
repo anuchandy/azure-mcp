@@ -38,6 +38,12 @@ service ArmService {
   
   // Get a specific Kusto cluster details
   rpc GetKustoCluster(GetKustoClusterRequest) returns (GetKustoClusterResponse);
+  
+  // Get resource groups for a subscription
+  rpc GetResourceGroups(GetResourceGroupsRequest) returns (GetResourceGroupsResponse);
+  
+  // Get a specific resource group details
+  rpc GetResourceGroup(GetResourceGroupRequest) returns (GetResourceGroupResponse);
 }
 
 // Request for checking Identity service status
@@ -389,4 +395,52 @@ message KustoClusterData {
   string engine_type = 15;
   // Whether auto stop is enabled
   bool is_auto_stop_enabled = 16;
+}
+
+// Request for getting resource groups
+message GetResourceGroupsRequest {
+  // Subscription ID to get resource groups for
+  string subscription_id = 1;
+  // Optional tenant ID
+  string tenant_id = 2;
+}
+
+// Response containing list of resource groups
+message GetResourceGroupsResponse {
+  // List of resource group info
+  repeated ResourceGroupData resource_groups = 1;
+  // Whether the operation was successful
+  bool is_success = 2;
+  // Error message if operation failed
+  string error_message = 3;
+}
+
+// Request for getting a specific resource group
+message GetResourceGroupRequest {
+  // Resource group name
+  string resource_group_name = 1;
+  // Subscription ID where the resource group exists
+  string subscription_id = 2;
+  // Optional tenant ID
+  string tenant_id = 3;
+}
+
+// Response containing resource group details
+message GetResourceGroupResponse {
+  // The resource group data
+  ResourceGroupData resource_group = 1;
+  // Whether the operation was successful
+  bool is_success = 2;
+  // Error message if operation failed
+  string error_message = 3;
+}
+
+// Resource group data
+message ResourceGroupData {
+  // The resource group name
+  string name = 1;
+  // The resource group ID
+  string id = 2;
+  // The resource group location
+  string location = 3;
 }

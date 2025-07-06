@@ -794,6 +794,136 @@ public class ArmGrpcService : ArmService.ArmServiceBase
         }
     }
 
+    #region Resource Group Operations
+
+    /// <summary>
+    /// Gets all resource groups for a subscription.
+    /// </summary>
+    /// <param name="request">The request containing subscription and optional tenant ID.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>A response containing the list of resource groups.</returns>
+    public override async Task<GetResourceGroupsResponse> GetResourceGroups(
+        GetResourceGroupsRequest request,
+        ServerCallContext context)
+    {
+        try
+        {
+            var subscriptionResource = await GetSubscriptionAsync(request.SubscriptionId, request.TenantId);
+            var subscriptionId = subscriptionResource.Data.SubscriptionId;
+
+            var cacheKey = $"resourcegroups_{subscriptionId}_{request.TenantId ?? "default"}";
+            if (_cache.TryGetValue(cacheKey, out List<AzureMcp.LocalService.Arm.Grpc.ResourceGroupData>? cachedResourceGroups))
+            {
+                return new GetResourceGroupsResponse
+                {
+                    IsSuccess = true,
+                    ResourceGroups = { cachedResourceGroups }
+                };
+            }
+
+            var resourceGroups = new List<AzureMcp.LocalService.Arm.Grpc.ResourceGroupData>();
+            await foreach (var rg in subscriptionResource.GetResourceGroups().GetAllAsync())
+            {
+                var resourceGroupData = new AzureMcp.LocalService.Arm.Grpc.ResourceGroupData
+                {
+                    Name = rg.Data.Name,
+                    Id = rg.Data.Id.ToString(),
+                    Location = rg.Data.Location.ToString()
+                };
+
+                resourceGroups.Add(resourceGroupData);
+            }
+
+            _cache.Set(cacheKey, resourceGroups, s_cacheDuration);
+
+            return new GetResourceGroupsResponse
+            {
+                IsSuccess = true,
+                ResourceGroups = { resourceGroups }
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting resource groups for subscription {SubscriptionId}", request.SubscriptionId);
+            return new GetResourceGroupsResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message
+            };
+        }
+    }
+
+    /// <summary>
+    /// Gets a specific resource group.
+    /// </summary>
+    /// <param name="request">The request containing resource group name, subscription, and optional tenant ID.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>A response containing the resource group details.</returns>
+    public override async Task<GetResourceGroupResponse> GetResourceGroup(
+        GetResourceGroupRequest request,
+        ServerCallContext context)
+    {
+        try
+        {
+            var subscriptionResource = await GetSubscriptionAsync(request.SubscriptionId, request.TenantId);
+            var subscriptionId = subscriptionResource.Data.SubscriptionId;
+
+            var cacheKey = $"resourcegroups_{subscriptionId}_{request.TenantId ?? "default"}";
+            if (_cache.TryGetValue(cacheKey, out List<AzureMcp.LocalService.Arm.Grpc.ResourceGroupData>? cachedResourceGroups))
+            {
+                var cachedRg = cachedResourceGroups!.FirstOrDefault(rg => 
+                    rg.Name.Equals(request.ResourceGroupName, StringComparison.OrdinalIgnoreCase));
+                if (cachedRg != null)
+                {
+                    return new GetResourceGroupResponse
+                    {
+                        IsSuccess = true,
+                        ResourceGroup = cachedRg
+                    };
+                }
+            }
+
+            var resourceGroupResponse = await subscriptionResource.GetResourceGroups()
+                .GetAsync(request.ResourceGroupName)
+                .ConfigureAwait(false);
+
+            if (resourceGroupResponse?.Value == null)
+            {
+                return new GetResourceGroupResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"Resource group {request.ResourceGroupName} not found"
+                };
+            }
+
+            var rg = resourceGroupResponse.Value;
+            var resourceGroupData = new AzureMcp.LocalService.Arm.Grpc.ResourceGroupData
+            {
+                Name = rg.Data.Name,
+                Id = rg.Data.Id.ToString(),
+                Location = rg.Data.Location.ToString()
+            };
+
+            return new GetResourceGroupResponse
+            {
+                IsSuccess = true,
+                ResourceGroup = resourceGroupData
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting resource group {ResourceGroupName} for subscription {SubscriptionId}", 
+                request.ResourceGroupName, request.SubscriptionId);
+            return new GetResourceGroupResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message
+            };
+        }
+    }
+
+    #endregion
+
     #region Subscription related internal methods.
 
     private const string CacheGroup = "subscription";

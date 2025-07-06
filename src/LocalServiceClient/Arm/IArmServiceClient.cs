@@ -149,6 +149,32 @@ public interface IArmServiceClient : IServiceClient
         string subscriptionId,
         string? tenantId = null,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all resource groups for a subscription.
+    /// </summary>
+    /// <param name="subscriptionId">Subscription ID to get resource groups for</param>
+    /// <param name="tenantId">Optional tenant ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A response containing the list of resource groups</returns>
+    Task<GetResourceGroupsResult> GetResourceGroupsAsync(
+        string subscriptionId,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets a specific resource group.
+    /// </summary>
+    /// <param name="resourceGroupName">Resource group name</param>
+    /// <param name="subscriptionId">Subscription ID where the resource group exists</param>
+    /// <param name="tenantId">Optional tenant ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A response containing the resource group details</returns>
+    Task<GetResourceGroupResult> GetResourceGroupAsync(
+        string resourceGroupName,
+        string subscriptionId,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -707,4 +733,67 @@ public class KustoClusterData
     /// Whether auto stop is enabled.
     /// </summary>
     public bool IsAutoStopEnabled { get; init; }
+}
+
+/// <summary>
+/// Result of getting resource groups.
+/// </summary>
+public class GetResourceGroupsResult
+{
+    /// <summary>
+    /// Whether the operation was successful.
+    /// </summary>
+    public bool IsSuccess { get; init; }
+
+    /// <summary>
+    /// Error message if the operation failed.
+    /// </summary>
+    public string? ErrorMessage { get; init; }
+
+    /// <summary>
+    /// The list of resource groups.
+    /// </summary>
+    public List<ResourceGroupData> ResourceGroups { get; init; } = new();
+}
+
+/// <summary>
+/// Result of getting a specific resource group.
+/// </summary>
+public class GetResourceGroupResult
+{
+    /// <summary>
+    /// Whether the operation was successful.
+    /// </summary>
+    public bool IsSuccess { get; init; }
+
+    /// <summary>
+    /// Error message if the operation failed.
+    /// </summary>
+    public string? ErrorMessage { get; init; }
+
+    /// <summary>
+    /// The resource group data.
+    /// </summary>
+    public ResourceGroupData? ResourceGroup { get; init; }
+}
+
+/// <summary>
+/// Resource group data.
+/// </summary>
+public class ResourceGroupData
+{
+    /// <summary>
+    /// The resource group name.
+    /// </summary>
+    public string Name { get; init; } = string.Empty;
+
+    /// <summary>
+    /// The resource group ID.
+    /// </summary>
+    public string Id { get; init; } = string.Empty;
+
+    /// <summary>
+    /// The resource group location.
+    /// </summary>
+    public string Location { get; init; } = string.Empty;
 }

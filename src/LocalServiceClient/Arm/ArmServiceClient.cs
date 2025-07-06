@@ -556,6 +556,92 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         }
     }
 
+    public async Task<GetResourceGroupsResult> GetResourceGroupsAsync(
+        string subscriptionId,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var endpoint = await EnsureServiceStartedAsync(cancellationToken);
+        try
+        {
+            EnsureClient(endpoint);
+
+            var request = new GetResourceGroupsRequest
+            {
+                SubscriptionId = subscriptionId,
+                TenantId = tenantId ?? string.Empty
+            };
+
+            var response = await _client!.GetResourceGroupsAsync(request, cancellationToken: cancellationToken);
+
+            return new GetResourceGroupsResult
+            {
+                IsSuccess = response.IsSuccess,
+                ErrorMessage = string.IsNullOrEmpty(response.ErrorMessage) ? null : response.ErrorMessage,
+                ResourceGroups = response.ResourceGroups.Select(rg => new ResourceGroupData
+                {
+                    Name = rg.Name,
+                    Id = rg.Id,
+                    Location = rg.Location
+                }).ToList()
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to call ARM LocalService for resource groups");
+            return new GetResourceGroupsResult
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message,
+                ResourceGroups = new List<ResourceGroupData>()
+            };
+        }
+    }
+
+    public async Task<GetResourceGroupResult> GetResourceGroupAsync(
+        string resourceGroupName,
+        string subscriptionId,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var endpoint = await EnsureServiceStartedAsync(cancellationToken);
+        try
+        {
+            EnsureClient(endpoint);
+
+            var request = new GetResourceGroupRequest
+            {
+                ResourceGroupName = resourceGroupName,
+                SubscriptionId = subscriptionId,
+                TenantId = tenantId ?? string.Empty
+            };
+
+            var response = await _client!.GetResourceGroupAsync(request, cancellationToken: cancellationToken);
+
+            return new GetResourceGroupResult
+            {
+                IsSuccess = response.IsSuccess,
+                ErrorMessage = string.IsNullOrEmpty(response.ErrorMessage) ? null : response.ErrorMessage,
+                ResourceGroup = response.ResourceGroup == null ? null : new ResourceGroupData
+                {
+                    Name = response.ResourceGroup.Name,
+                    Id = response.ResourceGroup.Id,
+                    Location = response.ResourceGroup.Location
+                }
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to call ARM LocalService for resource group");
+            return new GetResourceGroupResult
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message,
+                ResourceGroup = null
+            };
+        }
+    }
+
     public void Dispose()
     {
         if (!_disposed)
