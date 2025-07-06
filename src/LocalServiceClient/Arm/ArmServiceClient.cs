@@ -1127,6 +1127,47 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         }
     }
 
+    public async Task<ListMonitoredDatadogResourcesResult> ListMonitoredDatadogResourcesAsync(
+        string subscriptionId,
+        string resourceGroupName,
+        string datadogResourceName,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var endpoint = await EnsureServiceStartedAsync(cancellationToken);
+        try
+        {
+            EnsureClient(endpoint);
+
+            var request = new ListMonitoredDatadogResourcesRequest
+            {
+                SubscriptionId = subscriptionId,
+                ResourceGroupName = resourceGroupName,
+                DatadogResourceName = datadogResourceName,
+                TenantId = tenantId ?? string.Empty
+            };
+
+            var response = await _client!.ListMonitoredDatadogResourcesAsync(request, cancellationToken: cancellationToken);
+
+            return new ListMonitoredDatadogResourcesResult
+            {
+                IsSuccess = response.IsSuccess,
+                ErrorMessage = response.ErrorMessage,
+                MonitoredResourceNames = response.MonitoredResourceNames.ToList()
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to call ARM LocalService for Datadog monitored resources");
+            return new ListMonitoredDatadogResourcesResult
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message,
+                MonitoredResourceNames = []
+            };
+        }
+    }
+
     public async Task<ListRoleAssignmentsResult> ListRoleAssignmentsAsync(
         string scope,
         string? tenantId = null,

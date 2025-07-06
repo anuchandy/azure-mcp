@@ -324,6 +324,22 @@ public interface IArmServiceClient : IServiceClient
         string subscriptionId,
         string? tenantId = null,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Lists monitored resources for a Datadog monitor.
+    /// </summary>
+    /// <param name="subscriptionId">Subscription ID containing the Datadog resource</param>
+    /// <param name="resourceGroupName">Resource group name containing the Datadog resource</param>
+    /// <param name="datadogResourceName">Name of the Datadog resource</param>
+    /// <param name="tenantId">Optional tenant ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A response containing the list of monitored resource names</returns>
+    Task<ListMonitoredDatadogResourcesResult> ListMonitoredDatadogResourcesAsync(
+        string subscriptionId,
+        string resourceGroupName,
+        string datadogResourceName,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -1612,4 +1628,25 @@ public class ListSearchServicesResult
     /// List of Search service names.
     /// </summary>
     public List<string> ServiceNames { get; init; } = [];
+}
+
+/// <summary>
+/// Result of listing monitored resources for a Datadog monitor.
+/// </summary>
+public class ListMonitoredDatadogResourcesResult
+{
+    /// <summary>
+    /// Whether the operation was successful.
+    /// </summary>
+    public bool IsSuccess { get; init; }
+
+    /// <summary>
+    /// Error message if operation failed.
+    /// </summary>
+    public string ErrorMessage { get; init; } = string.Empty;
+
+    /// <summary>
+    /// List of monitored resource names.
+    /// </summary>
+    public List<string> MonitoredResourceNames { get; init; } = [];
 }

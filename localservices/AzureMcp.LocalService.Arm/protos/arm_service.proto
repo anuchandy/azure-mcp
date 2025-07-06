@@ -74,6 +74,9 @@ service ArmService {
 
   // List Azure Search services in a subscription
   rpc ListSearchServices(ListSearchServicesRequest) returns (ListSearchServicesResponse);
+
+  // List monitored resources for a Datadog monitor
+  rpc ListMonitoredDatadogResources(ListMonitoredDatadogResourcesRequest) returns (ListMonitoredDatadogResourcesResponse);
 }
 
 // Request for checking Identity service status
@@ -595,6 +598,138 @@ message ListRedisDatabasesResponse {
   string error_message = 3;
 }
 
+// PostgreSQL Services
+
+// Request to list PostgreSQL servers in a resource group
+message ListPostgreSqlServersRequest {
+  // The subscription ID
+  string subscription_id = 1;
+  // The resource group name
+  string resource_group_name = 2;
+  // Optional tenant ID for multi-tenant scenarios
+  string tenant_id = 3;
+}
+
+// Response containing list of PostgreSQL servers
+message ListPostgreSqlServersResponse {
+  // Indicates if the operation was successful
+  bool is_success = 1;
+  // Error message if operation failed
+  string error_message = 2;
+  // List of PostgreSQL server names
+  repeated string server_names = 3;
+}
+
+// Request to get PostgreSQL server configuration
+message GetPostgreSqlServerConfigRequest {
+  // The subscription ID
+  string subscription_id = 1;
+  // The resource group name
+  string resource_group_name = 2;
+  // The PostgreSQL server name
+  string server_name = 3;
+  // Optional tenant ID for multi-tenant scenarios
+  string tenant_id = 4;
+}
+
+// Response containing PostgreSQL server configuration
+message GetPostgreSqlServerConfigResponse {
+  // Indicates if the operation was successful
+  bool is_success = 1;
+  // Error message if operation failed
+  string error_message = 2;
+  // PostgreSQL server configuration details
+  PostgreSqlServerConfig server_config = 3;
+}
+
+// PostgreSQL server configuration data
+message PostgreSqlServerConfig {
+  // Server name
+  string name = 1;
+  // Server location
+  string location = 2;
+  // PostgreSQL version
+  string version = 3;
+  // SKU information
+  string sku_name = 4;
+  // Storage size in GB
+  int32 storage_size_gb = 5;
+  // Backup retention days
+  int32 backup_retention_days = 6;
+  // Geo-redundant backup enabled
+  string geo_redundant_backup = 7;
+}
+
+// Request to get a PostgreSQL server parameter
+message GetPostgreSqlServerParameterRequest {
+  // The subscription ID
+  string subscription_id = 1;
+  // The resource group name
+  string resource_group_name = 2;
+  // The PostgreSQL server name
+  string server_name = 3;
+  // The parameter name
+  string parameter_name = 4;
+  // Optional tenant ID for multi-tenant scenarios
+  string tenant_id = 5;
+}
+
+// Response containing PostgreSQL server parameter value
+message GetPostgreSqlServerParameterResponse {
+  // Indicates if the operation was successful
+  bool is_success = 1;
+  // Error message if operation failed
+  string error_message = 2;
+  // Parameter value
+  string parameter_value = 3;
+}
+
+// Request to set a PostgreSQL server parameter
+message SetPostgreSqlServerParameterRequest {
+  // The subscription ID
+  string subscription_id = 1;
+  // The resource group name
+  string resource_group_name = 2;
+  // The PostgreSQL server name
+  string server_name = 3;
+  // The parameter name
+  string parameter_name = 4;
+  // The parameter value to set
+  string parameter_value = 5;
+  // Optional tenant ID for multi-tenant scenarios
+  string tenant_id = 6;
+}
+
+// Response for setting PostgreSQL server parameter
+message SetPostgreSqlServerParameterResponse {
+  // Indicates if the operation was successful
+  bool is_success = 1;
+  // Error message if operation failed
+  string error_message = 2;
+  // Success message with details
+  string message = 3;
+}
+
+// Search Services
+
+// Request to list Azure Search services in a subscription
+message ListSearchServicesRequest {
+  // The subscription ID
+  string subscription_id = 1;
+  // Optional tenant ID for multi-tenant scenarios
+  string tenant_id = 2;
+}
+
+// Response containing list of Azure Search services
+message ListSearchServicesResponse {
+  // Indicates if the operation was successful
+  bool is_success = 1;
+  // Error message if operation failed
+  string error_message = 2;
+  // List of Search service names
+  repeated string service_names = 3;
+}
+
 // Redis Services Messages
 
 // Redis cache data
@@ -777,134 +912,26 @@ message RedisModule {
   string version = 3;
 }
 
-// PostgreSQL Services
+// Datadog Services Messages
 
-// Request to list PostgreSQL servers in a resource group
-message ListPostgreSqlServersRequest {
+// Request to list monitored resources for a Datadog monitor
+message ListMonitoredDatadogResourcesRequest {
   // The subscription ID
   string subscription_id = 1;
   // The resource group name
   string resource_group_name = 2;
-  // Optional tenant ID for multi-tenant scenarios
-  string tenant_id = 3;
-}
-
-// Response containing list of PostgreSQL servers
-message ListPostgreSqlServersResponse {
-  // Indicates if the operation was successful
-  bool is_success = 1;
-  // Error message if operation failed
-  string error_message = 2;
-  // List of PostgreSQL server names
-  repeated string server_names = 3;
-}
-
-// Request to get PostgreSQL server configuration
-message GetPostgreSqlServerConfigRequest {
-  // The subscription ID
-  string subscription_id = 1;
-  // The resource group name
-  string resource_group_name = 2;
-  // The PostgreSQL server name
-  string server_name = 3;
+  // The Datadog resource name
+  string datadog_resource_name = 3;
   // Optional tenant ID for multi-tenant scenarios
   string tenant_id = 4;
 }
 
-// Response containing PostgreSQL server configuration
-message GetPostgreSqlServerConfigResponse {
+// Response containing list of monitored resources
+message ListMonitoredDatadogResourcesResponse {
   // Indicates if the operation was successful
   bool is_success = 1;
   // Error message if operation failed
   string error_message = 2;
-  // PostgreSQL server configuration details
-  PostgreSqlServerConfig server_config = 3;
-}
-
-// PostgreSQL server configuration data
-message PostgreSqlServerConfig {
-  // Server name
-  string name = 1;
-  // Server location
-  string location = 2;
-  // PostgreSQL version
-  string version = 3;
-  // SKU information
-  string sku_name = 4;
-  // Storage size in GB
-  int32 storage_size_gb = 5;
-  // Backup retention days
-  int32 backup_retention_days = 6;
-  // Geo-redundant backup enabled
-  string geo_redundant_backup = 7;
-}
-
-// Request to get a PostgreSQL server parameter
-message GetPostgreSqlServerParameterRequest {
-  // The subscription ID
-  string subscription_id = 1;
-  // The resource group name
-  string resource_group_name = 2;
-  // The PostgreSQL server name
-  string server_name = 3;
-  // The parameter name
-  string parameter_name = 4;
-  // Optional tenant ID for multi-tenant scenarios
-  string tenant_id = 5;
-}
-
-// Response containing PostgreSQL server parameter value
-message GetPostgreSqlServerParameterResponse {
-  // Indicates if the operation was successful
-  bool is_success = 1;
-  // Error message if operation failed
-  string error_message = 2;
-  // Parameter value
-  string parameter_value = 3;
-}
-
-// Request to set a PostgreSQL server parameter
-message SetPostgreSqlServerParameterRequest {
-  // The subscription ID
-  string subscription_id = 1;
-  // The resource group name
-  string resource_group_name = 2;
-  // The PostgreSQL server name
-  string server_name = 3;
-  // The parameter name
-  string parameter_name = 4;
-  // The parameter value to set
-  string parameter_value = 5;
-  // Optional tenant ID for multi-tenant scenarios
-  string tenant_id = 6;
-}
-
-// Response for setting PostgreSQL server parameter
-message SetPostgreSqlServerParameterResponse {
-  // Indicates if the operation was successful
-  bool is_success = 1;
-  // Error message if operation failed
-  string error_message = 2;
-  // Success message with details
-  string message = 3;
-}
-
-// Search Services
-
-// Request to list Azure Search services in a subscription
-message ListSearchServicesRequest {
-  // The subscription ID
-  string subscription_id = 1;
-  // Optional tenant ID for multi-tenant scenarios
-  string tenant_id = 2;
-}
-
-// Response containing list of Azure Search services
-message ListSearchServicesResponse {
-  // Indicates if the operation was successful
-  bool is_success = 1;
-  // Error message if operation failed
-  string error_message = 2;
-  // List of Search service names
-  repeated string service_names = 3;
+  // List of monitored resource names
+  repeated string monitored_resource_names = 3;
 }

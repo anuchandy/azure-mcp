@@ -74,6 +74,9 @@ service ArmService {
 
   // List Azure Search services in a subscription
   rpc ListSearchServices(ListSearchServicesRequest) returns (ListSearchServicesResponse);
+
+  // List monitored resources for a Datadog monitor
+  rpc ListMonitoredDatadogResources(ListMonitoredDatadogResourcesRequest) returns (ListMonitoredDatadogResourcesResponse);
 }
 
 // Request for checking Identity service status
@@ -907,4 +910,28 @@ message RedisModule {
   string args = 2;
   // The version of the module, e.g. '1.0'
   string version = 3;
+}
+
+// Datadog Services Messages
+
+// Request to list monitored resources for a Datadog monitor
+message ListMonitoredDatadogResourcesRequest {
+  // The subscription ID
+  string subscription_id = 1;
+  // The resource group name
+  string resource_group_name = 2;
+  // The Datadog resource name
+  string datadog_resource_name = 3;
+  // Optional tenant ID for multi-tenant scenarios
+  string tenant_id = 4;
+}
+
+// Response containing list of monitored resources
+message ListMonitoredDatadogResourcesResponse {
+  // Indicates if the operation was successful
+  bool is_success = 1;
+  // Error message if operation failed
+  string error_message = 2;
+  // List of monitored resource names
+  repeated string monitored_resource_names = 3;
 }

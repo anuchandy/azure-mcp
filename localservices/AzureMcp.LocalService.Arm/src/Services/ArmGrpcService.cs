@@ -13,6 +13,7 @@ using Azure.ResourceManager.Redis;
 using Azure.ResourceManager.RedisEnterprise;
 using Azure.ResourceManager.PostgreSql.FlexibleServers;
 using Azure.ResourceManager.Search;
+using Azure.ResourceManager.Datadog;
 using AzureMcp.LocalService.Arm.Grpc;
 using AzureMcp.LocalService.Arm.Clients;
 using Grpc.Core;
@@ -1709,6 +1710,87 @@ public class ArmGrpcService : ArmService.ArmServiceBase
         {
             _logger.LogError(ex, "Error listing Search services for subscription {SubscriptionId}", request.SubscriptionId);
             return new ListSearchServicesResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message
+            };
+        }
+    }
+
+    #endregion
+
+    #region Datadog Methods
+
+    /// <summary>
+    /// Lists monitored resources for a Datadog monitor.
+    /// </summary>
+    /// <param name="request">The request containing subscription ID, resource group, and Datadog resource name.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>A response containing the list of monitored resource names.</returns>
+    public override async Task<ListMonitoredDatadogResourcesResponse> ListMonitoredDatadogResources(
+        ListMonitoredDatadogResourcesRequest request,
+        ServerCallContext context)
+    {
+        try
+        {
+            await Task.Yield(); // Hack (todo: anu) Ensure this method runs asynchronously
+
+            if (string.IsNullOrWhiteSpace(request.SubscriptionId))
+            {
+                return new ListMonitoredDatadogResourcesResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = "Subscription ID cannot be null or empty"
+                };
+            }
+
+            if (string.IsNullOrWhiteSpace(request.ResourceGroupName))
+            {
+                return new ListMonitoredDatadogResourcesResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = "Resource group name cannot be null or empty"
+                };
+            }
+
+            if (string.IsNullOrWhiteSpace(request.DatadogResourceName))
+            {
+                return new ListMonitoredDatadogResourcesResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = "Datadog resource name cannot be null or empty"
+                };
+            }
+
+            var armClient = CreateArmClient(request.TenantId);
+
+            // Construct the resource ID for the Datadog monitor
+            var resourceId = $"/subscriptions/{request.SubscriptionId}/resourceGroups/{request.ResourceGroupName}/providers/Microsoft.Datadog/monitors/{request.DatadogResourceName}";
+
+            Azure.Core.ResourceIdentifier id = new Azure.Core.ResourceIdentifier(resourceId);
+            var datadogMonitorResource = armClient.GetDatadogMonitorResource(id);
+            var monitoredResources = datadogMonitorResource.GetMonitoredResources();
+
+            var resourceNames = new List<string>();
+            foreach (var resource in monitoredResources)
+            {
+                var resourceIdSegments = resource.Id.ToString().Split('/');
+                var lastSegment = resourceIdSegments[^1];
+                resourceNames.Add(lastSegment);
+            }
+
+            return new ListMonitoredDatadogResourcesResponse
+            {
+                IsSuccess = true,
+                MonitoredResourceNames = { resourceNames }
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error listing monitored resources for Datadog resource: {DatadogResource}",
+                request.DatadogResourceName);
+
+            return new ListMonitoredDatadogResourcesResponse
             {
                 IsSuccess = false,
                 ErrorMessage = ex.Message

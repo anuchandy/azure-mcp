@@ -23,10 +23,13 @@ public class ArmServiceClientTests : IDisposable
     private IdentityServiceClient? _identityServiceClient;
     private ArmServiceClient? _armServiceClient;
 
+    private const string DefaultSubscriptionId = "faa080af-c1d8-40ad-9cce-e1a450ca5b57";
     private const string DefaultSubscription = "Azure SDK Developer Playground";
     private const string PostgreSqlTestResourceGroup = "anuchan-entra-4433";
     private const string PostgreSqlTestServerName = "td08288e8c7e88f73";
     private const string AuthorizationTestScope = "/subscriptions/faa080af-c1d8-40ad-9cce-e1a450ca5b57/resourceGroups/anuchan-entra-4433";
+    private const string DatadogTestResourceGroup = "anuchan-entra-4433";
+    private const string DatadogTestMonitorName = "test-datadog-monitor";
 
     public ArmServiceClientTests()
     {
@@ -677,6 +680,39 @@ public class ArmServiceClientTests : IDisposable
             else
             {
                 Assert.Fail($"Expected to find role assignments in scope {AuthorizationTestScope}, but none were returned");
+            }
+        }
+        catch (Exception ex)
+        {
+            FailOnException(ex);
+        }
+
+        AssertServicesAreRunning();
+    }
+
+    [Fact]
+    public async Task CanAttemptToListMonitoredDatadogResourcesThroughGrpcCall()
+    {
+        SetupServices();
+
+        try
+        {
+            var result = await _armServiceClient!.ListMonitoredDatadogResourcesAsync(
+                DefaultSubscriptionId,
+                DatadogTestResourceGroup,
+                DatadogTestMonitorName,
+                cancellationToken: TestContext.Current.CancellationToken
+            );
+
+            Assert.NotNull(result);
+            if (!result.IsSuccess)
+            {
+                // We expect this to fail with 404 since no Datadog monitor exists
+                Assert.Contains("Status: 404 (Not Found)", result.ErrorMessage);
+            }
+            else
+            {
+                Assert.NotNull(result.MonitoredResourceNames);
             }
         }
         catch (Exception ex)
