@@ -114,7 +114,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         }
     }
 
-    public async Task<ListSubscriptionsResult> ListSubscriptionsAsync(
+    public async Task<List<SubscriptionData>> ListSubscriptionsAsync(
         string? tenantId = null,
         CancellationToken cancellationToken = default)
     {
@@ -134,20 +134,13 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 throw new LocalServiceCallException("ListSubscriptions", GetErrorMessage(response.ErrorMessage));
             }
             
-            var subscriptions = response.Subscriptions.Select(s => new SubscriptionData
+            return response.Subscriptions.Select(s => new SubscriptionData
             {
                 SubscriptionId = s.SubscriptionId,
                 DisplayName = s.DisplayName,
                 TenantId = s.TenantId,
                 State = s.State
             }).ToList();
-
-            return new ListSubscriptionsResult
-            {
-                IsSuccess = response.IsSuccess,
-                ErrorMessage = string.IsNullOrEmpty(response.ErrorMessage) ? null : response.ErrorMessage,
-                Subscriptions = subscriptions
-            };
         }
         catch (LocalServiceCallException)
         {
@@ -1214,7 +1207,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         }
     }
 
-    public async Task<ListMonitorWorkspacesResult> ListMonitorWorkspacesAsync(
+    public async Task<List<MonitorWorkspaceInfo>> ListMonitorWorkspacesAsync(
         string subscriptionId,
         string? tenantId = null,
         CancellationToken cancellationToken = default)
@@ -1237,17 +1230,12 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 throw new LocalServiceCallException("ListMonitorWorkspaces", GetErrorMessage(response.ErrorMessage));
             }
 
-            return new ListMonitorWorkspacesResult
+            return response.Workspaces.Select(w => new MonitorWorkspaceInfo
             {
-                IsSuccess = response.IsSuccess,
-                ErrorMessage = response.ErrorMessage,
-                Workspaces = response.Workspaces.Select(w => new MonitorWorkspaceInfo
-                {
-                    Name = w.Name,
-                    CustomerId = w.CustomerId,
-                    ArmId = w.ArmId
-                }).ToList()
-            };
+                Name = w.Name,
+                CustomerId = w.CustomerId,
+                ArmId = w.ArmId
+            }).ToList();
         }
         catch (LocalServiceCallException)
         {

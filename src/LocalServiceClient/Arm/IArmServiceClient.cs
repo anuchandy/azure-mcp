@@ -30,8 +30,8 @@ public interface IArmServiceClient : IServiceClient
     /// </summary>
     /// <param name="tenantId">Optional tenant ID to list subscriptions for</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>A response containing the list of subscriptions</returns>
-    Task<ListSubscriptionsResult> ListSubscriptionsAsync(
+    /// <returns>A list of subscription data</returns>
+    Task<List<SubscriptionData>> ListSubscriptionsAsync(
         string? tenantId = null,
         CancellationToken cancellationToken = default);
 
@@ -365,8 +365,8 @@ public interface IArmServiceClient : IServiceClient
     /// <param name="subscriptionId">Subscription ID or name</param>
     /// <param name="tenantId">Optional tenant ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>A response containing the list of Monitor workspaces</returns>
-    Task<ListMonitorWorkspacesResult> ListMonitorWorkspacesAsync(
+    /// <returns>A list of Monitor workspaces</returns>
+    Task<List<MonitorWorkspaceInfo>> ListMonitorWorkspacesAsync(
         string subscriptionId,
         string? tenantId = null,
         CancellationToken cancellationToken = default);
@@ -520,39 +520,6 @@ public class CosmosAccountData
     /// The primary master key for the account.
     /// </summary>
     public required string PrimaryMasterKey { get; init; }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-/// <summary>
-/// Result of listing Monitor workspaces for a subscription.
-/// </summary>
-public class ListMonitorWorkspacesResult
-{
-    /// <summary>
-    /// Whether the operation was successful.
-    /// </summary>
-    public bool IsSuccess { get; init; }
-
-    /// <summary>
-    /// Error message if operation failed.
-    /// </summary>
-    public string ErrorMessage { get; init; } = string.Empty;
-
-    /// <summary>
-    /// List of Monitor workspaces.
-    /// </summary>
-    public List<MonitorWorkspaceInfo> Workspaces { get; init; } = [];
 }
 
 /// <summary>

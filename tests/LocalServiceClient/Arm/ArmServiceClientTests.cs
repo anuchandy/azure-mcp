@@ -91,20 +91,15 @@ public class ArmServiceClientTests : IDisposable
             cancellationToken: cancellationToken);
 
         Assert.NotNull(subscriptionsResult);
-        if (!subscriptionsResult.IsSuccess)
-        {
-            Assert.Fail($"Expected ListSubscriptionsAsync call to succeed, but got error: {subscriptionsResult.ErrorMessage}");
-        }
-        Assert.NotNull(subscriptionsResult.Subscriptions);
-        Assert.True(subscriptionsResult.Subscriptions.Count > 0, "Should have at least one subscription");
+        Assert.True(subscriptionsResult.Count > 0, "Should have at least one subscription");
 
-        var targetSubscription = subscriptionsResult.Subscriptions.FirstOrDefault(s => 
+        var targetSubscription = subscriptionsResult.FirstOrDefault(s => 
             s.DisplayName.Equals(DefaultSubscription, StringComparison.OrdinalIgnoreCase));
         
         if (targetSubscription == null)
         {
             Assert.Fail($"Could not find '{DefaultSubscription}' subscription. Available subscriptions: " + 
-                string.Join(", ", subscriptionsResult.Subscriptions.Select(s => s.DisplayName)));
+                string.Join(", ", subscriptionsResult.Select(s => s.DisplayName)));
         }
 
         return targetSubscription.SubscriptionId;
@@ -189,13 +184,7 @@ public class ArmServiceClientTests : IDisposable
 
             // Assert
             Assert.NotNull(result);
-            if (!result.IsSuccess)
-            {
-                Assert.Fail($"Expected subscription list to succeed, but got error: {result.ErrorMessage}");
-            }
-            Assert.True(result.IsSuccess, "ListSubscriptionsAsync should succeed");
-            Assert.NotNull(result.Subscriptions);
-            Assert.True(result.Subscriptions.Count > 0, "Should have at least one subscription");
+            Assert.True(result.Count > 0, "Should have at least one subscription");
         }
         catch (Exception ex)
         {
@@ -700,11 +689,9 @@ public class ArmServiceClientTests : IDisposable
             );
 
             Assert.NotNull(result);
-            Assert.True(result.IsSuccess, result.ErrorMessage);
-            Assert.NotNull(result.Workspaces);
-            Assert.True(result.Workspaces.Count > 0, $"Should have at least one Monitor workspace in {DefaultSubscription} subscription");
+            Assert.True(result.Count > 0, $"Should have at least one Monitor workspace in {DefaultSubscription} subscription");
             
-            var firstWorkspace = result.Workspaces.First();
+            var firstWorkspace = result.First();
             Assert.False(string.IsNullOrEmpty(firstWorkspace.ArmId), "Workspace ARM ID should not be empty");
             Assert.True(firstWorkspace.ArmId.Contains("Microsoft.OperationalInsights/workspaces"), "ARM ID should contain the correct resource provider");
         }
@@ -723,27 +710,25 @@ public class ArmServiceClientTests : IDisposable
 
         try
         {
-            var workspacesResult = await _armServiceClient!.ListMonitorWorkspacesAsync(
+            var workspaces = await _armServiceClient!.ListMonitorWorkspacesAsync(
                 DefaultSubscriptionId,
                 cancellationToken: TestContext.Current.CancellationToken
             );
 
-            Assert.NotNull(workspacesResult);
-            Assert.True(workspacesResult.IsSuccess, workspacesResult.ErrorMessage);
-            Assert.NotNull(workspacesResult.Workspaces);
-            Assert.True(workspacesResult.Workspaces.Count > 0, "Should have at least one workspace to test with");
+            Assert.NotNull(workspaces);
+            Assert.True(workspaces.Count > 0, "Should have at least one workspace to test with");
 
             // try tables from the first workspace
-            var testWorkspace = workspacesResult.Workspaces.First();
+            var workspace = workspaces.First();
             
             // Extract resource group name from the workspace ARM ID
-            var resourceGroupName = ExtractResourceGroupFromArmId(testWorkspace.ArmId);
-            Assert.False(string.IsNullOrEmpty(resourceGroupName), $"Could not extract resource group from ARM ID: {testWorkspace.ArmId}");
+            var resourceGroupName = ExtractResourceGroupFromArmId(workspace.ArmId);
+            Assert.False(string.IsNullOrEmpty(resourceGroupName), $"Could not extract resource group from ARM ID: {workspace.ArmId}");
 
             var result = await _armServiceClient!.ListMonitorTablesAsync(
                 DefaultSubscriptionId,
                 resourceGroupName!,
-                testWorkspace.Name,
+                workspace.Name,
                 tableType: null, // "CustomLog"
                 cancellationToken: TestContext.Current.CancellationToken
             );
@@ -771,27 +756,25 @@ public class ArmServiceClientTests : IDisposable
 
         try
         {
-            var workspacesResult = await _armServiceClient!.ListMonitorWorkspacesAsync(
+            var workspaces = await _armServiceClient!.ListMonitorWorkspacesAsync(
                 DefaultSubscriptionId,
                 cancellationToken: TestContext.Current.CancellationToken
             );
 
-            Assert.NotNull(workspacesResult);
-            Assert.True(workspacesResult.IsSuccess, workspacesResult.ErrorMessage);
-            Assert.NotNull(workspacesResult.Workspaces);
-            Assert.True(workspacesResult.Workspaces.Count > 0, "Should have at least one workspace to test with");
+            Assert.NotNull(workspaces);
+            Assert.True(workspaces.Count > 0, "Should have at least one workspace to test with");
 
             // try table types from the first workspace
-            var testWorkspace = workspacesResult.Workspaces.First();
+            var workspace = workspaces.First();
             
             // Extract resource group name from the workspace ARM ID
-            var resourceGroupName = ExtractResourceGroupFromArmId(testWorkspace.ArmId);
-            Assert.False(string.IsNullOrEmpty(resourceGroupName), $"Could not extract resource group from ARM ID: {testWorkspace.ArmId}");
+            var resourceGroupName = ExtractResourceGroupFromArmId(workspace.ArmId);
+            Assert.False(string.IsNullOrEmpty(resourceGroupName), $"Could not extract resource group from ARM ID: {workspace.ArmId}");
 
             var result = await _armServiceClient!.ListMonitorTableTypesAsync(
                 DefaultSubscriptionId,
                 resourceGroupName!,
-                testWorkspace.Name,
+                workspace.Name,
                 cancellationToken: TestContext.Current.CancellationToken
             );
 
