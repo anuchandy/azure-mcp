@@ -725,15 +725,13 @@ public class ArmServiceClientTests : IDisposable
             );
 
             Assert.NotNull(result);
-            if (!result.IsSuccess)
-            {
-                // We expect this to fail with 404 since no Datadog monitor exists
-                Assert.Contains("Status: 404 (Not Found)", result.ErrorMessage);
-            }
-            else
-            {
-                Assert.NotNull(result.MonitoredResourceNames);
-            }
+            Assert.NotNull(result.MonitoredResourceNames);
+        }
+        catch (LocalServiceCallException ex)
+        {
+            // We expect this to fail with 404 since no Datadog monitor exists
+            Assert.Equal("ListMonitoredDatadogResources", ex.MethodName);
+            Assert.Contains("Status: 404 (Not Found)", ex.ServiceErrorMessage);
         }
         catch (Exception ex)
         {
@@ -869,6 +867,29 @@ public class ArmServiceClientTests : IDisposable
         }
 
         AssertServicesAreRunning();
+    }
+
+    [Fact]
+    public void LocalServiceCallException_ShouldHaveCorrectProperties()
+    {
+        // Test the exception properties
+        var methodName = "TestMethod";
+        var errorMessage = "Test error message";
+        
+        var exception = new LocalServiceCallException(methodName, errorMessage);
+        
+        Assert.Equal(methodName, exception.MethodName);
+        Assert.Equal(errorMessage, exception.ServiceErrorMessage);
+        Assert.Equal($"Local service call '{methodName}' failed: {errorMessage}", exception.Message);
+        
+        // Test with inner exception
+        var innerException = new InvalidOperationException("Inner error");
+        var exceptionWithInner = new LocalServiceCallException(methodName, errorMessage, innerException);
+        
+        Assert.Equal(methodName, exceptionWithInner.MethodName);
+        Assert.Equal(errorMessage, exceptionWithInner.ServiceErrorMessage);
+        Assert.Equal($"Local service call '{methodName}' failed: {errorMessage}", exceptionWithInner.Message);
+        Assert.Equal(innerException, exceptionWithInner.InnerException);
     }
 
     public void Dispose()

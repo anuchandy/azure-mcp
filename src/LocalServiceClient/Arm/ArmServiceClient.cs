@@ -16,6 +16,7 @@ namespace AzureMcp.LocalServiceClient.Arm;
 public sealed class ArmServiceClient : IArmServiceClient, IDisposable
 {
     private const string LocalServiceName = "AzureMcp.LocalService.Arm";
+    private const string ArmLocalServiceConnectError = "ARMLocalServiceConnectError";
     
     private readonly GrpcServiceHost _armServiceHost;
     private readonly IServiceClient _identityService;
@@ -84,6 +85,12 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 request.Scopes.AddRange(scopes);
             }
             var response = await _client!.GetIdentityServiceStatusAsync(request, cancellationToken: cancellationToken);
+            
+            if (!response.IsSuccess)
+            {
+                throw new LocalServiceCallException("GetIdentityServiceStatus", GetErrorMessage(response.ErrorMessage));
+            }
+            
             return new IdentityServiceStatusResult
             {
                 IsSuccess = response.IsSuccess,
@@ -91,15 +98,13 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 Details = string.IsNullOrEmpty(response.Details) ? null : response.Details
             };
         }
+        catch (LocalServiceCallException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to call ARM LocalService for Identity service status check");
-            return new IdentityServiceStatusResult
-            {
-                IsSuccess = false,
-                ErrorMessage = ex.Message,
-                Details = "Failed to communicate with ARM LocalService"
-            };
+            throw new LocalServiceCallException("GetIdentityServiceStatus", ArmLocalServiceConnectError, ex);
         }
     }
 
@@ -118,6 +123,11 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
             
             var response = await _client!.ListSubscriptionsAsync(request, cancellationToken: cancellationToken);
             
+            if (!response.IsSuccess)
+            {
+                throw new LocalServiceCallException("ListSubscriptions", GetErrorMessage(response.ErrorMessage));
+            }
+            
             var subscriptions = response.Subscriptions.Select(s => new SubscriptionData
             {
                 SubscriptionId = s.SubscriptionId,
@@ -133,15 +143,13 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 Subscriptions = subscriptions
             };
         }
+        catch (LocalServiceCallException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to call ARM LocalService for subscription list");
-            return new ListSubscriptionsResult
-            {
-                IsSuccess = false,
-                ErrorMessage = ex.Message,
-                Subscriptions = Array.Empty<SubscriptionData>()
-            };
+            throw new LocalServiceCallException("ListSubscriptions", ArmLocalServiceConnectError, ex);
         }
     }
 
@@ -162,6 +170,11 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
 
             var response = await _client!.GetStorageAccountsAsync(request, cancellationToken: cancellationToken);
 
+            if (!response.IsSuccess)
+            {
+                throw new LocalServiceCallException("GetStorageAccounts", GetErrorMessage(response.ErrorMessage));
+            }
+
             return new GetStorageAccountsResult
             {
                 IsSuccess = response.IsSuccess,
@@ -169,15 +182,13 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 StorageAccounts = response.StorageAccounts.ToArray()
             };
         }
+        catch (LocalServiceCallException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to call ARM LocalService for storage accounts");
-            return new GetStorageAccountsResult
-            {
-                IsSuccess = false,
-                ErrorMessage = ex.Message,
-                StorageAccounts = Array.Empty<string>()
-            };
+            throw new LocalServiceCallException("GetStorageAccounts", ArmLocalServiceConnectError, ex);
         }
     }
 
@@ -200,6 +211,11 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
 
             var response = await _client!.GetStorageAccountKeysAsync(request, cancellationToken: cancellationToken);
 
+            if (!response.IsSuccess)
+            {
+                throw new LocalServiceCallException("GetStorageAccountKeys", GetErrorMessage(response.ErrorMessage));
+            }
+
             var keys = response.Keys.Select(k => new StorageAccountKeyData
             {
                 KeyName = k.KeyName,
@@ -214,15 +230,14 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 Keys = keys
             };
         }
+        catch (LocalServiceCallException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Failed to call ARM LocalService for storage account keys");
-            return new GetStorageAccountKeysResult
-            {
-                IsSuccess = false,
-                ErrorMessage = ex.Message,
-                Keys = Array.Empty<StorageAccountKeyData>()
-            };
+            throw new LocalServiceCallException("GetStorageAccountKeys", ArmLocalServiceConnectError, ex);
         }
     }
 
@@ -245,6 +260,11 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
 
             var response = await _client!.GetStorageAccountConnectionStringAsync(request, cancellationToken: cancellationToken);
 
+            if (!response.IsSuccess)
+            {
+                throw new LocalServiceCallException("GetStorageAccountConnectionString", GetErrorMessage(response.ErrorMessage));
+            }
+
             return new GetStorageAccountConnectionStringResult
             {
                 IsSuccess = response.IsSuccess,
@@ -252,15 +272,13 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 ConnectionString = string.IsNullOrEmpty(response.ConnectionString) ? null : response.ConnectionString
             };
         }
+        catch (LocalServiceCallException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to call ARM LocalService for storage account connection string");
-            return new GetStorageAccountConnectionStringResult
-            {
-                IsSuccess = false,
-                ErrorMessage = ex.Message,
-                ConnectionString = null
-            };
+            throw new LocalServiceCallException("GetStorageAccountConnectionString", ArmLocalServiceConnectError, ex);
         }
     }
 
@@ -281,6 +299,11 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
 
             var response = await _client!.GetCosmosAccountsAsync(request, cancellationToken: cancellationToken);
 
+            if (!response.IsSuccess)
+            {
+                throw new LocalServiceCallException("GetCosmosAccounts", GetErrorMessage(response.ErrorMessage));
+            }
+
             return new GetCosmosAccountsResult
             {
                 IsSuccess = response.IsSuccess,
@@ -288,15 +311,14 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 CosmosAccounts = response.CosmosAccounts.ToArray()
             };
         }
+        catch (LocalServiceCallException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Failed to call ARM LocalService for Cosmos DB accounts");
-            return new GetCosmosAccountsResult
-            {
-                IsSuccess = false,
-                ErrorMessage = ex.Message,
-                CosmosAccounts = Array.Empty<string>()
-            };
+            throw new LocalServiceCallException("GetCosmosAccounts", ArmLocalServiceConnectError, ex);
         }
     }
 
@@ -318,6 +340,11 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
             };
 
             var response = await _client!.GetCosmosAccountAsync(request, cancellationToken: cancellationToken);
+
+            if (!response.IsSuccess)
+            {
+                throw new LocalServiceCallException("GetCosmosAccount", GetErrorMessage(response.ErrorMessage));
+            }
 
             CosmosAccountData? accountData = null;
             if (response.Account != null)
@@ -341,15 +368,13 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 Account = accountData
             };
         }
+        catch (LocalServiceCallException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to call ARM LocalService for Cosmos DB account");
-            return new GetCosmosAccountResult
-            {
-                IsSuccess = false,
-                ErrorMessage = ex.Message,
-                Account = null
-            };
+            throw new LocalServiceCallException("GetCosmosAccount", ArmLocalServiceConnectError, ex);
         }
     }
 
@@ -369,6 +394,11 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
             };
 
             var response = await _client!.GetAppConfigAccountsAsync(request, cancellationToken: cancellationToken);
+
+            if (!response.IsSuccess)
+            {
+                throw new LocalServiceCallException("GetAppConfigAccounts", GetErrorMessage(response.ErrorMessage));
+            }
 
             var accounts = response.AppConfigAccounts.Select(a => new AppConfigAccountData
             {
@@ -413,15 +443,13 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 AppConfigAccounts = accounts
             };
         }
+        catch (LocalServiceCallException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to call ARM LocalService for App Configuration accounts");
-            return new GetAppConfigAccountsResult
-            {
-                IsSuccess = false,
-                ErrorMessage = ex.Message,
-                AppConfigAccounts = Array.Empty<AppConfigAccountData>()
-            };
+            throw new LocalServiceCallException("GetAppConfigAccounts", ArmLocalServiceConnectError, ex);
         }
     }
 
@@ -444,6 +472,11 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
 
             var response = await _client!.GetAppConfigAccountEndpointAsync(request, cancellationToken: cancellationToken);
 
+            if (!response.IsSuccess)
+            {
+                throw new LocalServiceCallException("GetAppConfigAccountEndpoint", GetErrorMessage(response.ErrorMessage));
+            }
+
             return new GetAppConfigAccountEndpointResult
             {
                 IsSuccess = response.IsSuccess,
@@ -451,15 +484,13 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 Endpoint = string.IsNullOrEmpty(response.Endpoint) ? null : response.Endpoint
             };
         }
+        catch (LocalServiceCallException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to call ARM LocalService for App Configuration account endpoint");
-            return new GetAppConfigAccountEndpointResult
-            {
-                IsSuccess = false,
-                ErrorMessage = ex.Message,
-                Endpoint = null
-            };
+            throw new LocalServiceCallException("GetAppConfigAccountEndpoint", ArmLocalServiceConnectError, ex);
         }
     }
 
@@ -481,6 +512,11 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
 
             var response = await _client!.GetKustoClustersAsync(request, cancellationToken: cancellationToken);
 
+            if (!response.IsSuccess)
+            {
+                throw new LocalServiceCallException("GetKustoClusters", GetErrorMessage(response.ErrorMessage));
+            }
+
             return new GetKustoClustersResult
             {
                 IsSuccess = response.IsSuccess,
@@ -488,15 +524,13 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 KustoClusters = response.KustoClusters.ToArray()
             };
         }
+        catch (LocalServiceCallException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to call ARM LocalService for Kusto clusters");
-            return new GetKustoClustersResult
-            {
-                IsSuccess = false,
-                ErrorMessage = ex.Message,
-                KustoClusters = Array.Empty<string>()
-            };
+            throw new LocalServiceCallException("GetKustoClusters", ArmLocalServiceConnectError, ex);
         }
     }
 
@@ -519,6 +553,11 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
             };
 
             var response = await _client!.GetKustoClusterAsync(request, cancellationToken: cancellationToken);
+
+            if (!response.IsSuccess)
+            {
+                throw new LocalServiceCallException("GetKustoCluster", GetErrorMessage(response.ErrorMessage));
+            }
 
             return new GetKustoClusterResult
             {
@@ -545,15 +584,14 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 }
             };
         }
+        catch (LocalServiceCallException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Failed to call ARM LocalService for Kusto cluster");
-            return new GetKustoClusterResult
-            {
-                IsSuccess = false,
-                ErrorMessage = ex.Message,
-                Cluster = null
-            };
+            throw new LocalServiceCallException("GetKustoCluster", ArmLocalServiceConnectError, ex);
         }
     }
 
@@ -575,6 +613,11 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
 
             var response = await _client!.GetResourceGroupsAsync(request, cancellationToken: cancellationToken);
 
+            if (!response.IsSuccess)
+            {
+                throw new LocalServiceCallException("GetResourceGroups", GetErrorMessage(response.ErrorMessage));
+            }
+
             return new GetResourceGroupsResult
             {
                 IsSuccess = response.IsSuccess,
@@ -587,15 +630,13 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 }).ToList()
             };
         }
+        catch (LocalServiceCallException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to call ARM LocalService for resource groups");
-            return new GetResourceGroupsResult
-            {
-                IsSuccess = false,
-                ErrorMessage = ex.Message,
-                ResourceGroups = new List<ResourceGroupData>()
-            };
+            throw new LocalServiceCallException("GetResourceGroups", ArmLocalServiceConnectError, ex);
         }
     }
 
@@ -619,6 +660,11 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
 
             var response = await _client!.GetResourceGroupAsync(request, cancellationToken: cancellationToken);
 
+            if (!response.IsSuccess)
+            {
+                throw new LocalServiceCallException("GetResourceGroup", GetErrorMessage(response.ErrorMessage));
+            }
+
             return new GetResourceGroupResult
             {
                 IsSuccess = response.IsSuccess,
@@ -631,15 +677,13 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 }
             };
         }
+        catch (LocalServiceCallException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to call ARM LocalService for resource group");
-            return new GetResourceGroupResult
-            {
-                IsSuccess = false,
-                ErrorMessage = ex.Message,
-                ResourceGroup = null
-            };
+            throw new LocalServiceCallException("GetResourceGroup", ArmLocalServiceConnectError, ex);
         }
     }
 
@@ -660,6 +704,11 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
             };
 
             var response = await _client!.ListRedisCachesAsync(request, cancellationToken: cancellationToken);
+
+            if (!response.IsSuccess)
+            {
+                throw new LocalServiceCallException("ListRedisCaches", GetErrorMessage(response.ErrorMessage));
+            }
 
             return new ListRedisCachesResult
             {
@@ -724,15 +773,13 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 }).ToList()
             };
         }
+        catch (LocalServiceCallException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to call ARM LocalService for Redis caches");
-            return new ListRedisCachesResult
-            {
-                IsSuccess = false,
-                ErrorMessage = ex.Message,
-                RedisCaches = []
-            };
+            throw new LocalServiceCallException("ListRedisCaches", ArmLocalServiceConnectError, ex);
         }
     }
 
@@ -758,6 +805,11 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
 
             var response = await _client!.ListRedisAccessPolicyAssignmentsAsync(request, cancellationToken: cancellationToken);
 
+            if (!response.IsSuccess)
+            {
+                throw new LocalServiceCallException("ListRedisAccessPolicyAssignments", GetErrorMessage(response.ErrorMessage));
+            }
+
             return new ListRedisAccessPolicyAssignmentsResult
             {
                 IsSuccess = response.IsSuccess,
@@ -770,15 +822,13 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 }).ToList()
             };
         }
+        catch (LocalServiceCallException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to call ARM LocalService for Redis access policy assignments");
-            return new ListRedisAccessPolicyAssignmentsResult
-            {
-                IsSuccess = false,
-                ErrorMessage = ex.Message,
-                RedisAccessPolicyAssignments = []
-            };
+            throw new LocalServiceCallException("ListRedisAccessPolicyAssignments", ArmLocalServiceConnectError, ex);
         }
     }
 
@@ -799,6 +849,11 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
             };
 
             var response = await _client!.ListRedisClustersAsync(request, cancellationToken: cancellationToken);
+
+            if (!response.IsSuccess)
+            {
+                throw new LocalServiceCallException("ListRedisClusters", GetErrorMessage(response.ErrorMessage));
+            }
 
             return new ListRedisClustersResult
             {
@@ -836,15 +891,13 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 }).ToList()
             };
         }
+        catch (LocalServiceCallException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to call ARM LocalService for Redis clusters");
-            return new ListRedisClustersResult
-            {
-                IsSuccess = false,
-                ErrorMessage = ex.Message,
-                RedisClusters = []
-            };
+            throw new LocalServiceCallException("ListRedisClusters", ArmLocalServiceConnectError, ex);
         }
     }
 
@@ -869,6 +922,11 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
             };
 
             var response = await _client!.ListRedisDatabasesAsync(request, cancellationToken: cancellationToken);
+
+            if (!response.IsSuccess)
+            {
+                throw new LocalServiceCallException("ListRedisDatabases", GetErrorMessage(response.ErrorMessage));
+            }
 
             return new ListRedisDatabasesResult
             {
@@ -901,15 +959,13 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 }).ToList()
             };
         }
+        catch (LocalServiceCallException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to call ARM LocalService for Redis databases");
-            return new ListRedisDatabasesResult
-            {
-                IsSuccess = false,
-                ErrorMessage = ex.Message,
-                RedisDatabases = []
-            };
+            throw new LocalServiceCallException("ListRedisDatabases", ArmLocalServiceConnectError, ex);
         }
     }
 
@@ -933,6 +989,11 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
 
             var response = await _client!.ListPostgreSqlServersAsync(request, cancellationToken: cancellationToken);
 
+            if (!response.IsSuccess)
+            {
+                throw new LocalServiceCallException("ListPostgreSqlServers", GetErrorMessage(response.ErrorMessage));
+            }
+
             return new ListPostgreSqlServersResult
             {
                 IsSuccess = response.IsSuccess,
@@ -940,15 +1001,13 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 ServerNames = response.ServerNames.ToList()
             };
         }
+        catch (LocalServiceCallException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to call ARM LocalService for PostgreSQL servers");
-            return new ListPostgreSqlServersResult
-            {
-                IsSuccess = false,
-                ErrorMessage = ex.Message,
-                ServerNames = []
-            };
+            throw new LocalServiceCallException("ListPostgreSqlServers", ArmLocalServiceConnectError, ex);
         }
     }
 
@@ -974,6 +1033,11 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
 
             var response = await _client!.GetPostgreSqlServerConfigAsync(request, cancellationToken: cancellationToken);
 
+            if (!response.IsSuccess)
+            {
+                throw new LocalServiceCallException("GetPostgreSqlServerConfig", GetErrorMessage(response.ErrorMessage));
+            }
+
             return new GetPostgreSqlServerConfigResult
             {
                 IsSuccess = response.IsSuccess,
@@ -990,15 +1054,13 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 } : null
             };
         }
+        catch (LocalServiceCallException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to call ARM LocalService for PostgreSQL server config");
-            return new GetPostgreSqlServerConfigResult
-            {
-                IsSuccess = false,
-                ErrorMessage = ex.Message,
-                ServerConfig = null
-            };
+            throw new LocalServiceCallException("GetPostgreSqlServerConfig", ArmLocalServiceConnectError, ex);
         }
     }
 
@@ -1026,6 +1088,11 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
 
             var response = await _client!.GetPostgreSqlServerParameterAsync(request, cancellationToken: cancellationToken);
 
+            if (!response.IsSuccess)
+            {
+                throw new LocalServiceCallException("GetPostgreSqlServerParameter", GetErrorMessage(response.ErrorMessage));
+            }
+
             return new GetPostgreSqlServerParameterResult
             {
                 IsSuccess = response.IsSuccess,
@@ -1033,15 +1100,13 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 ParameterValue = response.ParameterValue
             };
         }
+        catch (LocalServiceCallException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to call ARM LocalService for PostgreSQL server parameter");
-            return new GetPostgreSqlServerParameterResult
-            {
-                IsSuccess = false,
-                ErrorMessage = ex.Message,
-                ParameterValue = string.Empty
-            };
+            throw new LocalServiceCallException("GetPostgreSqlServerParameter", ArmLocalServiceConnectError, ex);
         }
     }
 
@@ -1071,6 +1136,11 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
 
             var response = await _client!.SetPostgreSqlServerParameterAsync(request, cancellationToken: cancellationToken);
 
+            if (!response.IsSuccess)
+            {
+                throw new LocalServiceCallException("SetPostgreSqlServerParameter", GetErrorMessage(response.ErrorMessage));
+            }
+
             return new SetPostgreSqlServerParameterResult
             {
                 IsSuccess = response.IsSuccess,
@@ -1078,15 +1148,13 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 Message = response.Message
             };
         }
+        catch (LocalServiceCallException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to call ARM LocalService for PostgreSQL server parameter");
-            return new SetPostgreSqlServerParameterResult
-            {
-                IsSuccess = false,
-                ErrorMessage = ex.Message,
-                Message = string.Empty
-            };
+            throw new LocalServiceCallException("SetPostgreSqlServerParameter", ArmLocalServiceConnectError, ex);
         }
     }
 
@@ -1108,6 +1176,11 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
 
             var response = await _client!.ListSearchServicesAsync(request, cancellationToken: cancellationToken);
 
+            if (!response.IsSuccess)
+            {
+                throw new LocalServiceCallException("ListSearchServices", GetErrorMessage(response.ErrorMessage));
+            }
+
             return new ListSearchServicesResult
             {
                 IsSuccess = response.IsSuccess,
@@ -1115,15 +1188,13 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 ServiceNames = response.ServiceNames.ToList()
             };
         }
+        catch (LocalServiceCallException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to call ARM LocalService for Search services");
-            return new ListSearchServicesResult
-            {
-                IsSuccess = false,
-                ErrorMessage = ex.Message,
-                ServiceNames = []
-            };
+            throw new LocalServiceCallException("ListSearchServices", ArmLocalServiceConnectError, ex);
         }
     }
 
@@ -1149,6 +1220,11 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
 
             var response = await _client!.ListMonitoredDatadogResourcesAsync(request, cancellationToken: cancellationToken);
 
+            if (!response.IsSuccess)
+            {
+                throw new LocalServiceCallException("ListMonitoredDatadogResources", GetErrorMessage(response.ErrorMessage));
+            }
+
             return new ListMonitoredDatadogResourcesResult
             {
                 IsSuccess = response.IsSuccess,
@@ -1156,15 +1232,13 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 MonitoredResourceNames = response.MonitoredResourceNames.ToList()
             };
         }
+        catch (LocalServiceCallException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to call ARM LocalService for Datadog monitored resources");
-            return new ListMonitoredDatadogResourcesResult
-            {
-                IsSuccess = false,
-                ErrorMessage = ex.Message,
-                MonitoredResourceNames = []
-            };
+            throw new LocalServiceCallException("ListMonitoredDatadogResources", ArmLocalServiceConnectError, ex);
         }
     }
 
@@ -1184,6 +1258,11 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
             };
 
             var response = await _client!.ListRoleAssignmentsAsync(request, cancellationToken: cancellationToken);
+
+            if (!response.IsSuccess)
+            {
+                throw new LocalServiceCallException("ListRoleAssignments", GetErrorMessage(response.ErrorMessage));
+            }
 
             var roleAssignments = response.RoleAssignments.Select(ra => new AzureMcp.Areas.Authorization.Models.RoleAssignment
             {
@@ -1205,15 +1284,13 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 RoleAssignments = roleAssignments
             };
         }
+        catch (LocalServiceCallException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to call ARM LocalService for role assignments");
-            return new ListRoleAssignmentsResult
-            {
-                IsSuccess = false,
-                ErrorMessage = ex.Message,
-                RoleAssignments = []
-            };
+            throw new LocalServiceCallException("ListRoleAssignments", ArmLocalServiceConnectError, ex);
         }
     }
 
@@ -1235,6 +1312,11 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
 
             var response = await _client!.ListMonitorWorkspacesAsync(request, cancellationToken: cancellationToken);
 
+            if (!response.IsSuccess)
+            {
+                throw new LocalServiceCallException("ListMonitorWorkspaces", GetErrorMessage(response.ErrorMessage));
+            }
+
             return new ListMonitorWorkspacesResult
             {
                 IsSuccess = response.IsSuccess,
@@ -1247,15 +1329,13 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 }).ToList()
             };
         }
+        catch (LocalServiceCallException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to call ARM LocalService for Monitor workspaces");
-            return new ListMonitorWorkspacesResult
-            {
-                IsSuccess = false,
-                ErrorMessage = ex.Message,
-                Workspaces = []
-            };
+            throw new LocalServiceCallException("ListMonitorWorkspaces", ArmLocalServiceConnectError, ex);
         }
     }
 
@@ -1283,6 +1363,11 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
 
             var response = await _client!.ListMonitorTablesAsync(request, cancellationToken: cancellationToken);
 
+            if (!response.IsSuccess)
+            {
+                throw new LocalServiceCallException("ListMonitorTables", GetErrorMessage(response.ErrorMessage));
+            }
+
             return new ListMonitorTablesResult
             {
                 IsSuccess = response.IsSuccess,
@@ -1290,15 +1375,13 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 TableNames = response.TableNames.ToList()
             };
         }
+        catch (LocalServiceCallException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to call ARM LocalService for Monitor tables");
-            return new ListMonitorTablesResult
-            {
-                IsSuccess = false,
-                ErrorMessage = ex.Message,
-                TableNames = []
-            };
+            throw new LocalServiceCallException("ListMonitorTables", ArmLocalServiceConnectError, ex);
         }
     }
 
@@ -1324,6 +1407,12 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
 
             var response = await _client!.ListMonitorTableTypesAsync(request, cancellationToken: cancellationToken);
 
+
+            if (!response.IsSuccess)
+            {
+                throw new LocalServiceCallException("ListMonitorTableTypes", GetErrorMessage(response.ErrorMessage));
+            }
+
             return new ListMonitorTableTypesResult
             {
                 IsSuccess = response.IsSuccess,
@@ -1331,15 +1420,13 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 TableTypes = response.TableTypes.ToList()
             };
         }
+        catch (LocalServiceCallException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to call ARM LocalService for Monitor table types");
-            return new ListMonitorTableTypesResult
-            {
-                IsSuccess = false,
-                ErrorMessage = ex.Message,
-                TableTypes = []
-            };
+            throw new LocalServiceCallException("ListMonitorTableTypes", ArmLocalServiceConnectError, ex);
         }
     }
 
@@ -1387,5 +1474,10 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
             StartupTimeoutSeconds = 30
         };
         return new GrpcServiceHost(loggerFactory.CreateLogger<GrpcServiceHost>(), config);
+    }
+
+    private static string GetErrorMessage(string? responseErrorMessage)
+    {
+        return string.IsNullOrEmpty(responseErrorMessage) ? "Unknown error" : responseErrorMessage;
     }
 }
