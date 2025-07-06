@@ -395,39 +395,29 @@ public class ArmServiceClientTests : IDisposable
         {
             var subscriptionId = await GetTargetSubscriptionIdAsync(_armServiceClient!, cancellationToken);
 
-            var resourceGroupsResult = await _armServiceClient!.GetResourceGroupsAsync(
+            var resourceGroups = await _armServiceClient!.GetResourceGroupsAsync(
                 subscriptionId,
                 tenantId: null,
                 cancellationToken: cancellationToken);
 
-            Assert.NotNull(resourceGroupsResult);
-            if (!resourceGroupsResult.IsSuccess)
-            {
-                Assert.Fail($"Expected GetResourceGroupsAsync call to succeed, but got error: {resourceGroupsResult.ErrorMessage}");
-            }
-            Assert.NotNull(resourceGroupsResult.ResourceGroups);
-            Assert.True(resourceGroupsResult.ResourceGroups.Count > 0, $"Should have at least one resource group in {DefaultSubscription} subscription");
+            Assert.NotNull(resourceGroups);
+            Assert.True(resourceGroups.Count > 0, $"Should have at least one resource group in {DefaultSubscription} subscription");
 
-            var firstResourceGroup = resourceGroupsResult.ResourceGroups.First();
+            var firstResourceGroup = resourceGroups.First();
             Assert.False(string.IsNullOrEmpty(firstResourceGroup.Name), "Resource group name should not be empty");
             Assert.False(string.IsNullOrEmpty(firstResourceGroup.Id), "Resource group ID should not be empty");
             Assert.False(string.IsNullOrEmpty(firstResourceGroup.Location), "Resource group location should not be empty");
 
-            var resourceGroupResult = await _armServiceClient!.GetResourceGroupAsync(
+            var resourceGroup = await _armServiceClient!.GetResourceGroupAsync(
                 firstResourceGroup.Name,
                 subscriptionId,
                 tenantId: null,
                 cancellationToken: cancellationToken);
 
-            Assert.NotNull(resourceGroupResult);
-            if (!resourceGroupResult.IsSuccess)
-            {
-                Assert.Fail($"Expected GetResourceGroupAsync call to succeed, but got error: {resourceGroupResult.ErrorMessage}");
-            }
-            Assert.NotNull(resourceGroupResult.ResourceGroup);
-            Assert.Equal(firstResourceGroup.Name, resourceGroupResult.ResourceGroup.Name);
-            Assert.Equal(firstResourceGroup.Id, resourceGroupResult.ResourceGroup.Id);
-            Assert.Equal(firstResourceGroup.Location, resourceGroupResult.ResourceGroup.Location);
+            Assert.NotNull(resourceGroup);
+            Assert.Equal(firstResourceGroup.Name, resourceGroup.Name);
+            Assert.Equal(firstResourceGroup.Id, resourceGroup.Id);
+            Assert.Equal(firstResourceGroup.Location, resourceGroup.Location);
         }
         catch (Exception ex)
         {

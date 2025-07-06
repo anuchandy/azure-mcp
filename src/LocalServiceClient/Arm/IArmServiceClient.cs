@@ -5,6 +5,7 @@ using AzureMcp.Areas.AppConfig.Models;
 using AzureMcp.Areas.Authorization.Models;
 using AzureMcp.Commands.Kusto;
 using AzureMcp.LocalServiceClient;
+using AzureMcp.Models.ResourceGroup;
 
 namespace AzureMcp.LocalServiceClient.Arm;
 
@@ -164,8 +165,9 @@ public interface IArmServiceClient : IServiceClient
     /// <param name="subscriptionId">Subscription ID to get resource groups for</param>
     /// <param name="tenantId">Optional tenant ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>A response containing the list of resource groups</returns>
-    Task<GetResourceGroupsResult> GetResourceGroupsAsync(
+    /// <returns>A list of resource groups</returns>
+    /// <exception cref="LocalServiceCallException">Thrown when the operation fails</exception>
+    Task<List<ResourceGroupInfo>> GetResourceGroupsAsync(
         string subscriptionId,
         string? tenantId = null,
         CancellationToken cancellationToken = default);
@@ -177,8 +179,9 @@ public interface IArmServiceClient : IServiceClient
     /// <param name="subscriptionId">Subscription ID where the resource group exists</param>
     /// <param name="tenantId">Optional tenant ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>A response containing the resource group details</returns>
-    Task<GetResourceGroupResult> GetResourceGroupAsync(
+    /// <returns>The resource group details</returns>
+    /// <exception cref="LocalServiceCallException">Thrown when the operation fails</exception>
+    Task<ResourceGroupInfo> GetResourceGroupAsync(
         string resourceGroupName,
         string subscriptionId,
         string? tenantId = null,

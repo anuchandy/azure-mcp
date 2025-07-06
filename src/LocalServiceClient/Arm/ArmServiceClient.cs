@@ -7,6 +7,7 @@ using AzureMcp.Commands.Kusto;
 using AzureMcp.LocalServiceClient.Identity;
 using AzureMcp.LocalService.Arm.Grpc;
 using AzureMcp.Models.Identity;
+using AzureMcp.Models.ResourceGroup;
 using Grpc.Net.Client;
 using Microsoft.Extensions.Logging;
 using System.Net;
@@ -573,7 +574,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         }
     }
 
-    public async Task<GetResourceGroupsResult> GetResourceGroupsAsync(
+    public async Task<List<ResourceGroupInfo>> GetResourceGroupsAsync(
         string subscriptionId,
         string? tenantId = null,
         CancellationToken cancellationToken = default)
@@ -596,17 +597,11 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 throw new LocalServiceCallException("GetResourceGroups", GetErrorMessage(response.ErrorMessage));
             }
 
-            return new GetResourceGroupsResult
-            {
-                IsSuccess = response.IsSuccess,
-                ErrorMessage = string.IsNullOrEmpty(response.ErrorMessage) ? null : response.ErrorMessage,
-                ResourceGroups = response.ResourceGroups.Select(rg => new ResourceGroupData
-                {
-                    Name = rg.Name,
-                    Id = rg.Id,
-                    Location = rg.Location
-                }).ToList()
-            };
+            return response.ResourceGroups.Select(rg => new ResourceGroupInfo(
+                rg.Name,
+                rg.Id,
+                rg.Location
+            )).ToList();
         }
         catch (LocalServiceCallException)
         {
@@ -618,7 +613,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         }
     }
 
-    public async Task<GetResourceGroupResult> GetResourceGroupAsync(
+    public async Task<ResourceGroupInfo> GetResourceGroupAsync(
         string resourceGroupName,
         string subscriptionId,
         string? tenantId = null,
@@ -643,17 +638,16 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 throw new LocalServiceCallException("GetResourceGroup", GetErrorMessage(response.ErrorMessage));
             }
 
-            return new GetResourceGroupResult
+            if (response.ResourceGroup == null)
             {
-                IsSuccess = response.IsSuccess,
-                ErrorMessage = string.IsNullOrEmpty(response.ErrorMessage) ? null : response.ErrorMessage,
-                ResourceGroup = response.ResourceGroup == null ? null : new ResourceGroupData
-                {
-                    Name = response.ResourceGroup.Name,
-                    Id = response.ResourceGroup.Id,
-                    Location = response.ResourceGroup.Location
-                }
-            };
+                throw new LocalServiceCallException("GetResourceGroup", $"Resource group '{resourceGroupName}' not found");
+            }
+
+            return new ResourceGroupInfo(
+                response.ResourceGroup.Name,
+                response.ResourceGroup.Id,
+                response.ResourceGroup.Location
+            );
         }
         catch (LocalServiceCallException)
         {
