@@ -796,6 +796,51 @@ public class ArmServiceClientTests : IDisposable
         AssertServicesAreRunning();
     }
 
+    [Fact]
+    public async Task CanListMonitorTableTypesThroughGrpcCall()
+    {
+        SetupServices();
+
+        try
+        {
+            var workspacesResult = await _armServiceClient!.ListMonitorWorkspacesAsync(
+                DefaultSubscriptionId,
+                cancellationToken: TestContext.Current.CancellationToken
+            );
+
+            Assert.NotNull(workspacesResult);
+            Assert.True(workspacesResult.IsSuccess, workspacesResult.ErrorMessage);
+            Assert.NotNull(workspacesResult.Workspaces);
+            Assert.True(workspacesResult.Workspaces.Count > 0, "Should have at least one workspace to test with");
+
+            // try table types from the first workspace
+            var testWorkspace = workspacesResult.Workspaces.First();
+
+            var result = await _armServiceClient!.ListMonitorTableTypesAsync(
+                DefaultSubscriptionId,
+                MonitorTestResourceGroup,
+                testWorkspace.Name,
+                cancellationToken: TestContext.Current.CancellationToken
+            );
+
+            Assert.NotNull(result);
+            if (!result.IsSuccess)
+            {
+                Assert.True(result.ErrorMessage.Contains("not found"),  $"Expected a 'not found' or workspace-related error, but got: {result.ErrorMessage}");
+            }
+            else
+            {
+                Assert.NotNull(result.TableTypes);
+            }
+        }
+        catch (Exception ex)
+        {
+            FailOnException(ex);
+        }
+
+        AssertServicesAreRunning();
+    }
+
     public void Dispose()
     {
         _armServiceClient?.Dispose();

@@ -83,6 +83,9 @@ service ArmService {
   
   // List Monitor tables for a workspace
   rpc ListMonitorTables(ListMonitorTablesRequest) returns (ListMonitorTablesResponse);
+  
+  // List Monitor table types for a workspace
+  rpc ListMonitorTableTypes(ListMonitorTableTypesRequest) returns (ListMonitorTableTypesResponse);
 }
 
 // Request for checking Identity service status
@@ -990,4 +993,26 @@ message ListMonitorTablesResponse {
   string error_message = 2;
   // List of table names
   repeated string table_names = 3;
+}
+
+// Request to list Monitor table types for a workspace
+message ListMonitorTableTypesRequest {
+  // The subscription ID or name
+  string subscription_id = 1;
+  // The resource group name
+  string resource_group_name = 2;
+  // The workspace name or ID
+  string workspace_name = 3;
+  // Optional tenant ID
+  string tenant_id = 4;
+}
+
+// Response containing list of Monitor table types
+message ListMonitorTableTypesResponse {
+  // Indicates if the operation was successful
+  bool is_success = 1;
+  // Error message if operation failed
+  string error_message = 2;
+  // List of distinct table types
+  repeated string table_types = 3;
 }

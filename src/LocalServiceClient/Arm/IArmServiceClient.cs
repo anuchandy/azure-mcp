@@ -370,6 +370,22 @@ public interface IArmServiceClient : IServiceClient
         string? tableType = null,
         string? tenantId = null,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Lists Monitor table types for a workspace.
+    /// </summary>
+    /// <param name="subscriptionId">The subscription ID or name</param>
+    /// <param name="resourceGroupName">The resource group name</param>
+    /// <param name="workspaceName">The workspace name or ID</param>
+    /// <param name="tenantId">Optional tenant ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A response containing the list of distinct Monitor table types</returns>
+    Task<ListMonitorTableTypesResult> ListMonitorTableTypesAsync(
+        string subscriptionId,
+        string resourceGroupName,
+        string workspaceName,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -1737,4 +1753,25 @@ public class ListMonitorTablesResult
     /// List of table names.
     /// </summary>
     public List<string> TableNames { get; init; } = [];
+}
+
+/// <summary>
+/// Result of listing Monitor table types for a workspace.
+/// </summary>
+public class ListMonitorTableTypesResult
+{
+    /// <summary>
+    /// Whether the operation was successful.
+    /// </summary>
+    public bool IsSuccess { get; init; }
+
+    /// <summary>
+    /// Error message if operation failed.
+    /// </summary>
+    public string ErrorMessage { get; init; } = string.Empty;
+
+    /// <summary>
+    /// List of distinct table types.
+    /// </summary>
+    public List<string> TableTypes { get; init; } = [];
 }

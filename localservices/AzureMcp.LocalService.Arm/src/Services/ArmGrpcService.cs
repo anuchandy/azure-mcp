@@ -1980,6 +1980,117 @@ public class ArmGrpcService : ArmService.ArmServiceBase
     }
 
     /// <summary>
+    /// Lists Monitor table types for a workspace.
+    /// </summary>
+    /// <param name="request">The request containing subscription, resource group, and workspace information.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>A response containing the list of distinct Monitor table types.</returns>
+    public override async Task<ListMonitorTableTypesResponse> ListMonitorTableTypes(
+        ListMonitorTableTypesRequest request,
+        ServerCallContext context)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(request.SubscriptionId))
+            {
+                return new ListMonitorTableTypesResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = "Subscription ID cannot be null or empty"
+                };
+            }
+
+            if (string.IsNullOrWhiteSpace(request.ResourceGroupName))
+            {
+                return new ListMonitorTableTypesResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = "Resource group name cannot be null or empty"
+                };
+            }
+
+            if (string.IsNullOrWhiteSpace(request.WorkspaceName))
+            {
+                return new ListMonitorTableTypesResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = "Workspace name cannot be null or empty"
+                };
+            }
+
+            var subscriptions = await GetSubscriptionsAsync(request.TenantId);
+            var subscription = subscriptions.FirstOrDefault(s => s.SubscriptionId == request.SubscriptionId);
+            if (subscription == null)
+            {
+                return new ListMonitorTableTypesResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"Subscription '{request.SubscriptionId}' not found"
+                };
+            }
+
+            var armClient = CreateArmClient(request.TenantId);
+            var subscriptionResource = armClient.GetSubscriptionResource(SubscriptionResource.CreateResourceIdentifier(subscription.SubscriptionId));
+            
+            var resourceGroupResponse = await subscriptionResource.GetResourceGroups().GetAsync(request.ResourceGroupName);
+            if (resourceGroupResponse?.Value == null)
+            {
+                return new ListMonitorTableTypesResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"Resource group '{request.ResourceGroupName}' not found"
+                };
+            }
+
+            // Resolve workspace name (could be name or ID)
+            var (workspaceId, workspaceName) = GetWorkspaceInfoAsync(request.WorkspaceName, subscriptionResource, request.TenantId);
+            
+            // Get the workspace
+            var workspaceResponse = await resourceGroupResponse.Value.GetOperationalInsightsWorkspaceAsync(workspaceName);
+            if (workspaceResponse?.Value == null)
+            {
+                return new ListMonitorTableTypesResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"Workspace '{workspaceName}' not found in resource group '{request.ResourceGroupName}'"
+                };
+            }
+
+            // Get tables from the workspace
+            var workspaceResource = workspaceResponse.Value;
+            var tableOperations = workspaceResource.GetOperationalInsightsTables();
+            var tables = new List<Azure.ResourceManager.OperationalInsights.OperationalInsightsTableResource>();
+            await foreach (var table in tableOperations.GetAllAsync())
+            {
+                tables.Add(table);
+            }
+
+            // Get distinct table types
+            var tableTypes = tables
+                .Select(table => table.Data.Schema.TableType?.ToString() ?? string.Empty)
+                .Where(type => !string.IsNullOrEmpty(type))
+                .Distinct()
+                .OrderBy(type => type)
+                .ToList();
+
+            return new ListMonitorTableTypesResponse
+            {
+                IsSuccess = true,
+                TableTypes = { tableTypes }
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error listing Monitor table types for workspace: {WorkspaceName}", request.WorkspaceName);
+            return new ListMonitorTableTypesResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message
+            };
+        }
+    }
+
+    /// <summary>
     /// Helper method to resolve workspace name from either name or ID, similar to the original MonitorService.
     /// </summary>
     /// <param name="workspace">The workspace name or ID</param>
