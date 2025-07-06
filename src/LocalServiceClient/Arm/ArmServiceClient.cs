@@ -271,7 +271,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         }
     }
 
-    public async Task<GetCosmosAccountsResult> GetCosmosAccountsAsync(
+    public async Task<List<string>> GetCosmosAccountsAsync(
         string subscriptionId,
         string? tenantId = null,
         CancellationToken cancellationToken = default)
@@ -293,12 +293,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 throw new LocalServiceCallException("GetCosmosAccounts", GetErrorMessage(response.ErrorMessage));
             }
 
-            return new GetCosmosAccountsResult
-            {
-                IsSuccess = response.IsSuccess,
-                ErrorMessage = string.IsNullOrEmpty(response.ErrorMessage) ? null : response.ErrorMessage,
-                CosmosAccounts = response.CosmosAccounts.ToArray()
-            };
+            return response.CosmosAccounts.ToList();
         }
         catch (LocalServiceCallException)
         {

@@ -79,8 +79,9 @@ public interface IArmServiceClient : IServiceClient
     /// <param name="subscriptionId">Subscription ID to get Cosmos DB accounts for</param>
     /// <param name="tenantId">Optional tenant ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>A response containing the list of Cosmos DB accounts</returns>
-    Task<GetCosmosAccountsResult> GetCosmosAccountsAsync(
+    /// <returns>A list of Cosmos DB account names</returns>
+    /// <exception cref="LocalServiceCallException">Thrown when the operation fails</exception>
+    Task<List<string>> GetCosmosAccountsAsync(
         string subscriptionId,
         string? tenantId = null,
         CancellationToken cancellationToken = default);

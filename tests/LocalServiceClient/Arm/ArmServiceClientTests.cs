@@ -267,20 +267,15 @@ public class ArmServiceClientTests : IDisposable
             Assert.NotNull(_armServiceClient);
             var subscriptionId = await GetTargetSubscriptionIdAsync(_armServiceClient, TestContext.Current.CancellationToken);
 
-            var accountsResult = await _armServiceClient.GetCosmosAccountsAsync(
+            var cosmosAccounts = await _armServiceClient.GetCosmosAccountsAsync(
                 subscriptionId: subscriptionId,
                 tenantId: null, 
                 cancellationToken: TestContext.Current.CancellationToken);
 
-            Assert.NotNull(accountsResult);
-            if (!accountsResult.IsSuccess)
-            {
-                Assert.Fail($"Expected GetCosmosAccountsAsync call to succeed, but got error: {accountsResult.ErrorMessage}");
-            }
-            Assert.NotNull(accountsResult.CosmosAccounts);
-            Assert.True(accountsResult.CosmosAccounts.Count > 0, $"Should have at least one Cosmos DB account in {DefaultSubscription} subscription");
+            Assert.NotNull(cosmosAccounts);
+            Assert.True(cosmosAccounts.Count > 0, $"Should have at least one Cosmos DB account in {DefaultSubscription} subscription");
 
-            var firstAccountName = accountsResult.CosmosAccounts[0];
+            var firstAccountName = cosmosAccounts[0];
             var accountResult = await _armServiceClient.GetCosmosAccountAsync(
                 accountName: firstAccountName,
                 subscriptionId: subscriptionId,
