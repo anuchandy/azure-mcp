@@ -314,35 +314,27 @@ public class ArmServiceClientTests : IDisposable
             Assert.NotNull(_armServiceClient);
             var subscriptionId = await GetTargetSubscriptionIdAsync(_armServiceClient, TestContext.Current.CancellationToken);
 
-            var accountsResult = await _armServiceClient.GetAppConfigAccountsAsync(
+            var accounts = await _armServiceClient.GetAppConfigAccountsAsync(
                 subscriptionId: subscriptionId,
                 tenantId: null, 
                 cancellationToken: TestContext.Current.CancellationToken);
 
-            Assert.NotNull(accountsResult);
-            if (!accountsResult.IsSuccess)
-            {
-                Assert.Fail($"Expected GetAppConfigAccountsAsync call to succeed, but got error: {accountsResult.ErrorMessage}");
-            }
-            Assert.NotNull(accountsResult.AppConfigAccounts);
-            Assert.True(accountsResult.AppConfigAccounts.Count > 0, $"Should have at least one App Configuration account in {DefaultSubscription} subscription");
+            Assert.NotNull(accounts);
+            Assert.True(accounts.Count > 0, $"Should have at least one App Configuration account in {DefaultSubscription} subscription");
 
-            var firstAccountName = accountsResult.AppConfigAccounts.First().Name;
+            var firstAccount = accounts.First();
+            var firstAccountName = firstAccount.Name;
             Assert.False(string.IsNullOrEmpty(firstAccountName), "App Configuration account name should not be empty");
 
-            var endpointResult = await _armServiceClient.GetAppConfigAccountEndpointAsync(
+            var endpoint = await _armServiceClient.GetAppConfigAccountEndpointAsync(
                 accountName: firstAccountName,
                 subscriptionId: subscriptionId,
                 tenantId: null,
                 cancellationToken: TestContext.Current.CancellationToken);
 
-            Assert.NotNull(endpointResult);
-            if (!endpointResult.IsSuccess)
-            {
-                Assert.Fail($"Expected GetAppConfigAccountEndpointAsync call to succeed, but got error: {endpointResult.ErrorMessage}");
-            }
-            Assert.False(string.IsNullOrEmpty(endpointResult.Endpoint), "App Configuration account endpoint should not be empty");
-            Assert.True(Uri.TryCreate(endpointResult.Endpoint, UriKind.Absolute, out _), "Endpoint should be a valid absolute URI");
+            Assert.NotNull(endpoint);
+            Assert.False(string.IsNullOrEmpty(endpoint), "App Configuration account endpoint should not be empty");
+            Assert.True(Uri.TryCreate(endpoint, UriKind.Absolute, out _), "Endpoint should be a valid absolute URI");
         }
         catch (Exception ex)
         {

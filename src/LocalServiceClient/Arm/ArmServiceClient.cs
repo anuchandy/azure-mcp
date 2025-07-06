@@ -1,9 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using AzureMcp.Areas.AppConfig.Models;
 using AzureMcp.Areas.Authorization.Models;
 using AzureMcp.LocalServiceClient.Identity;
 using AzureMcp.LocalService.Arm.Grpc;
+using AzureMcp.Models.Identity;
 using Grpc.Net.Client;
 using Microsoft.Extensions.Logging;
 using System.Net;
@@ -363,7 +365,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         }
     }
 
-    public async Task<GetAppConfigAccountsResult> GetAppConfigAccountsAsync(
+    public async Task<List<AppConfigurationAccount>> GetAppConfigAccountsAsync(
         string subscriptionId,
         string? tenantId = null,
         CancellationToken cancellationToken = default)
@@ -385,7 +387,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 throw new LocalServiceCallException("GetAppConfigAccounts", GetErrorMessage(response.ErrorMessage));
             }
 
-            var accounts = response.AppConfigAccounts.Select(a => new AppConfigAccountData
+            var accounts = response.AppConfigAccounts.Select(a => new AppConfigurationAccount
             {
                 Name = a.Name,
                 Location = a.Location,
@@ -398,21 +400,21 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 SoftDeleteRetentionInDays = a.SoftDeleteRetentionInDays,
                 EnablePurgeProtection = a.EnablePurgeProtection,
                 CreateMode = string.IsNullOrEmpty(a.CreateMode) ? null : a.CreateMode,
-                ManagedIdentity = a.ManagedIdentity == null ? null : new ManagedIdentityData
+                ManagedIdentity = a.ManagedIdentity == null ? null : new AzureMcp.Models.Identity.ManagedIdentityInfo
                 {
-                    SystemAssignedIdentity = a.ManagedIdentity.SystemAssignedIdentity == null ? null : new SystemAssignedIdentityData
+                    SystemAssignedIdentity = a.ManagedIdentity.SystemAssignedIdentity == null ? null : new AzureMcp.Models.Identity.SystemAssignedIdentityInfo
                     {
                         Enabled = a.ManagedIdentity.SystemAssignedIdentity.Enabled,
                         TenantId = string.IsNullOrEmpty(a.ManagedIdentity.SystemAssignedIdentity.TenantId) ? null : a.ManagedIdentity.SystemAssignedIdentity.TenantId,
                         PrincipalId = string.IsNullOrEmpty(a.ManagedIdentity.SystemAssignedIdentity.PrincipalId) ? null : a.ManagedIdentity.SystemAssignedIdentity.PrincipalId
                     },
-                    UserAssignedIdentities = a.ManagedIdentity.UserAssignedIdentities.Select(u => new UserAssignedIdentityData
+                    UserAssignedIdentities = a.ManagedIdentity.UserAssignedIdentities.Select(u => new AzureMcp.Models.Identity.UserAssignedIdentityInfo
                     {
                         ClientId = string.IsNullOrEmpty(u.ClientId) ? null : u.ClientId,
                         PrincipalId = string.IsNullOrEmpty(u.PrincipalId) ? null : u.PrincipalId
                     }).ToArray()
                 },
-                Encryption = a.Encryption == null ? null : new EncryptionData
+                Encryption = a.Encryption == null ? null : new AzureMcp.Areas.AppConfig.Models.EncryptionProperties
                 {
                     KeyIdentifier = string.IsNullOrEmpty(a.Encryption.KeyIdentifier) ? null : a.Encryption.KeyIdentifier,
                     IdentityClientId = string.IsNullOrEmpty(a.Encryption.IdentityClientId) ? null : a.Encryption.IdentityClientId,
@@ -421,12 +423,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 }
             }).ToList();
 
-            return new GetAppConfigAccountsResult
-            {
-                IsSuccess = response.IsSuccess,
-                ErrorMessage = string.IsNullOrEmpty(response.ErrorMessage) ? null : response.ErrorMessage,
-                AppConfigAccounts = accounts
-            };
+            return accounts;
         }
         catch (LocalServiceCallException)
         {
@@ -438,7 +435,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         }
     }
 
-    public async Task<GetAppConfigAccountEndpointResult> GetAppConfigAccountEndpointAsync(
+    public async Task<string> GetAppConfigAccountEndpointAsync(
         string accountName,
         string subscriptionId,
         string? tenantId = null,
@@ -462,12 +459,12 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 throw new LocalServiceCallException("GetAppConfigAccountEndpoint", GetErrorMessage(response.ErrorMessage));
             }
 
-            return new GetAppConfigAccountEndpointResult
+            if (string.IsNullOrEmpty(response.Endpoint))
             {
-                IsSuccess = response.IsSuccess,
-                ErrorMessage = string.IsNullOrEmpty(response.ErrorMessage) ? null : response.ErrorMessage,
-                Endpoint = string.IsNullOrEmpty(response.Endpoint) ? null : response.Endpoint
-            };
+                throw new LocalServiceCallException("GetAppConfigAccountEndpoint", $"No endpoint found for App Configuration account '{accountName}'");
+            }
+
+            return response.Endpoint;
         }
         catch (LocalServiceCallException)
         {

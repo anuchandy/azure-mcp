@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using AzureMcp.Areas.AppConfig.Models;
 using AzureMcp.Areas.Authorization.Models;
 using AzureMcp.LocalServiceClient;
 
@@ -106,8 +107,9 @@ public interface IArmServiceClient : IServiceClient
     /// <param name="subscriptionId">Subscription ID to get App Configuration accounts for</param>
     /// <param name="tenantId">Optional tenant ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>A response containing the list of App Configuration accounts</returns>
-    Task<GetAppConfigAccountsResult> GetAppConfigAccountsAsync(
+    /// <returns>A list of App Configuration accounts</returns>
+    /// <exception cref="LocalServiceCallException">Thrown when the operation fails</exception>
+    Task<List<AppConfigurationAccount>> GetAppConfigAccountsAsync(
         string subscriptionId,
         string? tenantId = null,
         CancellationToken cancellationToken = default);
@@ -119,8 +121,9 @@ public interface IArmServiceClient : IServiceClient
     /// <param name="subscriptionId">Subscription ID where the App Configuration account exists</param>
     /// <param name="tenantId">Optional tenant ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>A response containing the App Configuration account endpoint</returns>
-    Task<GetAppConfigAccountEndpointResult> GetAppConfigAccountEndpointAsync(
+    /// <returns>The App Configuration account endpoint</returns>
+    /// <exception cref="LocalServiceCallException">Thrown when the operation fails</exception>
+    Task<string> GetAppConfigAccountEndpointAsync(
         string accountName,
         string subscriptionId,
         string? tenantId = null,
