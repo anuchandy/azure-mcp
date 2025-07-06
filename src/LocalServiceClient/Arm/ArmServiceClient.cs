@@ -912,6 +912,183 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         }
     }
 
+    public async Task<ListPostgreSqlServersResult> ListPostgreSqlServersAsync(
+        string subscriptionId,
+        string resourceGroupName,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var endpoint = await _initServiceTask.Value;
+            EnsureClient(endpoint);
+
+            var request = new ListPostgreSqlServersRequest
+            {
+                SubscriptionId = subscriptionId,
+                ResourceGroupName = resourceGroupName,
+                TenantId = tenantId ?? string.Empty
+            };
+
+            var response = await _client!.ListPostgreSqlServersAsync(request, cancellationToken: cancellationToken);
+
+            return new ListPostgreSqlServersResult
+            {
+                IsSuccess = response.IsSuccess,
+                ErrorMessage = response.ErrorMessage,
+                ServerNames = response.ServerNames.ToList()
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to call ARM LocalService for PostgreSQL servers");
+            return new ListPostgreSqlServersResult
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message,
+                ServerNames = []
+            };
+        }
+    }
+
+    public async Task<GetPostgreSqlServerConfigResult> GetPostgreSqlServerConfigAsync(
+        string subscriptionId,
+        string resourceGroupName,
+        string serverName,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var endpoint = await _initServiceTask.Value;
+            EnsureClient(endpoint);
+
+            var request = new GetPostgreSqlServerConfigRequest
+            {
+                SubscriptionId = subscriptionId,
+                ResourceGroupName = resourceGroupName,
+                ServerName = serverName,
+                TenantId = tenantId ?? string.Empty
+            };
+
+            var response = await _client!.GetPostgreSqlServerConfigAsync(request, cancellationToken: cancellationToken);
+
+            return new GetPostgreSqlServerConfigResult
+            {
+                IsSuccess = response.IsSuccess,
+                ErrorMessage = response.ErrorMessage,
+                ServerConfig = response.ServerConfig != null ? new PostgreSqlServerConfigData
+                {
+                    Name = response.ServerConfig.Name,
+                    Location = response.ServerConfig.Location,
+                    Version = response.ServerConfig.Version,
+                    SkuName = response.ServerConfig.SkuName,
+                    StorageSizeGb = response.ServerConfig.StorageSizeGb,
+                    BackupRetentionDays = response.ServerConfig.BackupRetentionDays,
+                    GeoRedundantBackup = response.ServerConfig.GeoRedundantBackup
+                } : null
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to call ARM LocalService for PostgreSQL server config");
+            return new GetPostgreSqlServerConfigResult
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message,
+                ServerConfig = null
+            };
+        }
+    }
+
+    public async Task<GetPostgreSqlServerParameterResult> GetPostgreSqlServerParameterAsync(
+        string subscriptionId,
+        string resourceGroupName,
+        string serverName,
+        string parameterName,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var endpoint = await _initServiceTask.Value;
+            EnsureClient(endpoint);
+
+            var request = new GetPostgreSqlServerParameterRequest
+            {
+                SubscriptionId = subscriptionId,
+                ResourceGroupName = resourceGroupName,
+                ServerName = serverName,
+                ParameterName = parameterName,
+                TenantId = tenantId ?? string.Empty
+            };
+
+            var response = await _client!.GetPostgreSqlServerParameterAsync(request, cancellationToken: cancellationToken);
+
+            return new GetPostgreSqlServerParameterResult
+            {
+                IsSuccess = response.IsSuccess,
+                ErrorMessage = response.ErrorMessage,
+                ParameterValue = response.ParameterValue
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to call ARM LocalService for PostgreSQL server parameter");
+            return new GetPostgreSqlServerParameterResult
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message,
+                ParameterValue = string.Empty
+            };
+        }
+    }
+
+    public async Task<SetPostgreSqlServerParameterResult> SetPostgreSqlServerParameterAsync(
+        string subscriptionId,
+        string resourceGroupName,
+        string serverName,
+        string parameterName,
+        string parameterValue,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var endpoint = await _initServiceTask.Value;
+            EnsureClient(endpoint);
+
+            var request = new SetPostgreSqlServerParameterRequest
+            {
+                SubscriptionId = subscriptionId,
+                ResourceGroupName = resourceGroupName,
+                ServerName = serverName,
+                ParameterName = parameterName,
+                ParameterValue = parameterValue,
+                TenantId = tenantId ?? string.Empty
+            };
+
+            var response = await _client!.SetPostgreSqlServerParameterAsync(request, cancellationToken: cancellationToken);
+
+            return new SetPostgreSqlServerParameterResult
+            {
+                IsSuccess = response.IsSuccess,
+                ErrorMessage = response.ErrorMessage,
+                Message = response.Message
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to call ARM LocalService for PostgreSQL server parameter");
+            return new SetPostgreSqlServerParameterResult
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message,
+                Message = string.Empty
+            };
+        }
+    }
+
     public void Dispose()
     {
         if (!_disposed)

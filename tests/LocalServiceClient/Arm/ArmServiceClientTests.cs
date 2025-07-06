@@ -24,6 +24,8 @@ public class ArmServiceClientTests : IDisposable
     private ArmServiceClient? _armServiceClient;
 
     private const string DefaultSubscription = "Azure SDK Developer Playground";
+    private const string PostgreSqlTestResourceGroup = "anuchan-entra-4433";
+    private const string PostgreSqlTestServerName = "td08288e8c7e88f73";
 
     public ArmServiceClientTests()
     {
@@ -469,6 +471,143 @@ public class ArmServiceClientTests : IDisposable
                 Assert.Fail($"ListRedisClustersAsync should succeed, but got: {result.ErrorMessage}");
             }
             Assert.NotNull(result.RedisClusters);
+        }
+        catch (Exception ex)
+        {
+            FailOnException(ex);
+        }
+
+        AssertServicesAreRunning();
+    }
+
+    [Fact]
+    public async Task CanAttemptToListPostgreSqlServersThroughGrpcCall()
+    {
+        // Arrange
+        SetupServices();
+        var subscriptionId = await GetTargetSubscriptionIdAsync(_armServiceClient!, TestContext.Current.CancellationToken);
+
+        // Act
+        try
+        {
+            Assert.NotNull(_armServiceClient);
+            var result = await _armServiceClient.ListPostgreSqlServersAsync(
+                subscriptionId: subscriptionId,
+                resourceGroupName: PostgreSqlTestResourceGroup,
+                tenantId: null,
+                cancellationToken: TestContext.Current.CancellationToken);
+
+            Assert.NotNull(result);
+            if (!result.IsSuccess)
+            {
+                Assert.Fail($"ListPostgreSqlServersAsync should succeed, but got: {result.ErrorMessage}");
+            }
+            Assert.NotNull(result.ServerNames);
+        }
+        catch (Exception ex)
+        {
+            FailOnException(ex);
+        }
+
+        AssertServicesAreRunning();
+    }
+
+    [Fact]
+    public async Task CanAttemptToGetPostgreSqlServerConfigThroughGrpcCall()
+    {
+        // Arrange
+        SetupServices();
+        var subscriptionId = await GetTargetSubscriptionIdAsync(_armServiceClient!, TestContext.Current.CancellationToken);
+
+        // Act
+        try
+        {
+            Assert.NotNull(_armServiceClient);
+            var result = await _armServiceClient.GetPostgreSqlServerConfigAsync(
+                subscriptionId: subscriptionId,
+                resourceGroupName: PostgreSqlTestResourceGroup,
+                serverName: PostgreSqlTestServerName,
+                tenantId: null,
+                cancellationToken: TestContext.Current.CancellationToken);
+
+            // Assert
+            Assert.NotNull(result);
+            if (!result.IsSuccess)
+            {
+                Assert.Fail($"GetPostgreSqlServerConfigAsync should succeed, but got: {result.ErrorMessage}");
+            }
+            Assert.NotNull(result.ServerConfig);
+        }
+        catch (Exception ex)
+        {
+            FailOnException(ex);
+        }
+
+        AssertServicesAreRunning();
+    }
+
+    [Fact]
+    public async Task CanAttemptToGetPostgreSqlServerParameterThroughGrpcCall()
+    {
+        // Arrange
+        SetupServices();
+        var subscriptionId = await GetTargetSubscriptionIdAsync(_armServiceClient!, TestContext.Current.CancellationToken);
+
+        // Act
+        try
+        {
+            Assert.NotNull(_armServiceClient);
+            var result = await _armServiceClient.GetPostgreSqlServerParameterAsync(
+                subscriptionId: subscriptionId,
+                resourceGroupName: PostgreSqlTestResourceGroup,
+                serverName: PostgreSqlTestServerName,
+                parameterName: "max_connections",
+                tenantId: null,
+                cancellationToken: TestContext.Current.CancellationToken);
+
+            // Assert
+            Assert.NotNull(result);
+            if (!result.IsSuccess)
+            {
+                Assert.Fail($"GetPostgreSqlServerParameterAsync should succeed, but got: {result.ErrorMessage}");
+            }
+            Assert.False(string.IsNullOrEmpty(result.ParameterValue));
+        }
+        catch (Exception ex)
+        {
+            FailOnException(ex);
+        }
+
+        AssertServicesAreRunning();
+    }
+
+    [Fact]
+    public async Task CanAttemptToSetPostgreSqlServerParameterThroughGrpcCall()
+    {
+        // Arrange
+        SetupServices();
+        var subscriptionId = await GetTargetSubscriptionIdAsync(_armServiceClient!, TestContext.Current.CancellationToken);
+
+        // Act
+        try
+        {
+            Assert.NotNull(_armServiceClient);
+            var result = await _armServiceClient.SetPostgreSqlServerParameterAsync(
+                subscriptionId: subscriptionId,
+                resourceGroupName: PostgreSqlTestResourceGroup,
+                serverName: PostgreSqlTestServerName,
+                parameterName: "max_connections",
+                parameterValue: "200",
+                tenantId: null,
+                cancellationToken: TestContext.Current.CancellationToken);
+
+            // Assert
+            Assert.NotNull(result);
+            if (!result.IsSuccess)
+            {
+                Assert.Fail($"SetPostgreSqlServerParameterAsync should succeed, but got: {result.ErrorMessage}");
+            }
+            Assert.False(string.IsNullOrEmpty(result.Message));
         }
         catch (Exception ex)
         {

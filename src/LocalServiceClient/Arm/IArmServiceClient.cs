@@ -231,6 +231,74 @@ public interface IArmServiceClient : IServiceClient
         string subscriptionId,
         string? tenantId = null,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Lists PostgreSQL flexible servers in a resource group.
+    /// </summary>
+    /// <param name="subscriptionId">Subscription ID where the servers exist</param>
+    /// <param name="resourceGroupName">Resource group name containing the servers</param>
+    /// <param name="tenantId">Optional tenant ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A response containing the list of PostgreSQL server names</returns>
+    Task<ListPostgreSqlServersResult> ListPostgreSqlServersAsync(
+        string subscriptionId,
+        string resourceGroupName,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets PostgreSQL server configuration details.
+    /// </summary>
+    /// <param name="subscriptionId">Subscription ID where the server exists</param>
+    /// <param name="resourceGroupName">Resource group name containing the server</param>
+    /// <param name="serverName">PostgreSQL server name</param>
+    /// <param name="tenantId">Optional tenant ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A response containing the PostgreSQL server configuration</returns>
+    Task<GetPostgreSqlServerConfigResult> GetPostgreSqlServerConfigAsync(
+        string subscriptionId,
+        string resourceGroupName,
+        string serverName,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets a specific PostgreSQL server configuration parameter value.
+    /// </summary>
+    /// <param name="subscriptionId">Subscription ID where the server exists</param>
+    /// <param name="resourceGroupName">Resource group name containing the server</param>
+    /// <param name="serverName">PostgreSQL server name</param>
+    /// <param name="parameterName">Configuration parameter name</param>
+    /// <param name="tenantId">Optional tenant ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A response containing the parameter value</returns>
+    Task<GetPostgreSqlServerParameterResult> GetPostgreSqlServerParameterAsync(
+        string subscriptionId,
+        string resourceGroupName,
+        string serverName,
+        string parameterName,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sets a specific PostgreSQL server configuration parameter value.
+    /// </summary>
+    /// <param name="subscriptionId">Subscription ID where the server exists</param>
+    /// <param name="resourceGroupName">Resource group name containing the server</param>
+    /// <param name="serverName">PostgreSQL server name</param>
+    /// <param name="parameterName">Configuration parameter name</param>
+    /// <param name="parameterValue">Configuration parameter value to set</param>
+    /// <param name="tenantId">Optional tenant ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A response containing the operation result</returns>
+    Task<SetPostgreSqlServerParameterResult> SetPostgreSqlServerParameterAsync(
+        string subscriptionId,
+        string resourceGroupName,
+        string serverName,
+        string parameterName,
+        string parameterValue,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -1352,4 +1420,129 @@ public class RedisModuleData
     /// The version of the module, e.g. '1.0'.
     /// </summary>
     public string Version { get; init; } = string.Empty;
+}
+
+/// <summary>
+/// Result of listing PostgreSQL servers.
+/// </summary>
+public class ListPostgreSqlServersResult
+{
+    /// <summary>
+    /// Whether the operation was successful.
+    /// </summary>
+    public bool IsSuccess { get; init; }
+
+    /// <summary>
+    /// Error message if operation failed.
+    /// </summary>
+    public string ErrorMessage { get; init; } = string.Empty;
+
+    /// <summary>
+    /// List of PostgreSQL server names.
+    /// </summary>
+    public List<string> ServerNames { get; init; } = [];
+}
+
+/// <summary>
+/// Result of getting PostgreSQL server configuration.
+/// </summary>
+public class GetPostgreSqlServerConfigResult
+{
+    /// <summary>
+    /// Whether the operation was successful.
+    /// </summary>
+    public bool IsSuccess { get; init; }
+
+    /// <summary>
+    /// Error message if operation failed.
+    /// </summary>
+    public string ErrorMessage { get; init; } = string.Empty;
+
+    /// <summary>
+    /// PostgreSQL server configuration details.
+    /// </summary>
+    public PostgreSqlServerConfigData? ServerConfig { get; init; }
+}
+
+/// <summary>
+/// Result of getting PostgreSQL server parameter.
+/// </summary>
+public class GetPostgreSqlServerParameterResult
+{
+    /// <summary>
+    /// Whether the operation was successful.
+    /// </summary>
+    public bool IsSuccess { get; init; }
+
+    /// <summary>
+    /// Error message if operation failed.
+    /// </summary>
+    public string ErrorMessage { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Parameter value.
+    /// </summary>
+    public string ParameterValue { get; init; } = string.Empty;
+}
+
+/// <summary>
+/// Result of setting PostgreSQL server parameter.
+/// </summary>
+public class SetPostgreSqlServerParameterResult
+{
+    /// <summary>
+    /// Whether the operation was successful.
+    /// </summary>
+    public bool IsSuccess { get; init; }
+
+    /// <summary>
+    /// Error message if operation failed.
+    /// </summary>
+    public string ErrorMessage { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Success message with details.
+    /// </summary>
+    public string Message { get; init; } = string.Empty;
+}
+
+/// <summary>
+/// PostgreSQL server configuration data.
+/// </summary>
+public class PostgreSqlServerConfigData
+{
+    /// <summary>
+    /// Server name.
+    /// </summary>
+    public string Name { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Server location.
+    /// </summary>
+    public string Location { get; init; } = string.Empty;
+
+    /// <summary>
+    /// PostgreSQL version.
+    /// </summary>
+    public string Version { get; init; } = string.Empty;
+
+    /// <summary>
+    /// SKU information.
+    /// </summary>
+    public string SkuName { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Storage size in GB.
+    /// </summary>
+    public int StorageSizeGb { get; init; }
+
+    /// <summary>
+    /// Backup retention days.
+    /// </summary>
+    public int BackupRetentionDays { get; init; }
+
+    /// <summary>
+    /// Geo-redundant backup enabled.
+    /// </summary>
+    public string GeoRedundantBackup { get; init; } = string.Empty;
 }

@@ -56,6 +56,18 @@ service ArmService {
   
   // Get Redis databases for a cluster
   rpc ListRedisDatabases(ListRedisDatabasesRequest) returns (ListRedisDatabasesResponse);
+  
+  // List PostgreSQL flexible servers in a resource group
+  rpc ListPostgreSqlServers(ListPostgreSqlServersRequest) returns (ListPostgreSqlServersResponse);
+  
+  // Get PostgreSQL server configuration details
+  rpc GetPostgreSqlServerConfig(GetPostgreSqlServerConfigRequest) returns (GetPostgreSqlServerConfigResponse);
+  
+  // Get a specific PostgreSQL server configuration parameter
+  rpc GetPostgreSqlServerParameter(GetPostgreSqlServerParameterRequest) returns (GetPostgreSqlServerParameterResponse);
+  
+  // Set a specific PostgreSQL server configuration parameter
+  rpc SetPostgreSqlServerParameter(SetPostgreSqlServerParameterRequest) returns (SetPostgreSqlServerParameterResponse);
 }
 
 // Request for checking Identity service status
@@ -537,57 +549,59 @@ message ListRedisDatabasesResponse {
   string error_message = 3;
 }
 
+// Redis Services Messages
+
 // Redis cache data
 message RedisCache {
-  // Name of the Redis cache resource
+  // Cache name
   string name = 1;
-  // Name of the resource group containing the Redis cache resource
+  // Resource group name
   string resource_group_name = 2;
-  // ID of the Azure subscription containing the Redis cache resource
+  // Subscription ID
   string subscription_id = 3;
-  // Azure geo-location where the Redis cache resource lives
+  // Cache location
   string location = 4;
-  // SKU of the Redis cache resource
+  // SKU information
   string sku = 5;
-  // Provisioning status of the Redis cache resource
+  // Provisioning state
   string provisioning_state = 6;
-  // Version of Redis server supported by the cache
+  // Redis version
   string redis_version = 7;
-  // DNS host name clients use to connect to the Redis cache
+  // Host name
   string host_name = 8;
-  // Port for TLS (aka SSL) client connections to the Redis cache
+  // SSL port
   int32 ssl_port = 9;
-  // Port for unencrypted client connections to the Redis cache
+  // Non-SSL port
   int32 port = 10;
-  // Number of shards in a clustered Redis cache
+  // Shard count
   int32 shard_count = 11;
-  // When a Redis cache is VNet-injected this contains the Resource ID of the subnet
+  // Subnet ID
   string subnet_id = 12;
-  // Indicates whether public network access is allowed for the Redis cache
+  // Public network access enabled
   bool public_network_access = 13;
-  // Indicates whether connections are allowed on the non-SSL port for the Redis cache
+  // Non-SSL port enabled
   bool enable_non_ssl_port = 14;
-  // Indicates whether access key authentication is disabled for the Redis cache
+  // Access key authentication disabled
   bool is_access_key_authentication_disabled = 15;
-  // Resource IDs of other Redis servers linked to this one for geo-replication
-  repeated string linked_servers = 16;
-  // Minimum version of TLS supported for client connections to this Redis cache
-  string minimum_tls_version = 17;
-  // Resource IDs of private links used for network-isolated client connections to the Redis cache
-  repeated string private_endpoint_connections = 18;
-  // Number of replica nodes per primary node within the Redis cache
-  int32 replicas_per_primary = 19;
-  // Either 'Preview' to receive new versions of Redis service components sooner, or 'Stable' to be updated later (default)
-  string update_channel = 20;
-  // Zonal allocation policy determining how the cache is distributed across availability zones
-  string zonal_allocation_policy = 21;
-  // The availability zones in which the Redis cache is deployed
+  // Minimum TLS version
+  string minimum_tls_version = 16;
+  // Replicas per primary
+  int32 replicas_per_primary = 17;
+  // Update channel
+  string update_channel = 18;
+  // Zonal allocation policy
+  string zonal_allocation_policy = 19;
+  // Linked servers
+  repeated string linked_servers = 20;
+  // Private endpoint connections
+  repeated string private_endpoint_connections = 21;
+  // Availability zones
   repeated string zones = 22;
-  // Configuration settings for the Redis cache
+  // Redis configuration
   RedisCacheConfiguration configuration = 23;
-  // System-assigned managed identity of the Redis cache resource
+  // Managed identity information
   ManagedIdentityInfo identity = 24;
-  // Tags on the Redis cache resource
+  // Resource tags
   map<string, string> tags = 25;
 }
 
@@ -639,61 +653,61 @@ message RedisAccessPolicyAssignment {
 
 // Redis cluster data
 message RedisCluster {
-  // Name of the Redis cluster resource
+  // Cluster name
   string name = 1;
-  // ID of the Azure subscription containing the Redis cluster resource
+  // Subscription ID
   string subscription_id = 2;
-  // Name of the resource group containing the Redis cluster resource
+  // Resource group name
   string resource_group_name = 3;
-  // Azure geo-location where the Redis cluster resource lives
+  // Cluster location
   string location = 4;
-  // SKU of the Redis cluster resource
+  // SKU information
   string sku = 5;
-  // Provisioning status of the Redis cluster resource
+  // Provisioning state
   string provisioning_state = 6;
-  // Current status of the Redis cluster
+  // Resource state
   string resource_state = 7;
-  // Version of Redis server supported by the cluster
+  // Redis version
   string redis_version = 8;
-  // DNS host name clients use to connect to the Redis cluster
+  // Host name
   string host_name = 9;
-  // Minimum version of TLS supported for client connections to this Redis cluster
+  // Minimum TLS version
   string minimum_tls_version = 10;
-  // Resource IDs of private links used for network-isolated client connections to the Redis cluster
+  // Private endpoint connections
   repeated string private_endpoint_connections = 11;
-  // The availability zones in which the Redis cluster is deployed
+  // Availability zones
   repeated string zones = 12;
-  // System-assigned managed identity of the Redis cluster resource
+  // Managed identity information
   ManagedIdentityInfo identity = 13;
-  // Tags on the Redis cluster resource
+  // Resource tags
   map<string, string> tags = 14;
 }
 
 // Redis database data
 message RedisDatabase {
-  // Name of the Redis database resource
+  // Database name
   string name = 1;
-  // Name of the Redis cluster containing this database
+  // Cluster name
   string cluster_name = 2;
-  // Name of the resource group containing the Redis cluster that contains this database
+  // Resource group name
   string resource_group_name = 3;
-  // ID of the Azure subscription containing the Redis cluster that contains this database
+  // Subscription ID
   string subscription_id = 4;
-  // Specifies whether redis clients can connect using TLS-encrypted or plaintext redis protocols
+  // Client protocol
   string client_protocol = 5;
-  // TCP port of the database endpoint
+  // Port number
   int32 port = 6;
-  // Provisioning status of the Redis database resource
+  // Provisioning state
   string provisioning_state = 7;
-  // Current status of the Redis database
+  // Resource state
   string resource_state = 8;
-  // Clustering policy - default is OSSCluster
+  // Clustering policy
   string clustering_policy = 9;
-  // Redis eviction policy - default is VolatileLRU
+  // Eviction policy
   string eviction_policy = 10;
-  // Sets whether AOF is enabled
+  // Whether AOF (Append Only File) is enabled
   bool is_aof_enabled = 11;
-  // Sets whether RDB is enabled
+  // Whether RDB (Redis Database) backup is enabled
   bool is_rdb_enabled = 12;
   // Sets the frequency at which data is written to disk
   string aof_frequency = 13;
@@ -715,4 +729,116 @@ message RedisModule {
   string args = 2;
   // The version of the module, e.g. '1.0'
   string version = 3;
+}
+
+// PostgreSQL Services
+
+// Request to list PostgreSQL servers in a resource group
+message ListPostgreSqlServersRequest {
+  // The subscription ID
+  string subscription_id = 1;
+  // The resource group name
+  string resource_group_name = 2;
+  // Optional tenant ID for multi-tenant scenarios
+  string tenant_id = 3;
+}
+
+// Response containing list of PostgreSQL servers
+message ListPostgreSqlServersResponse {
+  // Indicates if the operation was successful
+  bool is_success = 1;
+  // Error message if operation failed
+  string error_message = 2;
+  // List of PostgreSQL server names
+  repeated string server_names = 3;
+}
+
+// Request to get PostgreSQL server configuration
+message GetPostgreSqlServerConfigRequest {
+  // The subscription ID
+  string subscription_id = 1;
+  // The resource group name
+  string resource_group_name = 2;
+  // The PostgreSQL server name
+  string server_name = 3;
+  // Optional tenant ID for multi-tenant scenarios
+  string tenant_id = 4;
+}
+
+// Response containing PostgreSQL server configuration
+message GetPostgreSqlServerConfigResponse {
+  // Indicates if the operation was successful
+  bool is_success = 1;
+  // Error message if operation failed
+  string error_message = 2;
+  // PostgreSQL server configuration details
+  PostgreSqlServerConfig server_config = 3;
+}
+
+// PostgreSQL server configuration data
+message PostgreSqlServerConfig {
+  // Server name
+  string name = 1;
+  // Server location
+  string location = 2;
+  // PostgreSQL version
+  string version = 3;
+  // SKU information
+  string sku_name = 4;
+  // Storage size in GB
+  int32 storage_size_gb = 5;
+  // Backup retention days
+  int32 backup_retention_days = 6;
+  // Geo-redundant backup enabled
+  string geo_redundant_backup = 7;
+}
+
+// Request to get a PostgreSQL server parameter
+message GetPostgreSqlServerParameterRequest {
+  // The subscription ID
+  string subscription_id = 1;
+  // The resource group name
+  string resource_group_name = 2;
+  // The PostgreSQL server name
+  string server_name = 3;
+  // The parameter name
+  string parameter_name = 4;
+  // Optional tenant ID for multi-tenant scenarios
+  string tenant_id = 5;
+}
+
+// Response containing PostgreSQL server parameter value
+message GetPostgreSqlServerParameterResponse {
+  // Indicates if the operation was successful
+  bool is_success = 1;
+  // Error message if operation failed
+  string error_message = 2;
+  // Parameter value
+  string parameter_value = 3;
+}
+
+// Request to set a PostgreSQL server parameter
+message SetPostgreSqlServerParameterRequest {
+  // The subscription ID
+  string subscription_id = 1;
+  // The resource group name
+  string resource_group_name = 2;
+  // The PostgreSQL server name
+  string server_name = 3;
+  // The parameter name
+  string parameter_name = 4;
+  // The parameter value to set
+  string parameter_value = 5;
+  // Optional tenant ID for multi-tenant scenarios
+  string tenant_id = 6;
+}
+
+// Response for setting PostgreSQL server parameter
+message SetPostgreSqlServerParameterResponse {
+  // Indicates if the operation was successful
+  bool is_success = 1;
+  // Error message if operation failed
+  string error_message = 2;
+  // Success message with details
+  string message = 3;
 }

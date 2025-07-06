@@ -10,6 +10,7 @@ using Azure.ResourceManager.AppConfiguration;
 using Azure.ResourceManager.Kusto;
 using Azure.ResourceManager.Redis;
 using Azure.ResourceManager.RedisEnterprise;
+using Azure.ResourceManager.PostgreSql.FlexibleServers;
 using AzureMcp.LocalService.Arm.Grpc;
 using AzureMcp.LocalService.Arm.Clients;
 using Grpc.Core;
@@ -1395,6 +1396,275 @@ public class ArmGrpcService : ArmService.ArmServiceBase
         {
             _logger.LogError(ex, "Error listing Redis databases for cluster {ClusterName}", request.ClusterName);
             return new ListRedisDatabasesResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message
+            };
+        }
+    }
+
+    #endregion
+
+    #region PostgreSQL Methods
+
+    /// <summary>
+    /// Lists PostgreSQL flexible servers in a resource group.
+    /// </summary>
+    /// <param name="request">The request containing resource group information.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>A response containing the list of PostgreSQL servers.</returns>
+    public override async Task<ListPostgreSqlServersResponse> ListPostgreSqlServers(
+        ListPostgreSqlServersRequest request,
+        ServerCallContext context)
+    {
+        try
+        {
+            ValidateRequiredParameters(request.SubscriptionId, request.ResourceGroupName);
+
+            var armClient = CreateArmClient(request.TenantId);
+            var subscriptionResource = armClient.GetSubscriptionResource(SubscriptionResource.CreateResourceIdentifier(request.SubscriptionId));
+            var resourceGroup = await subscriptionResource.GetResourceGroups().GetAsync(request.ResourceGroupName);
+
+            if (resourceGroup?.Value == null)
+            {
+                return new ListPostgreSqlServersResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"Resource group '{request.ResourceGroupName}' not found"
+                };
+            }
+
+            var serverList = new List<string>();
+            await foreach (var server in resourceGroup.Value.GetPostgreSqlFlexibleServers())
+            {
+                serverList.Add(server.Data.Name);
+            }
+
+            return new ListPostgreSqlServersResponse
+            {
+                IsSuccess = true,
+                ServerNames = { serverList }
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error listing PostgreSQL servers in resource group {ResourceGroupName}", request.ResourceGroupName);
+            return new ListPostgreSqlServersResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message
+            };
+        }
+    }
+
+    /// <summary>
+    /// Gets PostgreSQL server configuration details.
+    /// </summary>
+    /// <param name="request">The request containing server information.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>A response containing the server configuration.</returns>
+    public override async Task<GetPostgreSqlServerConfigResponse> GetPostgreSqlServerConfig(
+        GetPostgreSqlServerConfigRequest request,
+        ServerCallContext context)
+    {
+        try
+        {
+            ValidateRequiredParameters(request.SubscriptionId, request.ResourceGroupName, request.ServerName);
+
+            var armClient = CreateArmClient(request.TenantId);
+            var subscriptionResource = armClient.GetSubscriptionResource(SubscriptionResource.CreateResourceIdentifier(request.SubscriptionId));
+            var resourceGroup = await subscriptionResource.GetResourceGroups().GetAsync(request.ResourceGroupName);
+
+            if (resourceGroup?.Value == null)
+            {
+                return new GetPostgreSqlServerConfigResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"Resource group '{request.ResourceGroupName}' not found"
+                };
+            }
+
+            var serverResponse = await resourceGroup.Value.GetPostgreSqlFlexibleServerAsync(request.ServerName);
+            if (serverResponse?.Value == null)
+            {
+                return new GetPostgreSqlServerConfigResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"PostgreSQL server '{request.ServerName}' not found"
+                };
+            }
+
+            var serverData = serverResponse.Value.Data;
+            var serverConfig = new PostgreSqlServerConfig
+            {
+                Name = serverData.Name ?? string.Empty,
+                Location = serverData.Location.ToString(),
+                Version = serverData.Version?.ToString() ?? string.Empty,
+                SkuName = serverData.Sku?.Name ?? string.Empty,
+                StorageSizeGb = serverData.Storage?.StorageSizeInGB ?? 0,
+                BackupRetentionDays = serverData.Backup?.BackupRetentionDays ?? 0,
+                GeoRedundantBackup = serverData.Backup?.GeoRedundantBackup?.ToString() ?? string.Empty
+            };
+
+            return new GetPostgreSqlServerConfigResponse
+            {
+                IsSuccess = true,
+                ServerConfig = serverConfig
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting PostgreSQL server config for server {ServerName}", request.ServerName);
+            return new GetPostgreSqlServerConfigResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message
+            };
+        }
+    }
+
+    /// <summary>
+    /// Gets a specific PostgreSQL server configuration parameter.
+    /// </summary>
+    /// <param name="request">The request containing server and parameter information.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>A response containing the parameter value.</returns>
+    public override async Task<GetPostgreSqlServerParameterResponse> GetPostgreSqlServerParameter(
+        GetPostgreSqlServerParameterRequest request,
+        ServerCallContext context)
+    {
+        try
+        {
+            ValidateRequiredParameters(request.SubscriptionId, request.ResourceGroupName, request.ServerName, request.ParameterName);
+
+            var armClient = CreateArmClient(request.TenantId);
+            var subscriptionResource = armClient.GetSubscriptionResource(SubscriptionResource.CreateResourceIdentifier(request.SubscriptionId));
+            var resourceGroup = await subscriptionResource.GetResourceGroups().GetAsync(request.ResourceGroupName);
+
+            if (resourceGroup?.Value == null)
+            {
+                return new GetPostgreSqlServerParameterResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"Resource group '{request.ResourceGroupName}' not found"
+                };
+            }
+
+            var serverResponse = await resourceGroup.Value.GetPostgreSqlFlexibleServerAsync(request.ServerName);
+            if (serverResponse?.Value == null)
+            {
+                return new GetPostgreSqlServerParameterResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"PostgreSQL server '{request.ServerName}' not found"
+                };
+            }
+
+            var configResponse = await serverResponse.Value.GetPostgreSqlFlexibleServerConfigurationAsync(request.ParameterName);
+            if (configResponse?.Value?.Data == null)
+            {
+                return new GetPostgreSqlServerParameterResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"Parameter '{request.ParameterName}' not found"
+                };
+            }
+
+            return new GetPostgreSqlServerParameterResponse
+            {
+                IsSuccess = true,
+                ParameterValue = configResponse.Value.Data.Value ?? string.Empty
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting PostgreSQL server parameter {ParameterName} for server {ServerName}", 
+                request.ParameterName, request.ServerName);
+            return new GetPostgreSqlServerParameterResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message
+            };
+        }
+    }
+
+    /// <summary>
+    /// Sets a specific PostgreSQL server configuration parameter.
+    /// </summary>
+    /// <param name="request">The request containing server, parameter, and value information.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>A response containing the result of the operation.</returns>
+    public override async Task<SetPostgreSqlServerParameterResponse> SetPostgreSqlServerParameter(
+        SetPostgreSqlServerParameterRequest request,
+        ServerCallContext context)
+    {
+        try
+        {
+            ValidateRequiredParameters(request.SubscriptionId, request.ResourceGroupName, request.ServerName, 
+                request.ParameterName, request.ParameterValue);
+
+            var armClient = CreateArmClient(request.TenantId);
+            var subscriptionResource = armClient.GetSubscriptionResource(SubscriptionResource.CreateResourceIdentifier(request.SubscriptionId));
+            var resourceGroup = await subscriptionResource.GetResourceGroups().GetAsync(request.ResourceGroupName);
+
+            if (resourceGroup?.Value == null)
+            {
+                return new SetPostgreSqlServerParameterResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"Resource group '{request.ResourceGroupName}' not found"
+                };
+            }
+
+            var serverResponse = await resourceGroup.Value.GetPostgreSqlFlexibleServerAsync(request.ServerName);
+            if (serverResponse?.Value == null)
+            {
+                return new SetPostgreSqlServerParameterResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"PostgreSQL server '{request.ServerName}' not found"
+                };
+            }
+
+            var configResponse = await serverResponse.Value.GetPostgreSqlFlexibleServerConfigurationAsync(request.ParameterName);
+            if (configResponse?.Value?.Data == null)
+            {
+                return new SetPostgreSqlServerParameterResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"Parameter '{request.ParameterName}' not found"
+                };
+            }
+
+            var configData = new Azure.ResourceManager.PostgreSql.FlexibleServers.PostgreSqlFlexibleServerConfigurationData
+            {
+                Value = request.ParameterValue,
+                Source = "user-override"
+            };
+
+            var updateOperation = await configResponse.Value.UpdateAsync(Azure.WaitUntil.Completed, configData);
+            if (updateOperation.HasCompleted && updateOperation.HasValue)
+            {
+                return new SetPostgreSqlServerParameterResponse
+                {
+                    IsSuccess = true,
+                    Message = $"Parameter '{request.ParameterName}' updated successfully to '{request.ParameterValue}'"
+                };
+            }
+            else
+            {
+                return new SetPostgreSqlServerParameterResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"Failed to update parameter '{request.ParameterName}' to value '{request.ParameterValue}'"
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error setting PostgreSQL server parameter {ParameterName} to {ParameterValue} for server {ServerName}", 
+                request.ParameterName, request.ParameterValue, request.ServerName);
+            return new SetPostgreSqlServerParameterResponse
             {
                 IsSuccess = false,
                 ErrorMessage = ex.Message
