@@ -3,6 +3,7 @@
 
 using AzureMcp.Areas.AppConfig.Models;
 using AzureMcp.Areas.Authorization.Models;
+using AzureMcp.Commands.Kusto;
 using AzureMcp.LocalServiceClient;
 
 namespace AzureMcp.LocalServiceClient.Arm;
@@ -135,8 +136,9 @@ public interface IArmServiceClient : IServiceClient
     /// <param name="subscriptionId">Subscription ID to get Kusto clusters for</param>
     /// <param name="tenantId">Optional tenant ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>A response containing the list of Kusto clusters</returns>
-    Task<GetKustoClustersResult> GetKustoClustersAsync(
+    /// <returns>A list of Kusto cluster names</returns>
+    /// <exception cref="LocalServiceCallException">Thrown when the operation fails</exception>
+    Task<List<string>> GetKustoClustersAsync(
         string subscriptionId,
         string? tenantId = null,
         CancellationToken cancellationToken = default);
@@ -148,8 +150,9 @@ public interface IArmServiceClient : IServiceClient
     /// <param name="subscriptionId">Subscription ID where the Kusto cluster exists</param>
     /// <param name="tenantId">Optional tenant ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>A response containing the Kusto cluster details</returns>
-    Task<GetKustoClusterResult> GetKustoClusterAsync(
+    /// <returns>The Kusto cluster details</returns>
+    /// <exception cref="LocalServiceCallException">Thrown when the operation fails</exception>
+    Task<KustoClusterResourceProxy> GetKustoClusterAsync(
         string clusterName,
         string subscriptionId,
         string? tenantId = null,

@@ -3,6 +3,7 @@
 
 using AzureMcp.Areas.AppConfig.Models;
 using AzureMcp.Areas.Authorization.Models;
+using AzureMcp.Commands.Kusto;
 using AzureMcp.LocalServiceClient.Identity;
 using AzureMcp.LocalService.Arm.Grpc;
 using AzureMcp.Models.Identity;
@@ -476,7 +477,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         }
     }
 
-    public async Task<GetKustoClustersResult> GetKustoClustersAsync(
+    public async Task<List<string>> GetKustoClustersAsync(
         string subscriptionId,
         string? tenantId = null,
         CancellationToken cancellationToken = default)
@@ -499,12 +500,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 throw new LocalServiceCallException("GetKustoClusters", GetErrorMessage(response.ErrorMessage));
             }
 
-            return new GetKustoClustersResult
-            {
-                IsSuccess = response.IsSuccess,
-                ErrorMessage = string.IsNullOrEmpty(response.ErrorMessage) ? null : response.ErrorMessage,
-                KustoClusters = response.KustoClusters.ToArray()
-            };
+            return response.KustoClusters.ToList();
         }
         catch (LocalServiceCallException)
         {
@@ -516,7 +512,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         }
     }
 
-    public async Task<GetKustoClusterResult> GetKustoClusterAsync(
+    public async Task<KustoClusterResourceProxy> GetKustoClusterAsync(
         string clusterName,
         string subscriptionId,
         string? tenantId = null,
@@ -541,29 +537,29 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 throw new LocalServiceCallException("GetKustoCluster", GetErrorMessage(response.ErrorMessage));
             }
 
-            return new GetKustoClusterResult
+            if (response.Cluster == null)
             {
-                IsSuccess = response.IsSuccess,
-                ErrorMessage = string.IsNullOrEmpty(response.ErrorMessage) ? null : response.ErrorMessage,
-                Cluster = response.Cluster == null ? null : new KustoClusterData
-                {
-                    ClusterName = response.Cluster.ClusterName,
-                    ClusterUri = response.Cluster.ClusterUri,
-                    Location = response.Cluster.Location,
-                    ResourceGroupName = response.Cluster.ResourceGroupName,
-                    SubscriptionId = response.Cluster.SubscriptionId,
-                    Sku = response.Cluster.Sku,
-                    Zones = response.Cluster.Zones,
-                    Identity = response.Cluster.Identity,
-                    ETag = response.Cluster.Etag,
-                    State = response.Cluster.State,
-                    ProvisioningState = response.Cluster.ProvisioningState,
-                    DataIngestionUri = response.Cluster.DataIngestionUri,
-                    StateReason = response.Cluster.StateReason,
-                    IsStreamingIngestEnabled = response.Cluster.IsStreamingIngestEnabled,
-                    EngineType = response.Cluster.EngineType,
-                    IsAutoStopEnabled = response.Cluster.IsAutoStopEnabled
-                }
+                throw new LocalServiceCallException("GetKustoCluster", $"Kusto cluster '{clusterName}' not found");
+            }
+
+            return new KustoClusterResourceProxy
+            {
+                ClusterName = response.Cluster.ClusterName,
+                ClusterUri = response.Cluster.ClusterUri,
+                Location = response.Cluster.Location,
+                ResourceGroupName = response.Cluster.ResourceGroupName,
+                SubscriptionId = response.Cluster.SubscriptionId,
+                Sku = response.Cluster.Sku,
+                Zones = response.Cluster.Zones,
+                Identity = response.Cluster.Identity,
+                ETag = response.Cluster.Etag,
+                State = response.Cluster.State,
+                ProvisioningState = response.Cluster.ProvisioningState,
+                DataIngestionUri = response.Cluster.DataIngestionUri,
+                StateReason = response.Cluster.StateReason,
+                IsStreamingIngestEnabled = response.Cluster.IsStreamingIngestEnabled,
+                EngineType = response.Cluster.EngineType,
+                IsAutoStopEnabled = response.Cluster.IsAutoStopEnabled
             };
         }
         catch (LocalServiceCallException)
