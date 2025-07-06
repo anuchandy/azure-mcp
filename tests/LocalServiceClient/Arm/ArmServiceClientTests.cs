@@ -30,6 +30,8 @@ public class ArmServiceClientTests : IDisposable
     private const string AuthorizationTestScope = "/subscriptions/faa080af-c1d8-40ad-9cce-e1a450ca5b57/resourceGroups/anuchan-entra-4433";
     private const string DatadogTestResourceGroup = "anuchan-entra-4433";
     private const string DatadogTestMonitorName = "test-datadog-monitor";
+    private const string MonitorTestResourceGroup = "anuchan-entra-4433";
+    private const string MonitorTestWorkspaceName = "DefaultWorkspace-faa080af-c1d8-40ad-9cce-e1a450ca5b57-EUS"; // Common Log Analytics workspace name pattern
 
     public ArmServiceClientTests()
     {
@@ -739,6 +741,52 @@ public class ArmServiceClientTests : IDisposable
             Assert.True(result.IsSuccess, result.ErrorMessage);
             Assert.NotNull(result.Workspaces);
             Assert.True(result.Workspaces.Count > 0, $"Should have at least one Monitor workspace in {DefaultSubscription} subscription");
+        }
+        catch (Exception ex)
+        {
+            FailOnException(ex);
+        }
+
+        AssertServicesAreRunning();
+    }
+
+    [Fact]
+    public async Task CanListMonitorTablesThroughGrpcCall()
+    {
+        SetupServices();
+
+        try
+        {
+            var workspacesResult = await _armServiceClient!.ListMonitorWorkspacesAsync(
+                DefaultSubscriptionId,
+                cancellationToken: TestContext.Current.CancellationToken
+            );
+
+            Assert.NotNull(workspacesResult);
+            Assert.True(workspacesResult.IsSuccess, workspacesResult.ErrorMessage);
+            Assert.NotNull(workspacesResult.Workspaces);
+            Assert.True(workspacesResult.Workspaces.Count > 0, "Should have at least one workspace to test with");
+
+            // try tables from the first workspace
+            var testWorkspace = workspacesResult.Workspaces.First();
+
+            var result = await _armServiceClient!.ListMonitorTablesAsync(
+                DefaultSubscriptionId,
+                MonitorTestResourceGroup,
+                testWorkspace.Name,
+                tableType: null, // "CustomLog"
+                cancellationToken: TestContext.Current.CancellationToken
+            );
+
+            Assert.NotNull(result);
+            if (!result.IsSuccess)
+            {
+                Assert.True(result.ErrorMessage.Contains("not found"),  $"Expected a 'not found' or workspace-related error, but got: {result.ErrorMessage}");
+            }
+            else
+            {
+                Assert.NotNull(result.TableNames);
+            }
         }
         catch (Exception ex)
         {

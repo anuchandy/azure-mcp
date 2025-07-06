@@ -1258,6 +1258,49 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         }
     }
 
+    public async Task<ListMonitorTablesResult> ListMonitorTablesAsync(
+        string subscriptionId,
+        string resourceGroupName,
+        string workspaceName,
+        string? tableType = null,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var endpoint = await EnsureServiceStartedAsync(cancellationToken);
+        try
+        {
+            EnsureClient(endpoint);
+
+            var request = new ListMonitorTablesRequest
+            {
+                SubscriptionId = subscriptionId,
+                ResourceGroupName = resourceGroupName,
+                WorkspaceName = workspaceName,
+                TableType = tableType ?? string.Empty,
+                TenantId = tenantId ?? string.Empty
+            };
+
+            var response = await _client!.ListMonitorTablesAsync(request, cancellationToken: cancellationToken);
+
+            return new ListMonitorTablesResult
+            {
+                IsSuccess = response.IsSuccess,
+                ErrorMessage = response.ErrorMessage,
+                TableNames = response.TableNames.ToList()
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to call ARM LocalService for Monitor tables");
+            return new ListMonitorTablesResult
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message,
+                TableNames = []
+            };
+        }
+    }
+
     public void Dispose()
     {
         if (!_disposed)

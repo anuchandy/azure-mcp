@@ -80,6 +80,9 @@ service ArmService {
   
   // List Monitor workspaces for a subscription
   rpc ListMonitorWorkspaces(ListMonitorWorkspacesRequest) returns (ListMonitorWorkspacesResponse);
+  
+  // List Monitor tables for a workspace
+  rpc ListMonitorTables(ListMonitorTablesRequest) returns (ListMonitorTablesResponse);
 }
 
 // Request for checking Identity service status
@@ -963,4 +966,28 @@ message MonitorWorkspace {
   string name = 1;
   // Workspace customer ID (GUID)
   string customer_id = 2;
+}
+
+// Request to list Monitor tables for a workspace
+message ListMonitorTablesRequest {
+  // The subscription ID or name
+  string subscription_id = 1;
+  // The resource group name
+  string resource_group_name = 2;
+  // The workspace name or ID
+  string workspace_name = 3;
+  // Optional table type filter (defaults to "CustomLog")
+  string table_type = 4;
+  // Optional tenant ID
+  string tenant_id = 5;
+}
+
+// Response containing list of Monitor tables
+message ListMonitorTablesResponse {
+  // Indicates if the operation was successful
+  bool is_success = 1;
+  // Error message if operation failed
+  string error_message = 2;
+  // List of table names
+  repeated string table_names = 3;
 }

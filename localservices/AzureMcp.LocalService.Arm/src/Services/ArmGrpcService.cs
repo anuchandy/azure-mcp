@@ -1867,6 +1867,154 @@ public class ArmGrpcService : ArmService.ArmServiceBase
         }
     }
 
+    /// <summary>
+    /// Lists Monitor tables for a workspace.
+    /// </summary>
+    /// <param name="request">The request containing subscription, resource group, workspace, and optional table type filter.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>A response containing the list of Monitor tables.</returns>
+    public override async Task<ListMonitorTablesResponse> ListMonitorTables(
+        ListMonitorTablesRequest request,
+        ServerCallContext context)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(request.SubscriptionId))
+            {
+                return new ListMonitorTablesResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = "Subscription ID cannot be null or empty"
+                };
+            }
+
+            if (string.IsNullOrWhiteSpace(request.ResourceGroupName))
+            {
+                return new ListMonitorTablesResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = "Resource group name cannot be null or empty"
+                };
+            }
+
+            if (string.IsNullOrWhiteSpace(request.WorkspaceName))
+            {
+                return new ListMonitorTablesResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = "Workspace name cannot be null or empty"
+                };
+            }
+
+            var subscriptions = await GetSubscriptionsAsync(request.TenantId);
+            var subscription = subscriptions.FirstOrDefault(s => s.SubscriptionId == request.SubscriptionId);
+            if (subscription == null)
+            {
+                return new ListMonitorTablesResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"Subscription '{request.SubscriptionId}' not found"
+                };
+            }
+
+            var armClient = CreateArmClient(request.TenantId);
+            var subscriptionResource = armClient.GetSubscriptionResource(SubscriptionResource.CreateResourceIdentifier(subscription.SubscriptionId));
+            
+            var resourceGroupResponse = await subscriptionResource.GetResourceGroups().GetAsync(request.ResourceGroupName);
+            if (resourceGroupResponse?.Value == null)
+            {
+                return new ListMonitorTablesResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"Resource group '{request.ResourceGroupName}' not found"
+                };
+            }
+
+            // Resolve workspace name (could be name or ID)
+            var (workspaceId, workspaceName) = GetWorkspaceInfoAsync(request.WorkspaceName, subscriptionResource, request.TenantId);
+            
+            // Get the workspace
+            var workspaceResponse = await resourceGroupResponse.Value.GetOperationalInsightsWorkspaceAsync(workspaceName);
+            if (workspaceResponse?.Value == null)
+            {
+                return new ListMonitorTablesResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"Workspace '{workspaceName}' not found in resource group '{request.ResourceGroupName}'"
+                };
+            }
+
+            // Get tables from the workspace
+            var workspaceResource = workspaceResponse.Value;
+            var tableOperations = workspaceResource.GetOperationalInsightsTables();
+            var tables = new List<Azure.ResourceManager.OperationalInsights.OperationalInsightsTableResource>();
+            await foreach (var table in tableOperations.GetAllAsync())
+            {
+                tables.Add(table);
+            }
+
+            // Filter by table type if specified
+            var tableType = string.IsNullOrWhiteSpace(request.TableType) ? "CustomLog" : request.TableType;
+            var filteredTables = tables
+                .Where(table => string.IsNullOrEmpty(tableType) || table.Data.Schema.TableType?.ToString() == tableType)
+                .Select(table => table.Data.Name ?? string.Empty)
+                .Where(name => !string.IsNullOrEmpty(name))
+                .OrderBy(name => name)
+                .ToList();
+
+            return new ListMonitorTablesResponse
+            {
+                IsSuccess = true,
+                TableNames = { filteredTables }
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error listing Monitor tables for workspace: {WorkspaceName}", request.WorkspaceName);
+            return new ListMonitorTablesResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message
+            };
+        }
+    }
+
+    /// <summary>
+    /// Helper method to resolve workspace name from either name or ID, similar to the original MonitorService.
+    /// </summary>
+    /// <param name="workspace">The workspace name or ID</param>
+    /// <param name="subscriptionResource">The subscription resource</param>
+    /// <param name="tenantId">Optional tenant ID</param>
+    /// <returns>A tuple of (workspaceId, workspaceName)</returns>
+    private static (string id, string name) GetWorkspaceInfoAsync(string workspace, SubscriptionResource subscriptionResource, string? tenantId)
+    {
+        // Check if it's a workspace ID (GUID)
+        bool isId = Guid.TryParse(workspace, out _);
+        
+        // Get all workspaces in the subscription
+        var workspaces = new List<MonitorWorkspace>();
+        foreach (var workspaceResource in subscriptionResource.GetOperationalInsightsWorkspaces())
+        {
+            workspaces.Add(new MonitorWorkspace
+            {
+                Name = workspaceResource.Data.Name ?? string.Empty,
+                CustomerId = workspaceResource.Data.CustomerId?.ToString() ?? string.Empty
+            });
+        }
+
+        // Find the matching workspace
+        var matchingWorkspace = workspaces.FirstOrDefault(w =>
+            isId ? w.CustomerId.Equals(workspace, StringComparison.OrdinalIgnoreCase)
+                : w.Name.Equals(workspace, StringComparison.OrdinalIgnoreCase));
+
+        if (matchingWorkspace == null)
+        {
+            throw new Exception($"Could not find workspace with {(isId ? "ID" : "name")} {workspace}");
+        }
+
+        return (matchingWorkspace.CustomerId, matchingWorkspace.Name);
+    }
+
     #endregion
 
     #region Authorization Methods
