@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using AzureMcp.Areas.Authorization.Models;
 using AzureMcp.LocalServiceClient.Identity;
 using AzureMcp.LocalService.Arm.Grpc;
 using Grpc.Net.Client;
@@ -1122,6 +1123,55 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 IsSuccess = false,
                 ErrorMessage = ex.Message,
                 ServiceNames = []
+            };
+        }
+    }
+
+    public async Task<ListRoleAssignmentsResult> ListRoleAssignmentsAsync(
+        string scope,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var endpoint = await EnsureServiceStartedAsync(cancellationToken);
+        try
+        {
+            EnsureClient(endpoint);
+            var request = new ListRoleAssignmentsRequest
+            {
+                Scope = scope,
+                TenantId = tenantId ?? string.Empty
+            };
+
+            var response = await _client!.ListRoleAssignmentsAsync(request, cancellationToken: cancellationToken);
+
+            var roleAssignments = response.RoleAssignments.Select(ra => new AzureMcp.Areas.Authorization.Models.RoleAssignment
+            {
+                Id = ra.Id,
+                Name = ra.Name,
+                RoleDefinitionId = ra.RoleDefinitionId,
+                Scope = ra.Scope,
+                PrincipalId = string.IsNullOrEmpty(ra.PrincipalId) ? null : Guid.Parse(ra.PrincipalId),
+                PrincipalType = ra.PrincipalType,
+                Description = ra.Description,
+                DelegatedManagedIdentityResourceId = ra.DelegatedManagedIdentityResourceId,
+                Condition = ra.Condition
+            }).ToList();
+
+            return new ListRoleAssignmentsResult
+            {
+                IsSuccess = response.IsSuccess,
+                ErrorMessage = string.IsNullOrEmpty(response.ErrorMessage) ? string.Empty : response.ErrorMessage,
+                RoleAssignments = roleAssignments
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to call ARM LocalService for role assignments");
+            return new ListRoleAssignmentsResult
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message,
+                RoleAssignments = []
             };
         }
     }

@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using Azure.ResourceManager;
+using Azure.ResourceManager.Authorization;
 using Azure.ResourceManager.Resources;
 using Azure.ResourceManager.Storage;
 using Azure.ResourceManager.Storage.Models;
@@ -1716,6 +1717,70 @@ public class ArmGrpcService : ArmService.ArmServiceBase
     }
 
     #endregion
+
+    #endregion
+
+    #region Authorization Methods
+
+    /// <summary>
+    /// Lists role assignments for a scope.
+    /// </summary>
+    /// <param name="request">The request containing scope and tenant information.</param>
+    /// <param name="context">The gRPC server call context.</param>
+    /// <returns>A response containing the list of role assignments.</returns>
+    public override async Task<ListRoleAssignmentsResponse> ListRoleAssignments(
+        ListRoleAssignmentsRequest request,
+        ServerCallContext context)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(request.Scope))
+            {
+                return new ListRoleAssignmentsResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = "Scope is required"
+                };
+            }
+
+            var armClient = CreateArmClient(request.TenantId);
+            var scopeResourceId = new Azure.Core.ResourceIdentifier(request.Scope);
+            var roleAssignmentCollection = armClient.GetRoleAssignments(scopeResourceId);
+
+            var assignments = new List<RoleAssignment>();
+            await foreach (var roleAssignmentResource in roleAssignmentCollection.GetAllAsync())
+            {
+                var assignment = roleAssignmentResource.Data;
+                assignments.Add(new RoleAssignment
+                {
+                    Id = roleAssignmentResource.Id.ToString(),
+                    Name = assignment.Name ?? string.Empty,
+                    RoleDefinitionId = assignment.RoleDefinitionId?.ToString() ?? string.Empty,
+                    Scope = assignment.Scope ?? string.Empty,
+                    PrincipalId = assignment.PrincipalId?.ToString() ?? string.Empty,
+                    PrincipalType = assignment.PrincipalType?.ToString() ?? string.Empty,
+                    Description = assignment.Description ?? string.Empty,
+                    DelegatedManagedIdentityResourceId = assignment.DelegatedManagedIdentityResourceId?.ToString() ?? string.Empty,
+                    Condition = assignment.Condition ?? string.Empty
+                });
+            }
+
+            return new ListRoleAssignmentsResponse
+            {
+                IsSuccess = true,
+                RoleAssignments = { assignments }
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error listing role assignments for scope {Scope}", request.Scope);
+            return new ListRoleAssignmentsResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message
+            };
+        }
+    }
 
     #endregion
 }

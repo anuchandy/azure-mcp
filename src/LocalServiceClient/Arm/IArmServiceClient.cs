@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using AzureMcp.Areas.Authorization.Models;
 using AzureMcp.LocalServiceClient;
 
 namespace AzureMcp.LocalServiceClient.Arm;
@@ -173,6 +174,18 @@ public interface IArmServiceClient : IServiceClient
     Task<GetResourceGroupResult> GetResourceGroupAsync(
         string resourceGroupName,
         string subscriptionId,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Lists role assignments for a scope.
+    /// </summary>
+    /// <param name="scope">The scope that the role assignments apply to</param>
+    /// <param name="tenantId">Optional tenant ID for cross-tenant operations</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A response containing the list of role assignments</returns>
+    Task<ListRoleAssignmentsResult> ListRoleAssignmentsAsync(
+        string scope,
         string? tenantId = null,
         CancellationToken cancellationToken = default);
 
@@ -932,6 +945,27 @@ public class ResourceGroupData
     /// The resource group location.
     /// </summary>
     public string Location { get; init; } = string.Empty;
+}
+
+/// <summary>
+/// Result of listing role assignments.
+/// </summary>
+public class ListRoleAssignmentsResult
+{
+    /// <summary>
+    /// Whether the operation was successful.
+    /// </summary>
+    public bool IsSuccess { get; init; }
+
+    /// <summary>
+    /// Error message if operation failed.
+    /// </summary>
+    public string ErrorMessage { get; init; } = string.Empty;
+
+    /// <summary>
+    /// List of role assignments.
+    /// </summary>
+    public List<AzureMcp.Areas.Authorization.Models.RoleAssignment> RoleAssignments { get; init; } = [];
 }
 
 /// <summary>

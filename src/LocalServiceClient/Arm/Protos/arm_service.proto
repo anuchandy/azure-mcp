@@ -45,6 +45,9 @@ service ArmService {
   // Get a specific resource group details
   rpc GetResourceGroup(GetResourceGroupRequest) returns (GetResourceGroupResponse);
   
+  // List role assignments for a scope
+  rpc ListRoleAssignments(ListRoleAssignmentsRequest) returns (ListRoleAssignmentsResponse);
+  
   // Get Redis caches for a subscription
   rpc ListRedisCaches(ListRedisCachesRequest) returns (ListRedisCachesResponse);
   
@@ -470,6 +473,46 @@ message ResourceGroupData {
   string id = 2;
   // The resource group location
   string location = 3;
+}
+
+// Request for listing role assignments
+message ListRoleAssignmentsRequest {
+  // The scope that the role assignments apply to
+  string scope = 1;
+  // Optional tenant ID for cross-tenant operations
+  string tenant_id = 2;
+}
+
+// Response for listing role assignments
+message ListRoleAssignmentsResponse {
+  // Whether the operation was successful
+  bool is_success = 1;
+  // Error message if operation failed
+  string error_message = 2;
+  // List of role assignments
+  repeated RoleAssignment role_assignments = 3;
+}
+
+// Role assignment data
+message RoleAssignment {
+  // Fully qualified resource ID for the resource
+  string id = 1;
+  // The name of the resource
+  string name = 2;
+  // The role definition ID
+  string role_definition_id = 3;
+  // The role assignment scope
+  string scope = 4;
+  // The principal ID
+  string principal_id = 5;
+  // The principal type of the assigned principal ID
+  string principal_type = 6;
+  // Description of role assignment
+  string description = 7;
+  // Id of the delegated managed identity resource
+  string delegated_managed_identity_resource_id = 8;
+  // The conditions on the role assignment
+  string condition = 9;
 }
 
 // Request for listing Redis caches

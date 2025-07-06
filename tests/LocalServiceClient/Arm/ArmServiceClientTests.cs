@@ -26,6 +26,7 @@ public class ArmServiceClientTests : IDisposable
     private const string DefaultSubscription = "Azure SDK Developer Playground";
     private const string PostgreSqlTestResourceGroup = "anuchan-entra-4433";
     private const string PostgreSqlTestServerName = "td08288e8c7e88f73";
+    private const string AuthorizationTestScope = "/subscriptions/faa080af-c1d8-40ad-9cce-e1a450ca5b57/resourceGroups/anuchan-entra-4433";
 
     public ArmServiceClientTests()
     {
@@ -640,6 +641,43 @@ public class ArmServiceClientTests : IDisposable
                 Assert.Fail($"ListSearchServicesAsync should succeed, but got: {result.ErrorMessage}");
             }
             Assert.NotNull(result.ServiceNames);
+        }
+        catch (Exception ex)
+        {
+            FailOnException(ex);
+        }
+
+        AssertServicesAreRunning();
+    }
+
+    [Fact]
+    public async Task CanAttemptToListRoleAssignmentsThroughGrpcCall()
+    {
+        SetupServices();
+
+        try
+        {
+            var result = await _armServiceClient!.ListRoleAssignmentsAsync(
+                AuthorizationTestScope,
+                cancellationToken: TestContext.Current.CancellationToken
+            );
+
+            Assert.NotNull(result);
+            if (!result.IsSuccess)
+            {
+                Assert.Fail($"ListRoleAssignmentsAsync should succeed, but got: {result.ErrorMessage}");
+            }
+            Assert.NotNull(result.RoleAssignments);
+            if (result.RoleAssignments.Any())
+            {
+                var firstAssignment = result.RoleAssignments.First();
+                Assert.NotNull(firstAssignment.Id);
+                Assert.NotNull(firstAssignment.Scope);
+            }
+            else
+            {
+                Assert.Fail($"Expected to find role assignments in scope {AuthorizationTestScope}, but none were returned");
+            }
         }
         catch (Exception ex)
         {
