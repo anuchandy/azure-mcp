@@ -153,7 +153,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         }
     }
 
-    public async Task<GetStorageAccountsResult> GetStorageAccountsAsync(
+    public async Task<List<string>> GetStorageAccountsAsync(
         string subscriptionId,
         string? tenantId = null,
         CancellationToken cancellationToken = default)
@@ -175,12 +175,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 throw new LocalServiceCallException("GetStorageAccounts", GetErrorMessage(response.ErrorMessage));
             }
 
-            return new GetStorageAccountsResult
-            {
-                IsSuccess = response.IsSuccess,
-                ErrorMessage = string.IsNullOrEmpty(response.ErrorMessage) ? null : response.ErrorMessage,
-                StorageAccounts = response.StorageAccounts.ToArray()
-            };
+            return response.StorageAccounts.ToList();
         }
         catch (LocalServiceCallException)
         {
@@ -192,7 +187,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         }
     }
 
-    public async Task<GetStorageAccountKeysResult> GetStorageAccountKeysAsync(
+    public async Task<string> GetStorageAccountKeysAsync(
         string accountName,
         string subscriptionId,
         string? tenantId = null,
@@ -216,19 +211,13 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 throw new LocalServiceCallException("GetStorageAccountKeys", GetErrorMessage(response.ErrorMessage));
             }
 
-            var keys = response.Keys.Select(k => new StorageAccountKeyData
+            var firstKey = response.Keys.FirstOrDefault();
+            if (firstKey == null)
             {
-                KeyName = k.KeyName,
-                KeyValue = k.KeyValue,
-                Permissions = k.Permissions
-            }).ToList();
+                throw new LocalServiceCallException("GetStorageAccountKeys", $"No keys found for storage account '{accountName}'");
+            }
 
-            return new GetStorageAccountKeysResult
-            {
-                IsSuccess = response.IsSuccess,
-                ErrorMessage = string.IsNullOrEmpty(response.ErrorMessage) ? null : response.ErrorMessage,
-                Keys = keys
-            };
+            return firstKey.KeyValue;
         }
         catch (LocalServiceCallException)
         {
@@ -241,7 +230,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         }
     }
 
-    public async Task<GetStorageAccountConnectionStringResult> GetStorageAccountConnectionStringAsync(
+    public async Task<string> GetStorageAccountConnectionStringAsync(
         string accountName,
         string subscriptionId,
         string? tenantId = null,
@@ -265,12 +254,12 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 throw new LocalServiceCallException("GetStorageAccountConnectionString", GetErrorMessage(response.ErrorMessage));
             }
 
-            return new GetStorageAccountConnectionStringResult
+            if (string.IsNullOrEmpty(response.ConnectionString))
             {
-                IsSuccess = response.IsSuccess,
-                ErrorMessage = string.IsNullOrEmpty(response.ErrorMessage) ? null : response.ErrorMessage,
-                ConnectionString = string.IsNullOrEmpty(response.ConnectionString) ? null : response.ConnectionString
-            };
+                throw new LocalServiceCallException("GetStorageAccountConnectionString", $"No connection string found for storage account '{accountName}'");
+            }
+
+            return response.ConnectionString;
         }
         catch (LocalServiceCallException)
         {

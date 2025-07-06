@@ -39,8 +39,8 @@ public interface IArmServiceClient : IServiceClient
     /// <param name="subscriptionId">Subscription ID to get storage accounts for</param>
     /// <param name="tenantId">Optional tenant ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>A response containing the list of storage accounts</returns>
-    Task<GetStorageAccountsResult> GetStorageAccountsAsync(
+    /// <returns>A list of storage account names</returns>
+    Task<List<string>> GetStorageAccountsAsync(
         string subscriptionId,
         string? tenantId = null,
         CancellationToken cancellationToken = default);
@@ -52,8 +52,8 @@ public interface IArmServiceClient : IServiceClient
     /// <param name="subscriptionId">Subscription ID where the storage account exists</param>
     /// <param name="tenantId">Optional tenant ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>A response containing the storage account keys</returns>
-    Task<GetStorageAccountKeysResult> GetStorageAccountKeysAsync(
+    /// <returns>The first storage account key value</returns>
+    Task<string> GetStorageAccountKeysAsync(
         string accountName,
         string subscriptionId,
         string? tenantId = null,
@@ -66,8 +66,8 @@ public interface IArmServiceClient : IServiceClient
     /// <param name="subscriptionId">Subscription ID where the storage account exists</param>
     /// <param name="tenantId">Optional tenant ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>A response containing the storage account connection string</returns>
-    Task<GetStorageAccountConnectionStringResult> GetStorageAccountConnectionStringAsync(
+    /// <returns>The storage account connection string</returns>
+    Task<string> GetStorageAccountConnectionStringAsync(
         string accountName,
         string subscriptionId,
         string? tenantId = null,

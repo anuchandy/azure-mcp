@@ -224,11 +224,28 @@ public class ArmServiceClientTests : IDisposable
 
             // Assert
             Assert.NotNull(result);
-            if (!result.IsSuccess)
-            {
-                Assert.Fail($"Expected GetStorageAccountsAsync call to succeed, but got error: {result.ErrorMessage}");
-            }
-            Assert.True(result.StorageAccounts.Count > 0, $"Should have at least one storage account in {DefaultSubscription} subscription");
+            Assert.True(result.Count > 0, $"Should have at least one storage account in {DefaultSubscription} subscription");
+
+            var firstAccountName = result[0];
+            var keyResult = await _armServiceClient.GetStorageAccountKeysAsync(
+                accountName: firstAccountName,
+                subscriptionId: subscriptionId,
+                tenantId: null, 
+                cancellationToken: TestContext.Current.CancellationToken);
+
+            Assert.NotNull(keyResult);
+            Assert.False(string.IsNullOrEmpty(keyResult), "Storage account key should not be null or empty");
+
+            var connectionString = await _armServiceClient.GetStorageAccountConnectionStringAsync(
+                accountName: firstAccountName,
+                subscriptionId: subscriptionId,
+                tenantId: null, 
+                cancellationToken: TestContext.Current.CancellationToken);
+
+            Assert.NotNull(connectionString);
+            Assert.False(string.IsNullOrEmpty(connectionString), "Storage account connection string should not be null or empty");
+            Assert.Contains("AccountName", connectionString, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("AccountKey", connectionString, StringComparison.OrdinalIgnoreCase);
         }
         catch (Exception ex)
         {
