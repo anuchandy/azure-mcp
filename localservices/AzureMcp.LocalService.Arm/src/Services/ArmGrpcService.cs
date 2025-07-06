@@ -14,6 +14,7 @@ using Azure.ResourceManager.RedisEnterprise;
 using Azure.ResourceManager.PostgreSql.FlexibleServers;
 using Azure.ResourceManager.Search;
 using Azure.ResourceManager.Datadog;
+using Azure.ResourceManager.OperationalInsights;
 using AzureMcp.LocalService.Arm.Grpc;
 using AzureMcp.LocalService.Arm.Clients;
 using Grpc.Core;
@@ -1675,6 +1676,8 @@ public class ArmGrpcService : ArmService.ArmServiceBase
         }
     }
 
+    #endregion
+
     #region Search Services
 
     /// <summary>
@@ -1800,6 +1803,70 @@ public class ArmGrpcService : ArmService.ArmServiceBase
 
     #endregion
 
+    #region Monitor Methods
+
+    /// <summary>
+    /// Lists Monitor workspaces for a subscription.
+    /// </summary>
+    /// <param name="request">The request containing subscription and optional tenant ID.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>A response containing the list of Monitor workspaces.</returns>
+    public override async Task<ListMonitorWorkspacesResponse> ListMonitorWorkspaces(
+        ListMonitorWorkspacesRequest request,
+        ServerCallContext context)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(request.SubscriptionId))
+            {
+                return new ListMonitorWorkspacesResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = "Subscription ID cannot be null or empty"
+                };
+            }
+
+            var subscriptions = await GetSubscriptionsAsync(request.TenantId);
+            var subscription = subscriptions.FirstOrDefault(s => s.SubscriptionId == request.SubscriptionId);
+            if (subscription == null)
+            {
+                return new ListMonitorWorkspacesResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"Subscription '{request.SubscriptionId}' not found"
+                };
+            }
+
+            var armClient = CreateArmClient(request.TenantId);
+            var subscriptionResource = armClient.GetSubscriptionResource(SubscriptionResource.CreateResourceIdentifier(subscription.SubscriptionId));
+
+            var workspaces = new List<MonitorWorkspace>();
+            foreach (var workspace in subscriptionResource.GetOperationalInsightsWorkspaces())
+            {
+                workspaces.Add(new MonitorWorkspace
+                {
+                    Name = workspace.Data.Name ?? string.Empty,
+                    CustomerId = workspace.Data.CustomerId?.ToString() ?? string.Empty
+                });
+            }
+
+            return new ListMonitorWorkspacesResponse
+            {
+                IsSuccess = true,
+                Workspaces = { workspaces }
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error listing Monitor workspaces for subscription: {SubscriptionId}", request.SubscriptionId);
+            return new ListMonitorWorkspacesResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message
+            };
+        }
+    }
+
     #endregion
 
     #region Authorization Methods
@@ -1852,8 +1919,7 @@ public class ArmGrpcService : ArmService.ArmServiceBase
                 IsSuccess = true,
                 RoleAssignments = { assignments }
             };
-        }
-        catch (Exception ex)
+        }        catch (Exception ex)
         {
             _logger.LogError(ex, "Error listing role assignments for scope {Scope}", request.Scope);
             return new ListRoleAssignmentsResponse

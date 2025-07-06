@@ -77,6 +77,9 @@ service ArmService {
 
   // List monitored resources for a Datadog monitor
   rpc ListMonitoredDatadogResources(ListMonitoredDatadogResourcesRequest) returns (ListMonitoredDatadogResourcesResponse);
+  
+  // List Monitor workspaces for a subscription
+  rpc ListMonitorWorkspaces(ListMonitorWorkspacesRequest) returns (ListMonitorWorkspacesResponse);
 }
 
 // Request for checking Identity service status
@@ -934,4 +937,30 @@ message ListMonitoredDatadogResourcesResponse {
   string error_message = 2;
   // List of monitored resource names
   repeated string monitored_resource_names = 3;
+}
+
+// Request to list Monitor workspaces for a subscription
+message ListMonitorWorkspacesRequest {
+  // The subscription ID or name
+  string subscription_id = 1;
+  // Optional tenant ID
+  string tenant_id = 2;
+}
+
+// Response containing list of Monitor workspaces
+message ListMonitorWorkspacesResponse {
+  // Indicates if the operation was successful
+  bool is_success = 1;
+  // Error message if operation failed
+  string error_message = 2;
+  // List of Monitor workspaces
+  repeated MonitorWorkspace workspaces = 3;
+}
+
+// Monitor workspace information
+message MonitorWorkspace {
+  // Workspace name
+  string name = 1;
+  // Workspace customer ID (GUID)
+  string customer_id = 2;
 }

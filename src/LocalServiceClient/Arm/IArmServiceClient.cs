@@ -340,6 +340,18 @@ public interface IArmServiceClient : IServiceClient
         string datadogResourceName,
         string? tenantId = null,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Lists Monitor workspaces for a subscription.
+    /// </summary>
+    /// <param name="subscriptionId">Subscription ID or name</param>
+    /// <param name="tenantId">Optional tenant ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A response containing the list of Monitor workspaces</returns>
+    Task<ListMonitorWorkspacesResult> ListMonitorWorkspacesAsync(
+        string subscriptionId,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -1649,4 +1661,41 @@ public class ListMonitoredDatadogResourcesResult
     /// List of monitored resource names.
     /// </summary>
     public List<string> MonitoredResourceNames { get; init; } = [];
+}
+
+/// <summary>
+/// Result of listing Monitor workspaces for a subscription.
+/// </summary>
+public class ListMonitorWorkspacesResult
+{
+    /// <summary>
+    /// Whether the operation was successful.
+    /// </summary>
+    public bool IsSuccess { get; init; }
+
+    /// <summary>
+    /// Error message if operation failed.
+    /// </summary>
+    public string ErrorMessage { get; init; } = string.Empty;
+
+    /// <summary>
+    /// List of Monitor workspaces.
+    /// </summary>
+    public List<MonitorWorkspaceInfo> Workspaces { get; init; } = [];
+}
+
+/// <summary>
+/// Information about a Monitor workspace.
+/// </summary>
+public class MonitorWorkspaceInfo
+{
+    /// <summary>
+    /// Workspace name.
+    /// </summary>
+    public string Name { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Workspace customer ID (GUID).
+    /// </summary>
+    public string CustomerId { get; init; } = string.Empty;
 }

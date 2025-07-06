@@ -1217,6 +1217,47 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         }
     }
 
+    public async Task<ListMonitorWorkspacesResult> ListMonitorWorkspacesAsync(
+        string subscriptionId,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var endpoint = await EnsureServiceStartedAsync(cancellationToken);
+        try
+        {
+            EnsureClient(endpoint);
+
+            var request = new ListMonitorWorkspacesRequest
+            {
+                SubscriptionId = subscriptionId,
+                TenantId = tenantId ?? string.Empty
+            };
+
+            var response = await _client!.ListMonitorWorkspacesAsync(request, cancellationToken: cancellationToken);
+
+            return new ListMonitorWorkspacesResult
+            {
+                IsSuccess = response.IsSuccess,
+                ErrorMessage = response.ErrorMessage,
+                Workspaces = response.Workspaces.Select(w => new MonitorWorkspaceInfo
+                {
+                    Name = w.Name,
+                    CustomerId = w.CustomerId
+                }).ToList()
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to call ARM LocalService for Monitor workspaces");
+            return new ListMonitorWorkspacesResult
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message,
+                Workspaces = []
+            };
+        }
+    }
+
     public void Dispose()
     {
         if (!_disposed)

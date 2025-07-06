@@ -723,6 +723,31 @@ public class ArmServiceClientTests : IDisposable
         AssertServicesAreRunning();
     }
 
+    [Fact]
+    public async Task CanListMonitorWorkspacesThroughGrpcCall()
+    {
+        SetupServices();
+
+        try
+        {
+            var result = await _armServiceClient!.ListMonitorWorkspacesAsync(
+                DefaultSubscriptionId,
+                cancellationToken: TestContext.Current.CancellationToken
+            );
+
+            Assert.NotNull(result);
+            Assert.True(result.IsSuccess, result.ErrorMessage);
+            Assert.NotNull(result.Workspaces);
+            Assert.True(result.Workspaces.Count > 0, $"Should have at least one Monitor workspace in {DefaultSubscription} subscription");
+        }
+        catch (Exception ex)
+        {
+            FailOnException(ex);
+        }
+
+        AssertServicesAreRunning();
+    }
+
     public void Dispose()
     {
         _armServiceClient?.Dispose();
