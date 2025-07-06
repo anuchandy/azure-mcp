@@ -256,6 +256,8 @@ message CosmosAccountData {
   string provisioning_state = 6;
   // The document endpoint URL
   string document_endpoint = 7;
+  // The primary master key for the account
+  string primary_master_key = 8;
 }
 
 // Request for getting App Configuration accounts

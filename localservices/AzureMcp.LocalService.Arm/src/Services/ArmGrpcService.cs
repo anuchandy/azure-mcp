@@ -450,6 +450,21 @@ public class ArmGrpcService : ArmService.ArmServiceBase
                 };
             }
 
+            string primaryMasterKey;
+            try
+            {
+                var keys = await cosmosAccount.GetKeysAsync();
+                primaryMasterKey = keys.Value.PrimaryMasterKey ?? string.Empty;
+            }
+            catch (Exception ex)
+            {
+                return new GetCosmosAccountResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"Failed to retrieve keys for Cosmos DB account '{request.AccountName}': {ex.Message}"
+                };
+            }
+
             var accountData = new CosmosAccountData
             {
                 Name = cosmosAccount.Data.Name,
@@ -458,7 +473,8 @@ public class ArmGrpcService : ArmService.ArmServiceBase
                 AccountType = cosmosAccount.Data.Kind?.ToString() ?? "DocumentDB",
                 ResourceGroup = cosmosAccount.Data.Id.ResourceGroupName ?? string.Empty,
                 ProvisioningState = cosmosAccount.Data.ProvisioningState?.ToString() ?? "Unknown",
-                DocumentEndpoint = cosmosAccount.Data.DocumentEndpoint ?? string.Empty
+                DocumentEndpoint = cosmosAccount.Data.DocumentEndpoint ?? string.Empty,
+                PrimaryMasterKey = primaryMasterKey
             };
 
             return new GetCosmosAccountResponse

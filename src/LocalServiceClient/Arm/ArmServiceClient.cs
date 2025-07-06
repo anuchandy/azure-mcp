@@ -341,7 +341,8 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                     AccountType = response.Account.AccountType,
                     ResourceGroup = response.Account.ResourceGroup,
                     ProvisioningState = response.Account.ProvisioningState,
-                    DocumentEndpoint = response.Account.DocumentEndpoint
+                    DocumentEndpoint = response.Account.DocumentEndpoint,
+                    PrimaryMasterKey = response.Account.PrimaryMasterKey
                 };
             }
 

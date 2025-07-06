@@ -622,6 +622,11 @@ public class CosmosAccountData
     /// The document endpoint URL.
     /// </summary>
     public required string DocumentEndpoint { get; init; }
+
+    /// <summary>
+    /// The primary master key for the account.
+    /// </summary>
+    public required string PrimaryMasterKey { get; init; }
 }
 
 /// <summary>

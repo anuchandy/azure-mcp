@@ -290,6 +290,9 @@ public class ArmServiceClientTests : IDisposable
             }
             Assert.NotNull(accountResult.Account);
             Assert.Equal(firstAccountName, accountResult.Account.Name);
+            
+            Assert.NotNull(accountResult.Account.PrimaryMasterKey);
+            Assert.NotEmpty(accountResult.Account.PrimaryMasterKey);
         }
         catch (Exception ex)
         {
