@@ -1732,6 +1732,11 @@ public class MonitorWorkspaceInfo
     /// Workspace customer ID (GUID).
     /// </summary>
     public string CustomerId { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Workspace ARM resource ID.
+    /// </summary>
+    public string ArmId { get; init; } = string.Empty;
 }
 
 /// <summary>

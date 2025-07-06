@@ -1846,7 +1846,8 @@ public class ArmGrpcService : ArmService.ArmServiceBase
                 workspaces.Add(new MonitorWorkspace
                 {
                     Name = workspace.Data.Name ?? string.Empty,
-                    CustomerId = workspace.Data.CustomerId?.ToString() ?? string.Empty
+                    CustomerId = workspace.Data.CustomerId?.ToString() ?? string.Empty,
+                    ArmId = workspace.Id.ToString()
                 });
             }
 
@@ -2109,7 +2110,8 @@ public class ArmGrpcService : ArmService.ArmServiceBase
             workspaces.Add(new MonitorWorkspace
             {
                 Name = workspaceResource.Data.Name ?? string.Empty,
-                CustomerId = workspaceResource.Data.CustomerId?.ToString() ?? string.Empty
+                CustomerId = workspaceResource.Data.CustomerId?.ToString() ?? string.Empty,
+                ArmId = workspaceResource.Id.ToString()
             });
         }
 

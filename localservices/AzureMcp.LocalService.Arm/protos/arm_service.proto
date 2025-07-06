@@ -969,6 +969,8 @@ message MonitorWorkspace {
   string name = 1;
   // Workspace customer ID (GUID)
   string customer_id = 2;
+  // Workspace ARM resource ID
+  string arm_id = 3;
 }
 
 // Request to list Monitor tables for a workspace

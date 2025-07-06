@@ -1242,7 +1242,8 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 Workspaces = response.Workspaces.Select(w => new MonitorWorkspaceInfo
                 {
                     Name = w.Name,
-                    CustomerId = w.CustomerId
+                    CustomerId = w.CustomerId,
+                    ArmId = w.ArmId
                 }).ToList()
             };
         }
