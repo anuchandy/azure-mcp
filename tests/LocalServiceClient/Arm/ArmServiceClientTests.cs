@@ -76,12 +76,43 @@ public class ArmServiceClientTests : IDisposable
         _armServiceClient = new ArmServiceClient(_loggerFactory, _identityServiceClient, _armServiceHost);
     }
 
+    private async Task<string> GetTargetSubscriptionIdAsync(ArmServiceClient armServiceClient, CancellationToken cancellationToken)
+    {
+        var subscriptionsResult = await armServiceClient.ListSubscriptionsAsync(
+            tenantId: null, 
+            cancellationToken: cancellationToken);
+
+        Assert.NotNull(subscriptionsResult);
+        if (!subscriptionsResult.IsSuccess)
+        {
+            Assert.Fail($"Expected ListSubscriptionsAsync call to succeed, but got error: {subscriptionsResult.ErrorMessage}");
+        }
+        Assert.NotNull(subscriptionsResult.Subscriptions);
+        Assert.True(subscriptionsResult.Subscriptions.Count > 0, "Should have at least one subscription");
+
+        var targetSubscription = subscriptionsResult.Subscriptions.FirstOrDefault(s => 
+            s.DisplayName.Equals(DefaultSubscription, StringComparison.OrdinalIgnoreCase));
+        
+        if (targetSubscription == null)
+        {
+            Assert.Fail($"Could not find '{DefaultSubscription}' subscription. Available subscriptions: " + 
+                string.Join(", ", subscriptionsResult.Subscriptions.Select(s => s.DisplayName)));
+        }
+
+        return targetSubscription.SubscriptionId;
+    }
+
     private void AssertServicesAreRunning()
     {
         Assert.NotNull(_identityServiceHost);
         Assert.NotNull(_armServiceHost);
         Assert.True(_identityServiceHost.IsRunning);
         Assert.True(_armServiceHost.IsRunning);
+    }
+
+    private static void FailOnException(Exception ex)
+    {
+        Assert.Fail($"Expected gRPC call to succeed or return a proper error response, but got exception: {ex.GetType().Name}: {ex.Message}");
     }
 
     [Fact]
@@ -110,7 +141,7 @@ public class ArmServiceClientTests : IDisposable
         }
         catch (Exception ex)
         {
-            Assert.Fail($"Expected gRPC call to succeed or return a proper error response, but got exception: {ex.GetType().Name}: {ex.Message}");
+            FailOnException(ex);
         }
 
         AssertServicesAreRunning();
@@ -142,7 +173,7 @@ public class ArmServiceClientTests : IDisposable
         }
         catch (Exception ex)
         {
-            Assert.Fail($"Expected gRPC call to succeed or return a proper error response, but got exception: {ex.GetType().Name}: {ex.Message}");
+            FailOnException(ex);
         }
 
         AssertServicesAreRunning();
@@ -175,7 +206,7 @@ public class ArmServiceClientTests : IDisposable
         }
         catch (Exception ex)
         {
-            Assert.Fail($"Expected gRPC call to succeed or return a proper error response, but got exception: {ex.GetType().Name}: {ex.Message}");
+            FailOnException(ex);
         }
 
         AssertServicesAreRunning();
@@ -224,7 +255,7 @@ public class ArmServiceClientTests : IDisposable
         }
         catch (Exception ex)
         {
-            Assert.Fail($"Expected gRPC call to succeed or return a proper error response, but got exception: {ex.GetType().Name}: {ex.Message}");
+            FailOnException(ex);
         }
 
         AssertServicesAreRunning();
@@ -274,7 +305,7 @@ public class ArmServiceClientTests : IDisposable
         }
         catch (Exception ex)
         {
-            Assert.Fail($"Expected gRPC call to succeed or return a proper error response, but got exception: {ex.GetType().Name}: {ex.Message}");
+            FailOnException(ex);
         }
 
         AssertServicesAreRunning();
@@ -325,7 +356,7 @@ public class ArmServiceClientTests : IDisposable
         }
         catch (Exception ex)
         {
-            Assert.Fail($"Expected gRPC call to succeed or return a proper error response, but got exception: {ex.GetType().Name}: {ex.Message}");
+            FailOnException(ex);
         }
 
         AssertServicesAreRunning();
@@ -377,36 +408,74 @@ public class ArmServiceClientTests : IDisposable
         }
         catch (Exception ex)
         {
-            Assert.Fail($"Expected gRPC call to succeed or return a proper error response, but got exception: {ex.GetType().Name}: {ex.Message}");
+            FailOnException(ex);
         }
 
         AssertServicesAreRunning();
     }
 
-    private async Task<string> GetTargetSubscriptionIdAsync(ArmServiceClient armServiceClient, CancellationToken cancellationToken)
+    [Fact]
+    public async Task CanAttemptToListRedisCachesThroughGrpcCall()
     {
-        var subscriptionsResult = await armServiceClient.ListSubscriptionsAsync(
-            tenantId: null, 
-            cancellationToken: cancellationToken);
+        // Arrange
+        SetupServices();
+        var subscriptionId = await GetTargetSubscriptionIdAsync(_armServiceClient!, TestContext.Current.CancellationToken);
 
-        Assert.NotNull(subscriptionsResult);
-        if (!subscriptionsResult.IsSuccess)
+        // Act
+        try
         {
-            Assert.Fail($"Expected ListSubscriptionsAsync call to succeed, but got error: {subscriptionsResult.ErrorMessage}");
-        }
-        Assert.NotNull(subscriptionsResult.Subscriptions);
-        Assert.True(subscriptionsResult.Subscriptions.Count > 0, "Should have at least one subscription");
+            Assert.NotNull(_armServiceClient);
+            var result = await _armServiceClient.ListRedisCachesAsync(
+                subscriptionId: subscriptionId,
+                tenantId: null,
+                cancellationToken: TestContext.Current.CancellationToken);
 
-        var targetSubscription = subscriptionsResult.Subscriptions.FirstOrDefault(s => 
-            s.DisplayName.Equals(DefaultSubscription, StringComparison.OrdinalIgnoreCase));
-        
-        if (targetSubscription == null)
+            // Assert
+            Assert.NotNull(result);
+            if (!result.IsSuccess)
+            {
+                Assert.Fail($"ListRedisCachesAsync should succeed, but got: {result.ErrorMessage}");
+            }
+            Assert.NotNull(result.RedisCaches);
+        }
+        catch (Exception ex)
         {
-            Assert.Fail($"Could not find '{DefaultSubscription}' subscription. Available subscriptions: " + 
-                string.Join(", ", subscriptionsResult.Subscriptions.Select(s => s.DisplayName)));
+            FailOnException(ex);
         }
 
-        return targetSubscription.SubscriptionId;
+        AssertServicesAreRunning();
+    }
+
+    [Fact]
+    public async Task CanAttemptToListRedisClustersThroughGrpcCall()
+    {
+        // Arrange
+        SetupServices();
+        var subscriptionId = await GetTargetSubscriptionIdAsync(_armServiceClient!, TestContext.Current.CancellationToken);
+
+        // Act
+        try
+        {
+            Assert.NotNull(_armServiceClient);
+            var result = await _armServiceClient.ListRedisClustersAsync(
+                subscriptionId: subscriptionId,
+                tenantId: null,
+                cancellationToken: TestContext.Current.CancellationToken);
+
+            // Assert
+            Assert.NotNull(result);
+            if (!result.IsSuccess)
+            {
+                Assert.Fail($"ListRedisClustersAsync should succeed, but got: {result.ErrorMessage}");
+            }
+            Assert.NotNull(result.RedisClusters);
+        }
+        catch (Exception ex)
+        {
+            FailOnException(ex);
+        }
+
+        AssertServicesAreRunning();
     }
 
     public void Dispose()

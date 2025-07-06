@@ -8,6 +8,8 @@ using Azure.ResourceManager.Storage.Models;
 using Azure.ResourceManager.CosmosDB;
 using Azure.ResourceManager.AppConfiguration;
 using Azure.ResourceManager.Kusto;
+using Azure.ResourceManager.Redis;
+using Azure.ResourceManager.RedisEnterprise;
 using AzureMcp.LocalService.Arm.Grpc;
 using AzureMcp.LocalService.Arm.Clients;
 using Grpc.Core;
@@ -1026,6 +1028,377 @@ public class ArmGrpcService : ArmService.ArmServiceBase
             {
                 throw new ArgumentException("Required parameter cannot be null or empty", nameof(parameter));
             }
+        }
+    }
+
+    #endregion
+
+    #region Redis Methods
+
+    /// <summary>
+    /// Lists Redis caches for a subscription.
+    /// </summary>
+    /// <param name="request">The request containing subscription information.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>A response containing the list of Redis caches.</returns>
+    public override async Task<ListRedisCachesResponse> ListRedisCaches(
+        ListRedisCachesRequest request,
+        ServerCallContext context)
+    {
+        try
+        {
+            ValidateRequiredParameters(request.SubscriptionId);
+
+            var armClient = CreateArmClient(request.TenantId);
+            var subscription = armClient.GetSubscriptionResource(SubscriptionResource.CreateResourceIdentifier(request.SubscriptionId));
+
+            var caches = new List<RedisCache>();
+            await foreach (var cacheResource in subscription.GetAllRedisAsync())
+            {
+                if (string.IsNullOrWhiteSpace(cacheResource?.Id.ToString()) || string.IsNullOrWhiteSpace(cacheResource.Data.Name))
+                {
+                    continue;
+                }
+
+                var cache = cacheResource.Data;
+                var redisCache = new RedisCache
+                {
+                    Name = cache.Name ?? string.Empty,
+                    ResourceGroupName = cacheResource.Id.ResourceGroupName ?? string.Empty,
+                    SubscriptionId = cacheResource.Id.SubscriptionId ?? string.Empty,
+                    Location = cache.Location.ToString(),
+                    Sku = $"{cache.Sku.Name} {cache.Sku.Family}{cache.Sku.Capacity}",
+                    ProvisioningState = cache.ProvisioningState?.ToString() ?? string.Empty,
+                    RedisVersion = cache.RedisVersion ?? string.Empty,
+                    HostName = cache.HostName ?? string.Empty,
+                    SslPort = cache.SslPort ?? 0,
+                    Port = cache.Port ?? 0,
+                    ShardCount = cache.ShardCount ?? 0,
+                    SubnetId = cache.SubnetId?.ToString() ?? string.Empty,
+                    PublicNetworkAccess = cache.PublicNetworkAccess != Azure.ResourceManager.Redis.Models.RedisPublicNetworkAccess.Disabled,
+                    EnableNonSslPort = cache.EnableNonSslPort ?? false,
+                    IsAccessKeyAuthenticationDisabled = cache.IsAccessKeyAuthenticationDisabled ?? false,
+                    MinimumTlsVersion = cache.MinimumTlsVersion?.ToString() ?? string.Empty,
+                    ReplicasPerPrimary = cache.ReplicasPerPrimary ?? 0,
+                    UpdateChannel = cache.UpdateChannel?.ToString() ?? string.Empty,
+                    ZonalAllocationPolicy = cache.ZonalAllocationPolicy?.ToString() ?? string.Empty
+                };
+
+                if (cache.LinkedServers != null)
+                {
+                    redisCache.LinkedServers.AddRange(cache.LinkedServers.Select(ls => ls.Id?.ToString() ?? string.Empty));
+                }
+
+                if (cache.PrivateEndpointConnections != null)
+                {
+                    redisCache.PrivateEndpointConnections.AddRange(cache.PrivateEndpointConnections.Select(pec => pec.Id?.ToString() ?? string.Empty));
+                }
+
+                if (cache.Zones != null)
+                {
+                    redisCache.Zones.AddRange(cache.Zones);
+                }
+
+                if (cache.RedisConfiguration != null)
+                {
+                    redisCache.Configuration = new RedisCacheConfiguration
+                    {
+                        IsRdbBackupEnabled = cache.RedisConfiguration.IsRdbBackupEnabled ?? false,
+                        RdbBackupFrequency = cache.RedisConfiguration.RdbBackupFrequency ?? string.Empty,
+                        RdbBackupMaxSnapshotCount = cache.RedisConfiguration.RdbBackupMaxSnapshotCount ?? 0,
+                        IsAofBackupEnabled = cache.RedisConfiguration.IsAofBackupEnabled ?? false,
+                        MaxFragmentationMemoryReserved = cache.RedisConfiguration.MaxFragmentationMemoryReserved ?? string.Empty,
+                        MaxMemoryPolicy = cache.RedisConfiguration.MaxMemoryPolicy ?? string.Empty,
+                        MaxMemoryReserved = cache.RedisConfiguration.MaxMemoryReserved ?? string.Empty,
+                        MaxMemoryDelta = cache.RedisConfiguration.MaxMemoryDelta ?? string.Empty,
+                        MaxClients = int.TryParse(cache.RedisConfiguration.MaxClients?.ToString(), out var maxClients) ? maxClients : 0,
+                        NotifyKeyspaceEvents = cache.RedisConfiguration.NotifyKeyspaceEvents ?? string.Empty,
+                        PreferredDataArchiveAuthMethod = cache.RedisConfiguration.PreferredDataArchiveAuthMethod ?? string.Empty,
+                        PreferredDataPersistenceAuthMethod = cache.RedisConfiguration.PreferredDataPersistenceAuthMethod ?? string.Empty,
+                        ZonalConfiguration = cache.RedisConfiguration.ZonalConfiguration ?? string.Empty,
+                        AuthNotRequired = cache.RedisConfiguration.AuthNotRequired ?? string.Empty,
+                        StorageSubscriptionId = cache.RedisConfiguration.StorageSubscriptionId ?? string.Empty,
+                        IsEntraIdAuthEnabled = string.IsNullOrWhiteSpace(cache.RedisConfiguration.IsAadEnabled) ? false : StringComparer.OrdinalIgnoreCase.Equals(cache.RedisConfiguration.IsAadEnabled, "True")
+                    };
+                }
+
+                redisCache.Identity = cache.Identity is null ? null : new ManagedIdentityInfo
+                {
+                    SystemAssignedIdentity = new SystemAssignedIdentityInfo
+                    {
+                        Enabled = cache.Identity != null,
+                        TenantId = cache.Identity?.TenantId?.ToString() ?? string.Empty,
+                        PrincipalId = cache.Identity?.PrincipalId?.ToString() ?? string.Empty
+                    },
+                    UserAssignedIdentities = { cache.Identity?.UserAssignedIdentities?
+                        .Select(identity => new UserAssignedIdentityInfo
+                        {
+                            ClientId = identity.Value.ClientId?.ToString() ?? string.Empty,
+                            PrincipalId = identity.Value.PrincipalId?.ToString() ?? string.Empty
+                        }) ?? Enumerable.Empty<UserAssignedIdentityInfo>() }
+                };
+
+                if (cache.Tags != null)
+                {
+                    foreach (var tag in cache.Tags)
+                    {
+                        redisCache.Tags[tag.Key] = tag.Value;
+                    }
+                }
+
+                caches.Add(redisCache);
+            }
+
+            return new ListRedisCachesResponse
+            {
+                IsSuccess = true,
+                RedisCaches = { caches }
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error listing Redis caches for subscription {SubscriptionId}", request.SubscriptionId);
+            return new ListRedisCachesResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message
+            };
+        }
+    }
+
+    /// <summary>
+    /// Lists Redis access policy assignments for a cache.
+    /// </summary>
+    /// <param name="request">The request containing cache information.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>A response containing the list of access policy assignments.</returns>
+    public override async Task<ListRedisAccessPolicyAssignmentsResponse> ListRedisAccessPolicyAssignments(
+        ListRedisAccessPolicyAssignmentsRequest request,
+        ServerCallContext context)
+    {
+        try
+        {
+            ValidateRequiredParameters(request.CacheName, request.ResourceGroupName, request.SubscriptionId);
+
+            var armClient = CreateArmClient(request.TenantId);
+            var resourceGroupResponse = armClient.GetSubscriptionResource(SubscriptionResource.CreateResourceIdentifier(request.SubscriptionId))
+                .GetResourceGroups()
+                .GetAsync(request.ResourceGroupName);
+            var cacheResponse = (await resourceGroupResponse).Value.GetRedisAsync(request.CacheName);
+            var cache = (await cacheResponse).Value;
+
+            var assignments = new List<RedisAccessPolicyAssignment>();
+            await foreach (var assignmentResource in cache.GetRedisCacheAccessPolicyAssignments())
+            {
+                if (string.IsNullOrWhiteSpace(assignmentResource?.Data?.Name))
+                {
+                    continue;
+                }
+
+                var assignment = assignmentResource.Data;
+                assignments.Add(new RedisAccessPolicyAssignment
+                {
+                    AccessPolicyName = assignment.AccessPolicyName ?? string.Empty,
+                    IdentityName = assignment.ObjectIdAlias ?? string.Empty,
+                    ProvisioningState = assignment.ProvisioningState?.ToString() ?? string.Empty
+                });
+            }
+
+            return new ListRedisAccessPolicyAssignmentsResponse
+            {
+                IsSuccess = true,
+                RedisAccessPolicyAssignments = { assignments }
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error listing Redis access policy assignments for cache {CacheName}", request.CacheName);
+            return new ListRedisAccessPolicyAssignmentsResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message
+            };
+        }
+    }
+
+    /// <summary>
+    /// Lists Redis clusters for a subscription.
+    /// </summary>
+    /// <param name="request">The request containing subscription information.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>A response containing the list of Redis clusters.</returns>
+    public override async Task<ListRedisClustersResponse> ListRedisClusters(
+        ListRedisClustersRequest request,
+        ServerCallContext context)
+    {
+        try
+        {
+            ValidateRequiredParameters(request.SubscriptionId);
+
+            var armClient = CreateArmClient(request.TenantId);
+            var subscription = armClient.GetSubscriptionResource(SubscriptionResource.CreateResourceIdentifier(request.SubscriptionId));
+
+            var clusters = new List<RedisCluster>();
+            foreach (var clusterResource in subscription.GetRedisEnterpriseClusters())
+            {
+                if (string.IsNullOrWhiteSpace(clusterResource?.Id.ToString()) || string.IsNullOrWhiteSpace(clusterResource.Data.Name))
+                {
+                    continue;
+                }
+
+                var cluster = clusterResource.Data;
+                var redisCluster = new RedisCluster
+                {
+                    Name = cluster.Name ?? string.Empty,
+                    SubscriptionId = clusterResource.Id.SubscriptionId ?? string.Empty,
+                    ResourceGroupName = clusterResource.Id.ResourceGroupName ?? string.Empty,
+                    Location = cluster.Location.ToString(),
+                    Sku = $"{cluster.Sku.Name} {cluster.Sku.Capacity}",
+                    ProvisioningState = cluster.ProvisioningState?.ToString() ?? string.Empty,
+                    ResourceState = cluster.ResourceState?.ToString() ?? string.Empty,
+                    RedisVersion = cluster.RedisVersion ?? string.Empty,
+                    HostName = cluster.HostName ?? string.Empty,
+                    MinimumTlsVersion = cluster.MinimumTlsVersion?.ToString() ?? string.Empty
+                };
+
+                if (cluster.PrivateEndpointConnections != null)
+                {
+                    redisCluster.PrivateEndpointConnections.AddRange(cluster.PrivateEndpointConnections.Select(pec => pec.Id?.ToString() ?? string.Empty));
+                }
+
+                if (cluster.Zones != null)
+                {
+                    redisCluster.Zones.AddRange(cluster.Zones);
+                }
+
+                redisCluster.Identity = cluster.Identity is null ? null : new ManagedIdentityInfo
+                {
+                    SystemAssignedIdentity = new SystemAssignedIdentityInfo
+                    {
+                        Enabled = cluster.Identity != null,
+                        TenantId = cluster.Identity?.TenantId?.ToString() ?? string.Empty,
+                        PrincipalId = cluster.Identity?.PrincipalId?.ToString() ?? string.Empty
+                    },
+                    UserAssignedIdentities = { cluster.Identity?.UserAssignedIdentities?
+                        .Select(identity => new UserAssignedIdentityInfo
+                        {
+                            ClientId = identity.Value.ClientId?.ToString() ?? string.Empty,
+                            PrincipalId = identity.Value.PrincipalId?.ToString() ?? string.Empty
+                        }) ?? Enumerable.Empty<UserAssignedIdentityInfo>() }
+                };
+
+                if (cluster.Tags != null)
+                {
+                    foreach (var tag in cluster.Tags)
+                    {
+                        redisCluster.Tags[tag.Key] = tag.Value;
+                    }
+                }
+
+                clusters.Add(redisCluster);
+            }
+
+            return await Task.FromResult(new ListRedisClustersResponse
+            {
+                IsSuccess = true,
+                RedisClusters = { clusters }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error listing Redis clusters for subscription {SubscriptionId}", request.SubscriptionId);
+            return new ListRedisClustersResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message
+            };
+        }
+    }
+
+    /// <summary>
+    /// Lists Redis databases for a cluster.
+    /// </summary>
+    /// <param name="request">The request containing cluster information.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>A response containing the list of Redis databases.</returns>
+    public override async Task<ListRedisDatabasesResponse> ListRedisDatabases(
+        ListRedisDatabasesRequest request,
+        ServerCallContext context)
+    {
+        try
+        {
+            ValidateRequiredParameters(request.ClusterName, request.ResourceGroupName, request.SubscriptionId);
+
+            var armClient = CreateArmClient(request.TenantId);
+            var resourceGroupResponse = armClient.GetSubscriptionResource(SubscriptionResource.CreateResourceIdentifier(request.SubscriptionId))
+                .GetResourceGroups()
+                .GetAsync(request.ResourceGroupName);
+            var clusterResponse = (await resourceGroupResponse).Value.GetRedisEnterpriseClusterAsync(request.ClusterName);
+            var cluster = (await clusterResponse).Value;
+
+            var databases = new List<RedisDatabase>();
+            await foreach (var databaseResource in cluster.GetRedisEnterpriseDatabases())
+            {
+                if (string.IsNullOrWhiteSpace(databaseResource?.Data?.Name))
+                {
+                    continue;
+                }
+
+                var database = databaseResource.Data;
+                var redisDatabase = new RedisDatabase
+                {
+                    Name = database.Name ?? string.Empty,
+                    ClusterName = request.ClusterName,
+                    ResourceGroupName = request.ResourceGroupName,
+                    SubscriptionId = request.SubscriptionId,
+                    ClientProtocol = database.ClientProtocol?.ToString() ?? string.Empty,
+                    Port = database.Port ?? 0,
+                    ProvisioningState = database.ProvisioningState?.ToString() ?? string.Empty,
+                    ResourceState = database.ResourceState?.ToString() ?? string.Empty,
+                    ClusteringPolicy = database.ClusteringPolicy?.ToString() ?? string.Empty,
+                    EvictionPolicy = database.EvictionPolicy?.ToString() ?? string.Empty,
+                    IsAofEnabled = database.Persistence?.IsAofEnabled ?? false,
+                    IsRdbEnabled = database.Persistence?.IsRdbEnabled ?? false,
+                    AofFrequency = database.Persistence?.AofFrequency?.ToString() ?? string.Empty,
+                    RdbFrequency = database.Persistence?.RdbFrequency?.ToString() ?? string.Empty,
+                    GeoReplicationGroupNickname = database.GeoReplication?.GroupNickname ?? string.Empty
+                };
+
+                if (database.Modules != null)
+                {
+                    foreach (var module in database.Modules)
+                    {
+                        redisDatabase.Modules.Add(new RedisModule
+                        {
+                            Name = module.Name ?? string.Empty,
+                            Args = module.Args ?? string.Empty,
+                            Version = module.Version ?? string.Empty
+                        });
+                    }
+                }
+
+                if (database.GeoReplication?.LinkedDatabases != null)
+                {
+                    redisDatabase.GeoReplicationLinkedDatabases.AddRange(database.GeoReplication.LinkedDatabases.Select(ld => ld.Id?.ToString() ?? string.Empty));
+                }
+
+                databases.Add(redisDatabase);
+            }
+
+            return new ListRedisDatabasesResponse
+            {
+                IsSuccess = true,
+                RedisDatabases = { databases }
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error listing Redis databases for cluster {ClusterName}", request.ClusterName);
+            return new ListRedisDatabasesResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message
+            };
         }
     }
 

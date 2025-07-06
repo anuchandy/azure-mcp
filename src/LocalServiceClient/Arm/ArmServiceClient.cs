@@ -642,6 +642,276 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         }
     }
 
+    public async Task<ListRedisCachesResult> ListRedisCachesAsync(
+        string subscriptionId,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var endpoint = await _initServiceTask.Value;
+            EnsureClient(endpoint);
+
+            var request = new ListRedisCachesRequest
+            {
+                SubscriptionId = subscriptionId,
+                TenantId = tenantId ?? string.Empty
+            };
+
+            var response = await _client!.ListRedisCachesAsync(request, cancellationToken: cancellationToken);
+
+            return new ListRedisCachesResult
+            {
+                IsSuccess = response.IsSuccess,
+                ErrorMessage = response.ErrorMessage,
+                RedisCaches = response.RedisCaches.Select(c => new RedisCacheData
+                {
+                    Name = c.Name,
+                    ResourceGroupName = c.ResourceGroupName,
+                    SubscriptionId = c.SubscriptionId,
+                    Location = c.Location,
+                    Sku = c.Sku,
+                    ProvisioningState = c.ProvisioningState,
+                    RedisVersion = c.RedisVersion,
+                    HostName = c.HostName,
+                    SslPort = c.SslPort,
+                    Port = c.Port,
+                    ShardCount = c.ShardCount,
+                    SubnetId = c.SubnetId,
+                    PublicNetworkAccess = c.PublicNetworkAccess,
+                    EnableNonSslPort = c.EnableNonSslPort,
+                    IsAccessKeyAuthenticationDisabled = c.IsAccessKeyAuthenticationDisabled,
+                    LinkedServers = c.LinkedServers.ToList(),
+                    MinimumTlsVersion = c.MinimumTlsVersion,
+                    PrivateEndpointConnections = c.PrivateEndpointConnections.ToList(),
+                    ReplicasPerPrimary = c.ReplicasPerPrimary,
+                    UpdateChannel = c.UpdateChannel,
+                    ZonalAllocationPolicy = c.ZonalAllocationPolicy,
+                    Zones = c.Zones.ToList(),
+                    Configuration = c.Configuration != null ? new RedisCacheConfigurationData
+                    {
+                        IsRdbBackupEnabled = c.Configuration.IsRdbBackupEnabled,
+                        RdbBackupFrequency = c.Configuration.RdbBackupFrequency,
+                        RdbBackupMaxSnapshotCount = c.Configuration.RdbBackupMaxSnapshotCount,
+                        IsAofBackupEnabled = c.Configuration.IsAofBackupEnabled,
+                        MaxFragmentationMemoryReserved = c.Configuration.MaxFragmentationMemoryReserved,
+                        MaxMemoryPolicy = c.Configuration.MaxMemoryPolicy,
+                        MaxMemoryReserved = c.Configuration.MaxMemoryReserved,
+                        MaxMemoryDelta = c.Configuration.MaxMemoryDelta,
+                        MaxClients = c.Configuration.MaxClients,
+                        NotifyKeyspaceEvents = c.Configuration.NotifyKeyspaceEvents,
+                        PreferredDataArchiveAuthMethod = c.Configuration.PreferredDataArchiveAuthMethod,
+                        PreferredDataPersistenceAuthMethod = c.Configuration.PreferredDataPersistenceAuthMethod,
+                        ZonalConfiguration = c.Configuration.ZonalConfiguration,
+                        AuthNotRequired = c.Configuration.AuthNotRequired
+                    } : null,
+                    Identity = c.Identity != null ? new ManagedIdentityData
+                    {
+                        SystemAssignedIdentity = c.Identity.SystemAssignedIdentity != null ? new SystemAssignedIdentityData
+                        {
+                            Enabled = c.Identity.SystemAssignedIdentity.Enabled,
+                            TenantId = c.Identity.SystemAssignedIdentity.TenantId,
+                            PrincipalId = c.Identity.SystemAssignedIdentity.PrincipalId
+                        } : null,
+                        UserAssignedIdentities = c.Identity.UserAssignedIdentities.Select(u => new UserAssignedIdentityData
+                        {
+                            ClientId = u.ClientId,
+                            PrincipalId = u.PrincipalId
+                        }).ToList()
+                    } : null,
+                    Tags = c.Tags.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
+                }).ToList()
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to call ARM LocalService for Redis caches");
+            return new ListRedisCachesResult
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message,
+                RedisCaches = []
+            };
+        }
+    }
+
+    public async Task<ListRedisAccessPolicyAssignmentsResult> ListRedisAccessPolicyAssignmentsAsync(
+        string cacheName,
+        string resourceGroupName,
+        string subscriptionId,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var endpoint = await _initServiceTask.Value;
+            EnsureClient(endpoint);
+
+            var request = new ListRedisAccessPolicyAssignmentsRequest
+            {
+                CacheName = cacheName,
+                ResourceGroupName = resourceGroupName,
+                SubscriptionId = subscriptionId,
+                TenantId = tenantId ?? string.Empty
+            };
+
+            var response = await _client!.ListRedisAccessPolicyAssignmentsAsync(request, cancellationToken: cancellationToken);
+
+            return new ListRedisAccessPolicyAssignmentsResult
+            {
+                IsSuccess = response.IsSuccess,
+                ErrorMessage = response.ErrorMessage,
+                RedisAccessPolicyAssignments = response.RedisAccessPolicyAssignments.Select(a => new RedisAccessPolicyAssignmentData
+                {
+                    AccessPolicyName = a.AccessPolicyName,
+                    IdentityName = a.IdentityName,
+                    ProvisioningState = a.ProvisioningState
+                }).ToList()
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to call ARM LocalService for Redis access policy assignments");
+            return new ListRedisAccessPolicyAssignmentsResult
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message,
+                RedisAccessPolicyAssignments = []
+            };
+        }
+    }
+
+    public async Task<ListRedisClustersResult> ListRedisClustersAsync(
+        string subscriptionId,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var endpoint = await _initServiceTask.Value;
+            EnsureClient(endpoint);
+
+            var request = new ListRedisClustersRequest
+            {
+                SubscriptionId = subscriptionId,
+                TenantId = tenantId ?? string.Empty
+            };
+
+            var response = await _client!.ListRedisClustersAsync(request, cancellationToken: cancellationToken);
+
+            return new ListRedisClustersResult
+            {
+                IsSuccess = response.IsSuccess,
+                ErrorMessage = response.ErrorMessage,
+                RedisClusters = response.RedisClusters.Select(c => new RedisClusterData
+                {
+                    Name = c.Name,
+                    SubscriptionId = c.SubscriptionId,
+                    ResourceGroupName = c.ResourceGroupName,
+                    Location = c.Location,
+                    Sku = c.Sku,
+                    ProvisioningState = c.ProvisioningState,
+                    ResourceState = c.ResourceState,
+                    RedisVersion = c.RedisVersion,
+                    HostName = c.HostName,
+                    MinimumTlsVersion = c.MinimumTlsVersion,
+                    PrivateEndpointConnections = c.PrivateEndpointConnections.ToList(),
+                    Zones = c.Zones.ToList(),
+                    Identity = c.Identity != null ? new ManagedIdentityData
+                    {
+                        SystemAssignedIdentity = c.Identity.SystemAssignedIdentity != null ? new SystemAssignedIdentityData
+                        {
+                            Enabled = c.Identity.SystemAssignedIdentity.Enabled,
+                            TenantId = c.Identity.SystemAssignedIdentity.TenantId,
+                            PrincipalId = c.Identity.SystemAssignedIdentity.PrincipalId
+                        } : null,
+                        UserAssignedIdentities = c.Identity.UserAssignedIdentities.Select(u => new UserAssignedIdentityData
+                        {
+                            ClientId = u.ClientId,
+                            PrincipalId = u.PrincipalId
+                        }).ToList()
+                    } : null,
+                    Tags = c.Tags.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
+                }).ToList()
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to call ARM LocalService for Redis clusters");
+            return new ListRedisClustersResult
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message,
+                RedisClusters = []
+            };
+        }
+    }
+
+    public async Task<ListRedisDatabasesResult> ListRedisDatabasesAsync(
+        string clusterName,
+        string resourceGroupName,
+        string subscriptionId,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var endpoint = await _initServiceTask.Value;
+            EnsureClient(endpoint);
+
+            var request = new ListRedisDatabasesRequest
+            {
+                ClusterName = clusterName,
+                ResourceGroupName = resourceGroupName,
+                SubscriptionId = subscriptionId,
+                TenantId = tenantId ?? string.Empty
+            };
+
+            var response = await _client!.ListRedisDatabasesAsync(request, cancellationToken: cancellationToken);
+
+            return new ListRedisDatabasesResult
+            {
+                IsSuccess = response.IsSuccess,
+                ErrorMessage = response.ErrorMessage,
+                RedisDatabases = response.RedisDatabases.Select(d => new RedisDatabaseData
+                {
+                    Name = d.Name,
+                    ClusterName = d.ClusterName,
+                    ResourceGroupName = d.ResourceGroupName,
+                    SubscriptionId = d.SubscriptionId,
+                    ClientProtocol = d.ClientProtocol,
+                    Port = d.Port,
+                    ProvisioningState = d.ProvisioningState,
+                    ResourceState = d.ResourceState,
+                    ClusteringPolicy = d.ClusteringPolicy,
+                    EvictionPolicy = d.EvictionPolicy,
+                    IsAofEnabled = d.IsAofEnabled,
+                    IsRdbEnabled = d.IsRdbEnabled,
+                    AofFrequency = d.AofFrequency,
+                    RdbFrequency = d.RdbFrequency,
+                    Modules = d.Modules.Select(m => new RedisModuleData
+                    {
+                        Name = m.Name,
+                        Args = m.Args,
+                        Version = m.Version
+                    }).ToList(),
+                    GeoReplicationGroupNickname = d.GeoReplicationGroupNickname,
+                    GeoReplicationLinkedDatabases = d.GeoReplicationLinkedDatabases.ToList()
+                }).ToList()
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to call ARM LocalService for Redis databases");
+            return new ListRedisDatabasesResult
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message,
+                RedisDatabases = []
+            };
+        }
+    }
+
     public void Dispose()
     {
         if (!_disposed)

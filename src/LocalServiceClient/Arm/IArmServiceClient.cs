@@ -175,6 +175,62 @@ public interface IArmServiceClient : IServiceClient
         string subscriptionId,
         string? tenantId = null,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Lists Redis caches for a subscription.
+    /// </summary>
+    /// <param name="subscriptionId">Subscription ID to get Redis caches for</param>
+    /// <param name="tenantId">Optional tenant ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A response containing the list of Redis caches</returns>
+    Task<ListRedisCachesResult> ListRedisCachesAsync(
+        string subscriptionId,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Lists Redis access policy assignments for a cache.
+    /// </summary>
+    /// <param name="cacheName">Redis cache name</param>
+    /// <param name="resourceGroupName">Resource group name containing the cache</param>
+    /// <param name="subscriptionId">Subscription ID where the cache exists</param>
+    /// <param name="tenantId">Optional tenant ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A response containing the list of access policy assignments</returns>
+    Task<ListRedisAccessPolicyAssignmentsResult> ListRedisAccessPolicyAssignmentsAsync(
+        string cacheName,
+        string resourceGroupName,
+        string subscriptionId,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Lists Redis clusters for a subscription.
+    /// </summary>
+    /// <param name="subscriptionId">Subscription ID to get Redis clusters for</param>
+    /// <param name="tenantId">Optional tenant ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A response containing the list of Redis clusters</returns>
+    Task<ListRedisClustersResult> ListRedisClustersAsync(
+        string subscriptionId,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Lists Redis databases for a cluster.
+    /// </summary>
+    /// <param name="clusterName">Redis cluster name</param>
+    /// <param name="resourceGroupName">Resource group name containing the cluster</param>
+    /// <param name="subscriptionId">Subscription ID where the cluster exists</param>
+    /// <param name="tenantId">Optional tenant ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A response containing the list of Redis databases</returns>
+    Task<ListRedisDatabasesResult> ListRedisDatabasesAsync(
+        string clusterName,
+        string resourceGroupName,
+        string subscriptionId,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -796,4 +852,504 @@ public class ResourceGroupData
     /// The resource group location.
     /// </summary>
     public string Location { get; init; } = string.Empty;
+}
+
+/// <summary>
+/// Result of listing Redis caches.
+/// </summary>
+public class ListRedisCachesResult
+{
+    /// <summary>
+    /// Whether the operation was successful.
+    /// </summary>
+    public bool IsSuccess { get; init; }
+
+    /// <summary>
+    /// Error message if operation failed.
+    /// </summary>
+    public string ErrorMessage { get; init; } = string.Empty;
+
+    /// <summary>
+    /// List of Redis cache data.
+    /// </summary>
+    public List<RedisCacheData> RedisCaches { get; init; } = [];
+}
+
+/// <summary>
+/// Result of listing Redis access policy assignments.
+/// </summary>
+public class ListRedisAccessPolicyAssignmentsResult
+{
+    /// <summary>
+    /// Whether the operation was successful.
+    /// </summary>
+    public bool IsSuccess { get; init; }
+
+    /// <summary>
+    /// Error message if operation failed.
+    /// </summary>
+    public string ErrorMessage { get; init; } = string.Empty;
+
+    /// <summary>
+    /// List of Redis access policy assignment data.
+    /// </summary>
+    public List<RedisAccessPolicyAssignmentData> RedisAccessPolicyAssignments { get; init; } = [];
+}
+
+/// <summary>
+/// Result of listing Redis clusters.
+/// </summary>
+public class ListRedisClustersResult
+{
+    /// <summary>
+    /// Whether the operation was successful.
+    /// </summary>
+    public bool IsSuccess { get; init; }
+
+    /// <summary>
+    /// Error message if operation failed.
+    /// </summary>
+    public string ErrorMessage { get; init; } = string.Empty;
+
+    /// <summary>
+    /// List of Redis cluster data.
+    /// </summary>
+    public List<RedisClusterData> RedisClusters { get; init; } = [];
+}
+
+/// <summary>
+/// Result of listing Redis databases.
+/// </summary>
+public class ListRedisDatabasesResult
+{
+    /// <summary>
+    /// Whether the operation was successful.
+    /// </summary>
+    public bool IsSuccess { get; init; }
+
+    /// <summary>
+    /// Error message if operation failed.
+    /// </summary>
+    public string ErrorMessage { get; init; } = string.Empty;
+
+    /// <summary>
+    /// List of Redis database data.
+    /// </summary>
+    public List<RedisDatabaseData> RedisDatabases { get; init; } = [];
+}
+
+/// <summary>
+/// Redis cache data.
+/// </summary>
+public class RedisCacheData
+{
+    /// <summary>
+    /// Name of the Redis cache resource.
+    /// </summary>
+    public string Name { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Name of the resource group containing the Redis cache resource.
+    /// </summary>
+    public string ResourceGroupName { get; init; } = string.Empty;
+
+    /// <summary>
+    /// ID of the Azure subscription containing the Redis cache resource.
+    /// </summary>
+    public string SubscriptionId { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Azure geo-location where the Redis cache resource lives.
+    /// </summary>
+    public string Location { get; init; } = string.Empty;
+
+    /// <summary>
+    /// SKU of the Redis cache resource.
+    /// </summary>
+    public string Sku { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Provisioning status of the Redis cache resource.
+    /// </summary>
+    public string ProvisioningState { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Version of Redis server supported by the cache.
+    /// </summary>
+    public string RedisVersion { get; init; } = string.Empty;
+
+    /// <summary>
+    /// DNS host name clients use to connect to the Redis cache.
+    /// </summary>
+    public string HostName { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Port for TLS (aka SSL) client connections to the Redis cache.
+    /// </summary>
+    public int SslPort { get; init; }
+
+    /// <summary>
+    /// Port for unencrypted client connections to the Redis cache.
+    /// </summary>
+    public int Port { get; init; }
+
+    /// <summary>
+    /// Number of shards in a clustered Redis cache.
+    /// </summary>
+    public int ShardCount { get; init; }
+
+    /// <summary>
+    /// When a Redis cache is VNet-injected this contains the Resource ID of the subnet.
+    /// </summary>
+    public string SubnetId { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Indicates whether public network access is allowed for the Redis cache.
+    /// </summary>
+    public bool PublicNetworkAccess { get; init; }
+
+    /// <summary>
+    /// Indicates whether connections are allowed on the non-SSL port for the Redis cache.
+    /// </summary>
+    public bool EnableNonSslPort { get; init; }
+
+    /// <summary>
+    /// Indicates whether access key authentication is disabled for the Redis cache.
+    /// </summary>
+    public bool IsAccessKeyAuthenticationDisabled { get; init; }
+
+    /// <summary>
+    /// Resource IDs of other Redis servers linked to this one for geo-replication.
+    /// </summary>
+    public List<string> LinkedServers { get; init; } = [];
+
+    /// <summary>
+    /// Minimum version of TLS supported for client connections to this Redis cache.
+    /// </summary>
+    public string MinimumTlsVersion { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Resource IDs of private links used for network-isolated client connections to the Redis cache.
+    /// </summary>
+    public List<string> PrivateEndpointConnections { get; init; } = [];
+
+    /// <summary>
+    /// Number of replica nodes per primary node within the Redis cache.
+    /// </summary>
+    public int ReplicasPerPrimary { get; init; }
+
+    /// <summary>
+    /// Either 'Preview' to receive new versions of Redis service components sooner, or 'Stable' to be updated later (default).
+    /// </summary>
+    public string UpdateChannel { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Zonal allocation policy determining how the cache is distributed across availability zones.
+    /// </summary>
+    public string ZonalAllocationPolicy { get; init; } = string.Empty;
+
+    /// <summary>
+    /// The availability zones in which the Redis cache is deployed.
+    /// </summary>
+    public List<string> Zones { get; init; } = [];
+
+    /// <summary>
+    /// Configuration settings for the Redis cache.
+    /// </summary>
+    public RedisCacheConfigurationData? Configuration { get; init; }
+
+    /// <summary>
+    /// System-assigned managed identity of the Redis cache resource.
+    /// </summary>
+    public ManagedIdentityData? Identity { get; init; }
+
+    /// <summary>
+    /// Tags on the Redis cache resource.
+    /// </summary>
+    public Dictionary<string, string> Tags { get; init; } = [];
+}
+
+/// <summary>
+/// Redis cache configuration data.
+/// </summary>
+public class RedisCacheConfigurationData
+{
+    /// <summary>
+    /// Indicates whether RDB (Redis Database Backup) is enabled for the Redis cache.
+    /// </summary>
+    public bool IsRdbBackupEnabled { get; init; }
+
+    /// <summary>
+    /// Number of minutes between RDB backups.
+    /// </summary>
+    public string RdbBackupFrequency { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Indicates the maximum number of snapshots for RDB backup.
+    /// </summary>
+    public int RdbBackupMaxSnapshotCount { get; init; }
+
+    /// <summary>
+    /// Indicates whether AOF (Append Only File) backup is enabled for the Redis cache.
+    /// </summary>
+    public bool IsAofBackupEnabled { get; init; }
+
+    /// <summary>
+    /// Number of megabytes of memory reserved for fragmentation per shard.
+    /// </summary>
+    public string MaxFragmentationMemoryReserved { get; init; } = string.Empty;
+
+    /// <summary>
+    /// The eviction strategy used when your data won't fit within the cache memory limit.
+    /// </summary>
+    public string MaxMemoryPolicy { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Number of megabytes of memory reserved for non-cache usage per shard e.g. failover.
+    /// </summary>
+    public string MaxMemoryReserved { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Number of megabytes of memory reserved for non-cache usage per shard e.g. failover.
+    /// </summary>
+    public string MaxMemoryDelta { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Maximum number of client connections.
+    /// </summary>
+    public int MaxClients { get; init; }
+
+    /// <summary>
+    /// The keyspace events which should be monitored.
+    /// </summary>
+    public string NotifyKeyspaceEvents { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Preferred authentication method to communicate to storage account used for data archive.
+    /// </summary>
+    public string PreferredDataArchiveAuthMethod { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Preferred authentication method to communicate to storage account used for data persistence.
+    /// </summary>
+    public string PreferredDataPersistenceAuthMethod { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Zonal Configuration.
+    /// </summary>
+    public string ZonalConfiguration { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Indicates whether client connection authentication is disabled.
+    /// </summary>
+    public string AuthNotRequired { get; init; } = string.Empty;
+}
+
+/// <summary>
+/// Redis access policy assignment data.
+/// </summary>
+public class RedisAccessPolicyAssignmentData
+{
+    /// <summary>
+    /// Name of the access policy.
+    /// </summary>
+    public string AccessPolicyName { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Name of the identity assigned to an access policy.
+    /// </summary>
+    public string IdentityName { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Provisioning status of the access policy assignment.
+    /// </summary>
+    public string ProvisioningState { get; init; } = string.Empty;
+}
+
+/// <summary>
+/// Redis cluster data.
+/// </summary>
+public class RedisClusterData
+{
+    /// <summary>
+    /// Name of the Redis cluster resource.
+    /// </summary>
+    public string Name { get; init; } = string.Empty;
+
+    /// <summary>
+    /// ID of the Azure subscription containing the Redis cluster resource.
+    /// </summary>
+    public string SubscriptionId { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Name of the resource group containing the Redis cluster resource.
+    /// </summary>
+    public string ResourceGroupName { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Azure geo-location where the Redis cluster resource lives.
+    /// </summary>
+    public string Location { get; init; } = string.Empty;
+
+    /// <summary>
+    /// SKU of the Redis cluster resource.
+    /// </summary>
+    public string Sku { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Provisioning status of the Redis cluster resource.
+    /// </summary>
+    public string ProvisioningState { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Current status of the Redis cluster.
+    /// </summary>
+    public string ResourceState { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Version of Redis server supported by the cluster.
+    /// </summary>
+    public string RedisVersion { get; init; } = string.Empty;
+
+    /// <summary>
+    /// DNS host name clients use to connect to the Redis cluster.
+    /// </summary>
+    public string HostName { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Minimum version of TLS supported for client connections to this Redis cluster.
+    /// </summary>
+    public string MinimumTlsVersion { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Resource IDs of private links used for network-isolated client connections to the Redis cluster.
+    /// </summary>
+    public List<string> PrivateEndpointConnections { get; init; } = [];
+
+    /// <summary>
+    /// The availability zones in which the Redis cluster is deployed.
+    /// </summary>
+    public List<string> Zones { get; init; } = [];
+
+    /// <summary>
+    /// System-assigned managed identity of the Redis cluster resource.
+    /// </summary>
+    public ManagedIdentityData? Identity { get; init; }
+
+    /// <summary>
+    /// Tags on the Redis cluster resource.
+    /// </summary>
+    public Dictionary<string, string> Tags { get; init; } = [];
+}
+
+/// <summary>
+/// Redis database data.
+/// </summary>
+public class RedisDatabaseData
+{
+    /// <summary>
+    /// Name of the Redis database resource.
+    /// </summary>
+    public string Name { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Name of the Redis cluster containing this database.
+    /// </summary>
+    public string ClusterName { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Name of the resource group containing the Redis cluster that contains this database.
+    /// </summary>
+    public string ResourceGroupName { get; init; } = string.Empty;
+
+    /// <summary>
+    /// ID of the Azure subscription containing the Redis cluster that contains this database.
+    /// </summary>
+    public string SubscriptionId { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Specifies whether redis clients can connect using TLS-encrypted or plaintext redis protocols.
+    /// </summary>
+    public string ClientProtocol { get; init; } = string.Empty;
+
+    /// <summary>
+    /// TCP port of the database endpoint.
+    /// </summary>
+    public int Port { get; init; }
+
+    /// <summary>
+    /// Provisioning status of the Redis database resource.
+    /// </summary>
+    public string ProvisioningState { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Current status of the Redis database.
+    /// </summary>
+    public string ResourceState { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Clustering policy - default is OSSCluster.
+    /// </summary>
+    public string ClusteringPolicy { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Redis eviction policy - default is VolatileLRU.
+    /// </summary>
+    public string EvictionPolicy { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Sets whether AOF is enabled.
+    /// </summary>
+    public bool IsAofEnabled { get; init; }
+
+    /// <summary>
+    /// Sets whether RDB is enabled.
+    /// </summary>
+    public bool IsRdbEnabled { get; init; }
+
+    /// <summary>
+    /// Sets the frequency at which data is written to disk.
+    /// </summary>
+    public string AofFrequency { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Sets the frequency at which a snapshot of the database is created.
+    /// </summary>
+    public string RdbFrequency { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Optional set of redis modules to enable in this database.
+    /// </summary>
+    public List<RedisModuleData> Modules { get; init; } = [];
+
+    /// <summary>
+    /// Name for the group of geo-linked database resources.
+    /// </summary>
+    public string GeoReplicationGroupNickname { get; init; } = string.Empty;
+
+    /// <summary>
+    /// List of databases linked with this database for geo-replication.
+    /// </summary>
+    public List<string> GeoReplicationLinkedDatabases { get; init; } = [];
+}
+
+/// <summary>
+/// Redis module data.
+/// </summary>
+public class RedisModuleData
+{
+    /// <summary>
+    /// The name of the module, e.g. 'RedisBloom', 'RediSearch', 'RedisTimeSeries'.
+    /// </summary>
+    public string Name { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Configuration options for the module, e.g. 'ERROR_RATE 0.01 INITIAL_SIZE 400'.
+    /// </summary>
+    public string Args { get; init; } = string.Empty;
+
+    /// <summary>
+    /// The version of the module, e.g. '1.0'.
+    /// </summary>
+    public string Version { get; init; } = string.Empty;
 }

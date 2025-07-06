@@ -44,6 +44,18 @@ service ArmService {
   
   // Get a specific resource group details
   rpc GetResourceGroup(GetResourceGroupRequest) returns (GetResourceGroupResponse);
+  
+  // Get Redis caches for a subscription
+  rpc ListRedisCaches(ListRedisCachesRequest) returns (ListRedisCachesResponse);
+  
+  // Get Redis access policy assignments for a cache
+  rpc ListRedisAccessPolicyAssignments(ListRedisAccessPolicyAssignmentsRequest) returns (ListRedisAccessPolicyAssignmentsResponse);
+  
+  // Get Redis clusters for a subscription
+  rpc ListRedisClusters(ListRedisClustersRequest) returns (ListRedisClustersResponse);
+  
+  // Get Redis databases for a cluster
+  rpc ListRedisDatabases(ListRedisDatabasesRequest) returns (ListRedisDatabasesResponse);
 }
 
 // Request for checking Identity service status
@@ -443,4 +455,264 @@ message ResourceGroupData {
   string id = 2;
   // The resource group location
   string location = 3;
+}
+
+// Request for listing Redis caches
+message ListRedisCachesRequest {
+  // Subscription ID to get Redis caches for
+  string subscription_id = 1;
+  // Optional tenant ID
+  string tenant_id = 2;
+}
+
+// Response containing list of Redis caches
+message ListRedisCachesResponse {
+  // List of Redis cache data
+  repeated RedisCache redis_caches = 1;
+  // Whether the operation was successful
+  bool is_success = 2;
+  // Error message if operation failed
+  string error_message = 3;
+}
+
+// Request for listing Redis access policy assignments
+message ListRedisAccessPolicyAssignmentsRequest {
+  // Redis cache name
+  string cache_name = 1;
+  // Resource group name containing the cache
+  string resource_group_name = 2;
+  // Subscription ID where the cache exists
+  string subscription_id = 3;
+  // Optional tenant ID
+  string tenant_id = 4;
+}
+
+// Response containing list of Redis access policy assignments
+message ListRedisAccessPolicyAssignmentsResponse {
+  // List of Redis access policy assignment data
+  repeated RedisAccessPolicyAssignment redis_access_policy_assignments = 1;
+  // Whether the operation was successful
+  bool is_success = 2;
+  // Error message if operation failed
+  string error_message = 3;
+}
+
+// Request for listing Redis clusters
+message ListRedisClustersRequest {
+  // Subscription ID to get Redis clusters for
+  string subscription_id = 1;
+  // Optional tenant ID
+  string tenant_id = 2;
+}
+
+// Response containing list of Redis clusters
+message ListRedisClustersResponse {
+  // List of Redis cluster data
+  repeated RedisCluster redis_clusters = 1;
+  // Whether the operation was successful
+  bool is_success = 2;
+  // Error message if operation failed
+  string error_message = 3;
+}
+
+// Request for listing Redis databases
+message ListRedisDatabasesRequest {
+  // Redis cluster name
+  string cluster_name = 1;
+  // Resource group name containing the cluster
+  string resource_group_name = 2;
+  // Subscription ID where the cluster exists
+  string subscription_id = 3;
+  // Optional tenant ID
+  string tenant_id = 4;
+}
+
+// Response containing list of Redis databases
+message ListRedisDatabasesResponse {
+  // List of Redis database data
+  repeated RedisDatabase redis_databases = 1;
+  // Whether the operation was successful
+  bool is_success = 2;
+  // Error message if operation failed
+  string error_message = 3;
+}
+
+// Redis cache data
+message RedisCache {
+  // Name of the Redis cache resource
+  string name = 1;
+  // Name of the resource group containing the Redis cache resource
+  string resource_group_name = 2;
+  // ID of the Azure subscription containing the Redis cache resource
+  string subscription_id = 3;
+  // Azure geo-location where the Redis cache resource lives
+  string location = 4;
+  // SKU of the Redis cache resource
+  string sku = 5;
+  // Provisioning status of the Redis cache resource
+  string provisioning_state = 6;
+  // Version of Redis server supported by the cache
+  string redis_version = 7;
+  // DNS host name clients use to connect to the Redis cache
+  string host_name = 8;
+  // Port for TLS (aka SSL) client connections to the Redis cache
+  int32 ssl_port = 9;
+  // Port for unencrypted client connections to the Redis cache
+  int32 port = 10;
+  // Number of shards in a clustered Redis cache
+  int32 shard_count = 11;
+  // When a Redis cache is VNet-injected this contains the Resource ID of the subnet
+  string subnet_id = 12;
+  // Indicates whether public network access is allowed for the Redis cache
+  bool public_network_access = 13;
+  // Indicates whether connections are allowed on the non-SSL port for the Redis cache
+  bool enable_non_ssl_port = 14;
+  // Indicates whether access key authentication is disabled for the Redis cache
+  bool is_access_key_authentication_disabled = 15;
+  // Resource IDs of other Redis servers linked to this one for geo-replication
+  repeated string linked_servers = 16;
+  // Minimum version of TLS supported for client connections to this Redis cache
+  string minimum_tls_version = 17;
+  // Resource IDs of private links used for network-isolated client connections to the Redis cache
+  repeated string private_endpoint_connections = 18;
+  // Number of replica nodes per primary node within the Redis cache
+  int32 replicas_per_primary = 19;
+  // Either 'Preview' to receive new versions of Redis service components sooner, or 'Stable' to be updated later (default)
+  string update_channel = 20;
+  // Zonal allocation policy determining how the cache is distributed across availability zones
+  string zonal_allocation_policy = 21;
+  // The availability zones in which the Redis cache is deployed
+  repeated string zones = 22;
+  // Configuration settings for the Redis cache
+  RedisCacheConfiguration configuration = 23;
+  // System-assigned managed identity of the Redis cache resource
+  ManagedIdentityInfo identity = 24;
+  // Tags on the Redis cache resource
+  map<string, string> tags = 25;
+}
+
+// Redis cache configuration
+message RedisCacheConfiguration {
+  // Indicates whether RDB (Redis Database Backup) is enabled for the Redis cache
+  bool is_rdb_backup_enabled = 1;
+  // Number of minutes between RDB backups
+  string rdb_backup_frequency = 2;
+  // Indicates the maximum number of snapshots for RDB backup
+  int32 rdb_backup_max_snapshot_count = 3;
+  // Indicates whether AOF (Append Only File) backup is enabled for the Redis cache
+  bool is_aof_backup_enabled = 4;
+  // Number of megabytes of memory reserved for fragmentation per shard
+  string max_fragmentation_memory_reserved = 5;
+  // The eviction strategy used when your data won't fit within the cache memory limit
+  string max_memory_policy = 6;
+  // Number of megabytes of memory reserved for non-cache usage per shard e.g. failover
+  string max_memory_reserved = 7;
+  // Number of megabytes of memory reserved for non-cache usage per shard e.g. failover
+  string max_memory_delta = 8;
+  // Maximum number of client connections
+  int32 max_clients = 9;
+  // The keyspace events which should be monitored
+  string notify_keyspace_events = 10;
+  // Preferred authentication method to communicate to storage account used for data archive
+  string preferred_data_archive_auth_method = 11;
+  // Preferred authentication method to communicate to storage account used for data persistence
+  string preferred_data_persistence_auth_method = 12;
+  // Zonal Configuration
+  string zonal_configuration = 13;
+  // Indicates whether client connection authentication is disabled
+  string auth_not_required = 14;
+  // SubscriptionId of the storage account for persistence (AOF/RDB) using ManagedIdentity
+  string storage_subscription_id = 15;
+  // Indicates whether Microsoft Entra ID authentication has been enabled for client connections to the cache
+  bool is_entra_id_auth_enabled = 16;
+}
+
+// Redis access policy assignment data
+message RedisAccessPolicyAssignment {
+  // Name of the access policy
+  string access_policy_name = 1;
+  // Name of the identity assigned to an access policy
+  string identity_name = 2;
+  // Provisioning status of the access policy assignment
+  string provisioning_state = 3;
+}
+
+// Redis cluster data
+message RedisCluster {
+  // Name of the Redis cluster resource
+  string name = 1;
+  // ID of the Azure subscription containing the Redis cluster resource
+  string subscription_id = 2;
+  // Name of the resource group containing the Redis cluster resource
+  string resource_group_name = 3;
+  // Azure geo-location where the Redis cluster resource lives
+  string location = 4;
+  // SKU of the Redis cluster resource
+  string sku = 5;
+  // Provisioning status of the Redis cluster resource
+  string provisioning_state = 6;
+  // Current status of the Redis cluster
+  string resource_state = 7;
+  // Version of Redis server supported by the cluster
+  string redis_version = 8;
+  // DNS host name clients use to connect to the Redis cluster
+  string host_name = 9;
+  // Minimum version of TLS supported for client connections to this Redis cluster
+  string minimum_tls_version = 10;
+  // Resource IDs of private links used for network-isolated client connections to the Redis cluster
+  repeated string private_endpoint_connections = 11;
+  // The availability zones in which the Redis cluster is deployed
+  repeated string zones = 12;
+  // System-assigned managed identity of the Redis cluster resource
+  ManagedIdentityInfo identity = 13;
+  // Tags on the Redis cluster resource
+  map<string, string> tags = 14;
+}
+
+// Redis database data
+message RedisDatabase {
+  // Name of the Redis database resource
+  string name = 1;
+  // Name of the Redis cluster containing this database
+  string cluster_name = 2;
+  // Name of the resource group containing the Redis cluster that contains this database
+  string resource_group_name = 3;
+  // ID of the Azure subscription containing the Redis cluster that contains this database
+  string subscription_id = 4;
+  // Specifies whether redis clients can connect using TLS-encrypted or plaintext redis protocols
+  string client_protocol = 5;
+  // TCP port of the database endpoint
+  int32 port = 6;
+  // Provisioning status of the Redis database resource
+  string provisioning_state = 7;
+  // Current status of the Redis database
+  string resource_state = 8;
+  // Clustering policy - default is OSSCluster
+  string clustering_policy = 9;
+  // Redis eviction policy - default is VolatileLRU
+  string eviction_policy = 10;
+  // Sets whether AOF is enabled
+  bool is_aof_enabled = 11;
+  // Sets whether RDB is enabled
+  bool is_rdb_enabled = 12;
+  // Sets the frequency at which data is written to disk
+  string aof_frequency = 13;
+  // Sets the frequency at which a snapshot of the database is created
+  string rdb_frequency = 14;
+  // Optional set of redis modules to enable in this database
+  repeated RedisModule modules = 15;
+  // Name for the group of geo-linked database resources
+  string geo_replication_group_nickname = 16;
+  // List of databases linked with this database for geo-replication
+  repeated string geo_replication_linked_databases = 17;
+}
+
+// Redis module data
+message RedisModule {
+  // The name of the module, e.g. 'RedisBloom', 'RediSearch', 'RedisTimeSeries'
+  string name = 1;
+  // Configuration options for the module, e.g. 'ERROR_RATE 0.01 INITIAL_SIZE 400'
+  string args = 2;
+  // The version of the module, e.g. '1.0'
+  string version = 3;
 }
