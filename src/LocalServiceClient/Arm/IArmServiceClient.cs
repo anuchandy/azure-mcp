@@ -3,6 +3,8 @@
 
 using AzureMcp.Areas.AppConfig.Models;
 using AzureMcp.Areas.Authorization.Models;
+using AzureMcp.Areas.Redis.Models.CacheForRedis;
+using AzureMcp.Areas.Redis.Models.ManagedRedis;
 using AzureMcp.Commands.Kusto;
 using AzureMcp.LocalServiceClient;
 using AzureMcp.Models.ResourceGroup;
@@ -96,8 +98,9 @@ public interface IArmServiceClient : IServiceClient
     /// <param name="subscriptionId">Subscription ID where the Cosmos DB account exists</param>
     /// <param name="tenantId">Optional tenant ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>A response containing the Cosmos DB account details</returns>
-    Task<GetCosmosAccountResult> GetCosmosAccountAsync(
+    /// <returns>The Cosmos DB account details</returns>
+    /// <exception cref="LocalServiceCallException">Thrown when the operation fails</exception>
+    Task<CosmosAccountData> GetCosmosAccountAsync(
         string accountName,
         string subscriptionId,
         string? tenantId = null,
@@ -205,8 +208,9 @@ public interface IArmServiceClient : IServiceClient
     /// <param name="subscriptionId">Subscription ID to get Redis caches for</param>
     /// <param name="tenantId">Optional tenant ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>A response containing the list of Redis caches</returns>
-    Task<ListRedisCachesResult> ListRedisCachesAsync(
+    /// <returns>A list of Redis caches</returns>
+    /// <exception cref="LocalServiceCallException">Thrown when the operation fails</exception>
+    Task<List<Cache>> ListRedisCachesAsync(
         string subscriptionId,
         string? tenantId = null,
         CancellationToken cancellationToken = default);
@@ -219,8 +223,9 @@ public interface IArmServiceClient : IServiceClient
     /// <param name="subscriptionId">Subscription ID where the cache exists</param>
     /// <param name="tenantId">Optional tenant ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>A response containing the list of access policy assignments</returns>
-    Task<ListRedisAccessPolicyAssignmentsResult> ListRedisAccessPolicyAssignmentsAsync(
+    /// <returns>A list of access policy assignments</returns>
+    /// <exception cref="LocalServiceCallException">Thrown when the operation fails</exception>
+    Task<List<AccessPolicyAssignment>> ListRedisAccessPolicyAssignmentsAsync(
         string cacheName,
         string resourceGroupName,
         string subscriptionId,
@@ -233,8 +238,9 @@ public interface IArmServiceClient : IServiceClient
     /// <param name="subscriptionId">Subscription ID to get Redis clusters for</param>
     /// <param name="tenantId">Optional tenant ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>A response containing the list of Redis clusters</returns>
-    Task<ListRedisClustersResult> ListRedisClustersAsync(
+    /// <returns>A list of Redis clusters</returns>
+    /// <exception cref="LocalServiceCallException">Thrown when the operation fails</exception>
+    Task<List<AzureMcp.Areas.Redis.Models.ManagedRedis.Cluster>> ListRedisClustersAsync(
         string subscriptionId,
         string? tenantId = null,
         CancellationToken cancellationToken = default);
@@ -247,8 +253,9 @@ public interface IArmServiceClient : IServiceClient
     /// <param name="subscriptionId">Subscription ID where the cluster exists</param>
     /// <param name="tenantId">Optional tenant ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>A response containing the list of Redis databases</returns>
-    Task<ListRedisDatabasesResult> ListRedisDatabasesAsync(
+    /// <returns>A list of Redis databases</returns>
+    /// <exception cref="LocalServiceCallException">Thrown when the operation fails</exception>
+    Task<List<AzureMcp.Areas.Redis.Models.ManagedRedis.Database>> ListRedisDatabasesAsync(
         string clusterName,
         string resourceGroupName,
         string subscriptionId,

@@ -276,23 +276,18 @@ public class ArmServiceClientTests : IDisposable
             Assert.True(cosmosAccounts.Count > 0, $"Should have at least one Cosmos DB account in {DefaultSubscription} subscription");
 
             var firstAccountName = cosmosAccounts[0];
-            var accountResult = await _armServiceClient.GetCosmosAccountAsync(
+            var account = await _armServiceClient.GetCosmosAccountAsync(
                 accountName: firstAccountName,
                 subscriptionId: subscriptionId,
                 tenantId: null, 
                 cancellationToken: TestContext.Current.CancellationToken);
 
             // Assert
-            Assert.NotNull(accountResult);
-            if (!accountResult.IsSuccess)
-            {
-                Assert.Fail($"Expected GetCosmosAccountAsync call to succeed, but got error: {accountResult.ErrorMessage}");
-            }
-            Assert.NotNull(accountResult.Account);
-            Assert.Equal(firstAccountName, accountResult.Account.Name);
+            Assert.NotNull(account);
+            Assert.Equal(firstAccountName, account.Name);
             
-            Assert.NotNull(accountResult.Account.PrimaryMasterKey);
-            Assert.NotEmpty(accountResult.Account.PrimaryMasterKey);
+            Assert.NotNull(account.PrimaryMasterKey);
+            Assert.NotEmpty(account.PrimaryMasterKey);
         }
         catch (Exception ex)
         {
@@ -438,18 +433,13 @@ public class ArmServiceClientTests : IDisposable
         try
         {
             Assert.NotNull(_armServiceClient);
-            var result = await _armServiceClient.ListRedisCachesAsync(
+            var redisCaches = await _armServiceClient.ListRedisCachesAsync(
                 subscriptionId: subscriptionId,
                 tenantId: null,
                 cancellationToken: TestContext.Current.CancellationToken);
 
             // Assert
-            Assert.NotNull(result);
-            if (!result.IsSuccess)
-            {
-                Assert.Fail($"ListRedisCachesAsync should succeed, but got: {result.ErrorMessage}");
-            }
-            Assert.NotNull(result.RedisCaches);
+            Assert.NotNull(redisCaches);
         }
         catch (Exception ex)
         {
@@ -470,18 +460,13 @@ public class ArmServiceClientTests : IDisposable
         try
         {
             Assert.NotNull(_armServiceClient);
-            var result = await _armServiceClient.ListRedisClustersAsync(
+            var redisClusters = await _armServiceClient.ListRedisClustersAsync(
                 subscriptionId: subscriptionId,
                 tenantId: null,
                 cancellationToken: TestContext.Current.CancellationToken);
 
             // Assert
-            Assert.NotNull(result);
-            if (!result.IsSuccess)
-            {
-                Assert.Fail($"ListRedisClustersAsync should succeed, but got: {result.ErrorMessage}");
-            }
-            Assert.NotNull(result.RedisClusters);
+            Assert.NotNull(redisClusters);
         }
         catch (Exception ex)
         {

@@ -3,6 +3,8 @@
 
 using AzureMcp.Areas.AppConfig.Models;
 using AzureMcp.Areas.Authorization.Models;
+using AzureMcp.Areas.Redis.Models.CacheForRedis;
+using AzureMcp.Areas.Redis.Models.ManagedRedis;
 using AzureMcp.Commands.Kusto;
 using AzureMcp.LocalServiceClient.Identity;
 using AzureMcp.LocalService.Arm.Grpc;
@@ -310,7 +312,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         }
     }
 
-    public async Task<GetCosmosAccountResult> GetCosmosAccountAsync(
+    public async Task<CosmosAccountData> GetCosmosAccountAsync(
         string accountName,
         string subscriptionId,
         string? tenantId = null,
@@ -334,27 +336,21 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 throw new LocalServiceCallException("GetCosmosAccount", GetErrorMessage(response.ErrorMessage));
             }
 
-            CosmosAccountData? accountData = null;
-            if (response.Account != null)
+            if (response.Account == null)
             {
-                accountData = new CosmosAccountData
-                {
-                    Name = response.Account.Name,
-                    Id = response.Account.Id,
-                    Location = response.Account.Location,
-                    AccountType = response.Account.AccountType,
-                    ResourceGroup = response.Account.ResourceGroup,
-                    ProvisioningState = response.Account.ProvisioningState,
-                    DocumentEndpoint = response.Account.DocumentEndpoint,
-                    PrimaryMasterKey = response.Account.PrimaryMasterKey
-                };
+                throw new LocalServiceCallException("GetCosmosAccount", "No account data returned from service");
             }
 
-            return new GetCosmosAccountResult
+            return new CosmosAccountData
             {
-                IsSuccess = response.IsSuccess,
-                ErrorMessage = string.IsNullOrEmpty(response.ErrorMessage) ? null : response.ErrorMessage,
-                Account = accountData
+                Name = response.Account.Name,
+                Id = response.Account.Id,
+                Location = response.Account.Location,
+                AccountType = response.Account.AccountType,
+                ResourceGroup = response.Account.ResourceGroup,
+                ProvisioningState = response.Account.ProvisioningState,
+                DocumentEndpoint = response.Account.DocumentEndpoint,
+                PrimaryMasterKey = response.Account.PrimaryMasterKey
             };
         }
         catch (LocalServiceCallException)
@@ -659,7 +655,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         }
     }
 
-    public async Task<ListRedisCachesResult> ListRedisCachesAsync(
+    public async Task<List<Cache>> ListRedisCachesAsync(
         string subscriptionId,
         string? tenantId = null,
         CancellationToken cancellationToken = default)
@@ -682,68 +678,65 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 throw new LocalServiceCallException("ListRedisCaches", GetErrorMessage(response.ErrorMessage));
             }
 
-            return new ListRedisCachesResult
+            return response.RedisCaches.Select(c => new Cache
             {
-                IsSuccess = response.IsSuccess,
-                ErrorMessage = response.ErrorMessage,
-                RedisCaches = response.RedisCaches.Select(c => new RedisCacheData
+                Name = c.Name,
+                ResourceGroupName = c.ResourceGroupName,
+                SubscriptionId = c.SubscriptionId,
+                Location = c.Location,
+                Sku = c.Sku,
+                ProvisioningState = c.ProvisioningState,
+                RedisVersion = c.RedisVersion,
+                HostName = c.HostName,
+                SslPort = c.SslPort,
+                Port = c.Port,
+                ShardCount = c.ShardCount,
+                SubnetId = c.SubnetId,
+                PublicNetworkAccess = c.PublicNetworkAccess,
+                EnableNonSslPort = c.EnableNonSslPort,
+                IsAccessKeyAuthenticationDisabled = c.IsAccessKeyAuthenticationDisabled,
+                LinkedServers = c.LinkedServers?.ToArray(),
+                MinimumTlsVersion = c.MinimumTlsVersion,
+                PrivateEndpointConnections = c.PrivateEndpointConnections?.ToArray(),
+                ReplicasPerPrimary = c.ReplicasPerPrimary,
+                UpdateChannel = c.UpdateChannel,
+                ZonalAllocationPolicy = c.ZonalAllocationPolicy,
+                Zones = c.Zones?.ToArray(),
+                Configuration = c.Configuration != null ? new CacheConfiguration
                 {
-                    Name = c.Name,
-                    ResourceGroupName = c.ResourceGroupName,
-                    SubscriptionId = c.SubscriptionId,
-                    Location = c.Location,
-                    Sku = c.Sku,
-                    ProvisioningState = c.ProvisioningState,
-                    RedisVersion = c.RedisVersion,
-                    HostName = c.HostName,
-                    SslPort = c.SslPort,
-                    Port = c.Port,
-                    ShardCount = c.ShardCount,
-                    SubnetId = c.SubnetId,
-                    PublicNetworkAccess = c.PublicNetworkAccess,
-                    EnableNonSslPort = c.EnableNonSslPort,
-                    IsAccessKeyAuthenticationDisabled = c.IsAccessKeyAuthenticationDisabled,
-                    LinkedServers = c.LinkedServers.ToList(),
-                    MinimumTlsVersion = c.MinimumTlsVersion,
-                    PrivateEndpointConnections = c.PrivateEndpointConnections.ToList(),
-                    ReplicasPerPrimary = c.ReplicasPerPrimary,
-                    UpdateChannel = c.UpdateChannel,
-                    ZonalAllocationPolicy = c.ZonalAllocationPolicy,
-                    Zones = c.Zones.ToList(),
-                    Configuration = c.Configuration != null ? new RedisCacheConfigurationData
+                    IsRdbBackupEnabled = c.Configuration.IsRdbBackupEnabled,
+                    RdbBackupFrequency = c.Configuration.RdbBackupFrequency,
+                    RdbBackupMaxSnapshotCount = c.Configuration.RdbBackupMaxSnapshotCount,
+                    IsAofBackupEnabled = c.Configuration.IsAofBackupEnabled,
+                    MaxFragmentationMemoryReserved = c.Configuration.MaxFragmentationMemoryReserved,
+                    MaxMemoryPolicy = c.Configuration.MaxMemoryPolicy,
+                    MaxMemoryReserved = c.Configuration.MaxMemoryReserved,
+                    MaxMemoryDelta = c.Configuration.MaxMemoryDelta,
+                    MaxClients = c.Configuration.MaxClients,
+                    NotifyKeyspaceEvents = c.Configuration.NotifyKeyspaceEvents,
+                    PreferredDataArchiveAuthMethod = c.Configuration.PreferredDataArchiveAuthMethod,
+                    PreferredDataPersistenceAuthMethod = c.Configuration.PreferredDataPersistenceAuthMethod,
+                    ZonalConfiguration = c.Configuration.ZonalConfiguration,
+                    AuthNotRequired = c.Configuration.AuthNotRequired,
+                    StorageSubscriptionId = null, //todo: anu
+                    IsEntraIDAuthEnabled = null // todo: anu
+                } : null,
+                Identity = c.Identity != null ? new AzureMcp.Models.Identity.ManagedIdentityInfo
+                {
+                    SystemAssignedIdentity = c.Identity.SystemAssignedIdentity != null ? new AzureMcp.Models.Identity.SystemAssignedIdentityInfo
                     {
-                        IsRdbBackupEnabled = c.Configuration.IsRdbBackupEnabled,
-                        RdbBackupFrequency = c.Configuration.RdbBackupFrequency,
-                        RdbBackupMaxSnapshotCount = c.Configuration.RdbBackupMaxSnapshotCount,
-                        IsAofBackupEnabled = c.Configuration.IsAofBackupEnabled,
-                        MaxFragmentationMemoryReserved = c.Configuration.MaxFragmentationMemoryReserved,
-                        MaxMemoryPolicy = c.Configuration.MaxMemoryPolicy,
-                        MaxMemoryReserved = c.Configuration.MaxMemoryReserved,
-                        MaxMemoryDelta = c.Configuration.MaxMemoryDelta,
-                        MaxClients = c.Configuration.MaxClients,
-                        NotifyKeyspaceEvents = c.Configuration.NotifyKeyspaceEvents,
-                        PreferredDataArchiveAuthMethod = c.Configuration.PreferredDataArchiveAuthMethod,
-                        PreferredDataPersistenceAuthMethod = c.Configuration.PreferredDataPersistenceAuthMethod,
-                        ZonalConfiguration = c.Configuration.ZonalConfiguration,
-                        AuthNotRequired = c.Configuration.AuthNotRequired
+                        Enabled = c.Identity.SystemAssignedIdentity.Enabled,
+                        TenantId = c.Identity.SystemAssignedIdentity.TenantId,
+                        PrincipalId = c.Identity.SystemAssignedIdentity.PrincipalId
                     } : null,
-                    Identity = c.Identity != null ? new ManagedIdentityData
+                    UserAssignedIdentities = c.Identity.UserAssignedIdentities?.Select(u => new AzureMcp.Models.Identity.UserAssignedIdentityInfo
                     {
-                        SystemAssignedIdentity = c.Identity.SystemAssignedIdentity != null ? new SystemAssignedIdentityData
-                        {
-                            Enabled = c.Identity.SystemAssignedIdentity.Enabled,
-                            TenantId = c.Identity.SystemAssignedIdentity.TenantId,
-                            PrincipalId = c.Identity.SystemAssignedIdentity.PrincipalId
-                        } : null,
-                        UserAssignedIdentities = c.Identity.UserAssignedIdentities.Select(u => new UserAssignedIdentityData
-                        {
-                            ClientId = u.ClientId,
-                            PrincipalId = u.PrincipalId
-                        }).ToList()
-                    } : null,
-                    Tags = c.Tags.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
-                }).ToList()
-            };
+                        ClientId = u.ClientId,
+                        PrincipalId = u.PrincipalId
+                    }).ToArray()
+                } : null,
+                Tags = c.Tags?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
+            }).ToList();
         }
         catch (LocalServiceCallException)
         {
@@ -755,7 +748,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         }
     }
 
-    public async Task<ListRedisAccessPolicyAssignmentsResult> ListRedisAccessPolicyAssignmentsAsync(
+    public async Task<List<AccessPolicyAssignment>> ListRedisAccessPolicyAssignmentsAsync(
         string cacheName,
         string resourceGroupName,
         string subscriptionId,
@@ -782,17 +775,12 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 throw new LocalServiceCallException("ListRedisAccessPolicyAssignments", GetErrorMessage(response.ErrorMessage));
             }
 
-            return new ListRedisAccessPolicyAssignmentsResult
+            return response.RedisAccessPolicyAssignments.Select(a => new AccessPolicyAssignment
             {
-                IsSuccess = response.IsSuccess,
-                ErrorMessage = response.ErrorMessage,
-                RedisAccessPolicyAssignments = response.RedisAccessPolicyAssignments.Select(a => new RedisAccessPolicyAssignmentData
-                {
-                    AccessPolicyName = a.AccessPolicyName,
-                    IdentityName = a.IdentityName,
-                    ProvisioningState = a.ProvisioningState
-                }).ToList()
-            };
+                AccessPolicyName = a.AccessPolicyName,
+                IdentityName = a.IdentityName,
+                ProvisioningState = a.ProvisioningState
+            }).ToList();
         }
         catch (LocalServiceCallException)
         {
@@ -804,7 +792,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         }
     }
 
-    public async Task<ListRedisClustersResult> ListRedisClustersAsync(
+    public async Task<List<AzureMcp.Areas.Redis.Models.ManagedRedis.Cluster>> ListRedisClustersAsync(
         string subscriptionId,
         string? tenantId = null,
         CancellationToken cancellationToken = default)
@@ -827,41 +815,36 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 throw new LocalServiceCallException("ListRedisClusters", GetErrorMessage(response.ErrorMessage));
             }
 
-            return new ListRedisClustersResult
+            return response.RedisClusters.Select(c => new AzureMcp.Areas.Redis.Models.ManagedRedis.Cluster
             {
-                IsSuccess = response.IsSuccess,
-                ErrorMessage = response.ErrorMessage,
-                RedisClusters = response.RedisClusters.Select(c => new RedisClusterData
+                Name = c.Name,
+                SubscriptionId = c.SubscriptionId,
+                ResourceGroupName = c.ResourceGroupName,
+                Location = c.Location,
+                Sku = c.Sku,
+                ProvisioningState = c.ProvisioningState,
+                ResourceState = c.ResourceState,
+                RedisVersion = c.RedisVersion,
+                HostName = c.HostName,
+                MinimumTlsVersion = c.MinimumTlsVersion,
+                PrivateEndpointConnections = c.PrivateEndpointConnections?.ToArray(),
+                Zones = c.Zones?.ToArray(),
+                Identity = c.Identity != null ? new AzureMcp.Models.Identity.ManagedIdentityInfo
                 {
-                    Name = c.Name,
-                    SubscriptionId = c.SubscriptionId,
-                    ResourceGroupName = c.ResourceGroupName,
-                    Location = c.Location,
-                    Sku = c.Sku,
-                    ProvisioningState = c.ProvisioningState,
-                    ResourceState = c.ResourceState,
-                    RedisVersion = c.RedisVersion,
-                    HostName = c.HostName,
-                    MinimumTlsVersion = c.MinimumTlsVersion,
-                    PrivateEndpointConnections = c.PrivateEndpointConnections.ToList(),
-                    Zones = c.Zones.ToList(),
-                    Identity = c.Identity != null ? new ManagedIdentityData
+                    SystemAssignedIdentity = c.Identity.SystemAssignedIdentity != null ? new AzureMcp.Models.Identity.SystemAssignedIdentityInfo
                     {
-                        SystemAssignedIdentity = c.Identity.SystemAssignedIdentity != null ? new SystemAssignedIdentityData
-                        {
-                            Enabled = c.Identity.SystemAssignedIdentity.Enabled,
-                            TenantId = c.Identity.SystemAssignedIdentity.TenantId,
-                            PrincipalId = c.Identity.SystemAssignedIdentity.PrincipalId
-                        } : null,
-                        UserAssignedIdentities = c.Identity.UserAssignedIdentities.Select(u => new UserAssignedIdentityData
-                        {
-                            ClientId = u.ClientId,
-                            PrincipalId = u.PrincipalId
-                        }).ToList()
+                        Enabled = c.Identity.SystemAssignedIdentity.Enabled,
+                        TenantId = c.Identity.SystemAssignedIdentity.TenantId,
+                        PrincipalId = c.Identity.SystemAssignedIdentity.PrincipalId
                     } : null,
-                    Tags = c.Tags.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
-                }).ToList()
-            };
+                    UserAssignedIdentities = c.Identity.UserAssignedIdentities?.Select(u => new AzureMcp.Models.Identity.UserAssignedIdentityInfo
+                    {
+                        ClientId = u.ClientId,
+                        PrincipalId = u.PrincipalId
+                    }).ToArray()
+                } : null,
+                Tags = c.Tags?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
+            }).ToList();
         }
         catch (LocalServiceCallException)
         {
@@ -873,7 +856,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         }
     }
 
-    public async Task<ListRedisDatabasesResult> ListRedisDatabasesAsync(
+    public async Task<List<AzureMcp.Areas.Redis.Models.ManagedRedis.Database>> ListRedisDatabasesAsync(
         string clusterName,
         string resourceGroupName,
         string subscriptionId,
@@ -900,36 +883,31 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 throw new LocalServiceCallException("ListRedisDatabases", GetErrorMessage(response.ErrorMessage));
             }
 
-            return new ListRedisDatabasesResult
+            return response.RedisDatabases.Select(d => new AzureMcp.Areas.Redis.Models.ManagedRedis.Database
             {
-                IsSuccess = response.IsSuccess,
-                ErrorMessage = response.ErrorMessage,
-                RedisDatabases = response.RedisDatabases.Select(d => new RedisDatabaseData
+                Name = d.Name,
+                ClusterName = d.ClusterName,
+                ResourceGroupName = d.ResourceGroupName,
+                SubscriptionId = d.SubscriptionId,
+                ClientProtocol = d.ClientProtocol,
+                Port = d.Port,
+                ProvisioningState = d.ProvisioningState,
+                ResourceState = d.ResourceState,
+                ClusteringPolicy = d.ClusteringPolicy,
+                EvictionPolicy = d.EvictionPolicy,
+                IsAofEnabled = d.IsAofEnabled,
+                IsRdbEnabled = d.IsRdbEnabled,
+                AofFrequency = d.AofFrequency,
+                RdbFrequency = d.RdbFrequency,
+                Modules = d.Modules.Select(m => new AzureMcp.Areas.Redis.Models.ManagedRedis.Module
                 {
-                    Name = d.Name,
-                    ClusterName = d.ClusterName,
-                    ResourceGroupName = d.ResourceGroupName,
-                    SubscriptionId = d.SubscriptionId,
-                    ClientProtocol = d.ClientProtocol,
-                    Port = d.Port,
-                    ProvisioningState = d.ProvisioningState,
-                    ResourceState = d.ResourceState,
-                    ClusteringPolicy = d.ClusteringPolicy,
-                    EvictionPolicy = d.EvictionPolicy,
-                    IsAofEnabled = d.IsAofEnabled,
-                    IsRdbEnabled = d.IsRdbEnabled,
-                    AofFrequency = d.AofFrequency,
-                    RdbFrequency = d.RdbFrequency,
-                    Modules = d.Modules.Select(m => new RedisModuleData
-                    {
-                        Name = m.Name,
-                        Args = m.Args,
-                        Version = m.Version
-                    }).ToList(),
-                    GeoReplicationGroupNickname = d.GeoReplicationGroupNickname,
-                    GeoReplicationLinkedDatabases = d.GeoReplicationLinkedDatabases.ToList()
-                }).ToList()
-            };
+                    Name = m.Name,
+                    Args = m.Args,
+                    Version = m.Version
+                }).ToArray(),
+                GeoReplicationGroupNickname = d.GeoReplicationGroupNickname,
+                GeoReplicationLinkedDatabases = d.GeoReplicationLinkedDatabases.ToArray()
+            }).ToList();
         }
         catch (LocalServiceCallException)
         {
