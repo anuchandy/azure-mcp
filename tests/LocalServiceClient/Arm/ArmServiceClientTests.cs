@@ -487,18 +487,13 @@ public class ArmServiceClientTests : IDisposable
         try
         {
             Assert.NotNull(_armServiceClient);
-            var result = await _armServiceClient.ListPostgreSqlServersAsync(
+            var serverNames = await _armServiceClient.ListPostgreSqlServersAsync(
                 subscriptionId: subscriptionId,
                 resourceGroupName: PostgreSqlTestResourceGroup,
                 tenantId: null,
                 cancellationToken: TestContext.Current.CancellationToken);
 
-            Assert.NotNull(result);
-            if (!result.IsSuccess)
-            {
-                Assert.Fail($"ListPostgreSqlServersAsync should succeed, but got: {result.ErrorMessage}");
-            }
-            Assert.NotNull(result.ServerNames);
+            Assert.NotNull(serverNames);
         }
         catch (Exception ex)
         {
@@ -519,7 +514,7 @@ public class ArmServiceClientTests : IDisposable
         try
         {
             Assert.NotNull(_armServiceClient);
-            var result = await _armServiceClient.GetPostgreSqlServerConfigAsync(
+            var serverConfig = await _armServiceClient.GetPostgreSqlServerConfigAsync(
                 subscriptionId: subscriptionId,
                 resourceGroupName: PostgreSqlTestResourceGroup,
                 serverName: PostgreSqlTestServerName,
@@ -527,12 +522,8 @@ public class ArmServiceClientTests : IDisposable
                 cancellationToken: TestContext.Current.CancellationToken);
 
             // Assert
-            Assert.NotNull(result);
-            if (!result.IsSuccess)
-            {
-                Assert.Fail($"GetPostgreSqlServerConfigAsync should succeed, but got: {result.ErrorMessage}");
-            }
-            Assert.NotNull(result.ServerConfig);
+            Assert.NotNull(serverConfig);
+            Assert.False(string.IsNullOrEmpty(serverConfig));
         }
         catch (Exception ex)
         {
@@ -553,7 +544,7 @@ public class ArmServiceClientTests : IDisposable
         try
         {
             Assert.NotNull(_armServiceClient);
-            var result = await _armServiceClient.GetPostgreSqlServerParameterAsync(
+            var parameterValue = await _armServiceClient.GetPostgreSqlServerParameterAsync(
                 subscriptionId: subscriptionId,
                 resourceGroupName: PostgreSqlTestResourceGroup,
                 serverName: PostgreSqlTestServerName,
@@ -562,12 +553,8 @@ public class ArmServiceClientTests : IDisposable
                 cancellationToken: TestContext.Current.CancellationToken);
 
             // Assert
-            Assert.NotNull(result);
-            if (!result.IsSuccess)
-            {
-                Assert.Fail($"GetPostgreSqlServerParameterAsync should succeed, but got: {result.ErrorMessage}");
-            }
-            Assert.False(string.IsNullOrEmpty(result.ParameterValue));
+            Assert.NotNull(parameterValue);
+            Assert.False(string.IsNullOrEmpty(parameterValue));
         }
         catch (Exception ex)
         {
@@ -588,7 +575,7 @@ public class ArmServiceClientTests : IDisposable
         try
         {
             Assert.NotNull(_armServiceClient);
-            var result = await _armServiceClient.SetPostgreSqlServerParameterAsync(
+            var message = await _armServiceClient.SetPostgreSqlServerParameterAsync(
                 subscriptionId: subscriptionId,
                 resourceGroupName: PostgreSqlTestResourceGroup,
                 serverName: PostgreSqlTestServerName,
@@ -598,12 +585,8 @@ public class ArmServiceClientTests : IDisposable
                 cancellationToken: TestContext.Current.CancellationToken);
 
             // Assert
-            Assert.NotNull(result);
-            if (!result.IsSuccess)
-            {
-                Assert.Fail($"SetPostgreSqlServerParameterAsync should succeed, but got: {result.ErrorMessage}");
-            }
-            Assert.False(string.IsNullOrEmpty(result.Message));
+            Assert.NotNull(message);
+            Assert.False(string.IsNullOrEmpty(message));
         }
         catch (Exception ex)
         {

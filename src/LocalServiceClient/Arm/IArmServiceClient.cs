@@ -269,8 +269,9 @@ public interface IArmServiceClient : IServiceClient
     /// <param name="resourceGroupName">Resource group name containing the servers</param>
     /// <param name="tenantId">Optional tenant ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>A response containing the list of PostgreSQL server names</returns>
-    Task<ListPostgreSqlServersResult> ListPostgreSqlServersAsync(
+    /// <returns>A list of PostgreSQL server names</returns>
+    /// <exception cref="LocalServiceCallException">Thrown when the operation fails</exception>
+    Task<List<string>> ListPostgreSqlServersAsync(
         string subscriptionId,
         string resourceGroupName,
         string? tenantId = null,
@@ -284,8 +285,9 @@ public interface IArmServiceClient : IServiceClient
     /// <param name="serverName">PostgreSQL server name</param>
     /// <param name="tenantId">Optional tenant ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>A response containing the PostgreSQL server configuration</returns>
-    Task<GetPostgreSqlServerConfigResult> GetPostgreSqlServerConfigAsync(
+    /// <returns>The PostgreSQL server configuration as a formatted string</returns>
+    /// <exception cref="LocalServiceCallException">Thrown when the operation fails</exception>
+    Task<string> GetPostgreSqlServerConfigAsync(
         string subscriptionId,
         string resourceGroupName,
         string serverName,
@@ -301,8 +303,9 @@ public interface IArmServiceClient : IServiceClient
     /// <param name="parameterName">Configuration parameter name</param>
     /// <param name="tenantId">Optional tenant ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>A response containing the parameter value</returns>
-    Task<GetPostgreSqlServerParameterResult> GetPostgreSqlServerParameterAsync(
+    /// <returns>The parameter value</returns>
+    /// <exception cref="LocalServiceCallException">Thrown when the operation fails</exception>
+    Task<string> GetPostgreSqlServerParameterAsync(
         string subscriptionId,
         string resourceGroupName,
         string serverName,
@@ -320,8 +323,9 @@ public interface IArmServiceClient : IServiceClient
     /// <param name="parameterValue">Configuration parameter value to set</param>
     /// <param name="tenantId">Optional tenant ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>A response containing the operation result</returns>
-    Task<SetPostgreSqlServerParameterResult> SetPostgreSqlServerParameterAsync(
+    /// <returns>A success message indicating the parameter was updated</returns>
+    /// <exception cref="LocalServiceCallException">Thrown when the operation fails</exception>
+    Task<string> SetPostgreSqlServerParameterAsync(
         string subscriptionId,
         string resourceGroupName,
         string serverName,

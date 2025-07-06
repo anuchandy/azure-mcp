@@ -718,8 +718,8 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                     PreferredDataPersistenceAuthMethod = c.Configuration.PreferredDataPersistenceAuthMethod,
                     ZonalConfiguration = c.Configuration.ZonalConfiguration,
                     AuthNotRequired = c.Configuration.AuthNotRequired,
-                    StorageSubscriptionId = null, //todo: anu
-                    IsEntraIDAuthEnabled = null // todo: anu
+                    StorageSubscriptionId = c.Configuration.StorageSubscriptionId,
+                    IsEntraIDAuthEnabled = c.Configuration.IsEntraIdAuthEnabled
                 } : null,
                 Identity = c.Identity != null ? new AzureMcp.Models.Identity.ManagedIdentityInfo
                 {
@@ -919,7 +919,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         }
     }
 
-    public async Task<ListPostgreSqlServersResult> ListPostgreSqlServersAsync(
+    public async Task<List<string>> ListPostgreSqlServersAsync(
         string subscriptionId,
         string resourceGroupName,
         string? tenantId = null,
@@ -944,12 +944,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 throw new LocalServiceCallException("ListPostgreSqlServers", GetErrorMessage(response.ErrorMessage));
             }
 
-            return new ListPostgreSqlServersResult
-            {
-                IsSuccess = response.IsSuccess,
-                ErrorMessage = response.ErrorMessage,
-                ServerNames = response.ServerNames.ToList()
-            };
+            return response.ServerNames.ToList();
         }
         catch (LocalServiceCallException)
         {
@@ -961,7 +956,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         }
     }
 
-    public async Task<GetPostgreSqlServerConfigResult> GetPostgreSqlServerConfigAsync(
+    public async Task<string> GetPostgreSqlServerConfigAsync(
         string subscriptionId,
         string resourceGroupName,
         string serverName,
@@ -988,21 +983,21 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 throw new LocalServiceCallException("GetPostgreSqlServerConfig", GetErrorMessage(response.ErrorMessage));
             }
 
-            return new GetPostgreSqlServerConfigResult
+            if (response.ServerConfig == null)
             {
-                IsSuccess = response.IsSuccess,
-                ErrorMessage = response.ErrorMessage,
-                ServerConfig = response.ServerConfig != null ? new PostgreSqlServerConfigData
-                {
-                    Name = response.ServerConfig.Name,
-                    Location = response.ServerConfig.Location,
-                    Version = response.ServerConfig.Version,
-                    SkuName = response.ServerConfig.SkuName,
-                    StorageSizeGb = response.ServerConfig.StorageSizeGb,
-                    BackupRetentionDays = response.ServerConfig.BackupRetentionDays,
-                    GeoRedundantBackup = response.ServerConfig.GeoRedundantBackup
-                } : null
-            };
+                throw new LocalServiceCallException("GetPostgreSqlServerConfig", "No server configuration data returned from service");
+            }
+
+            // Format the configuration similar to PostgresService.GetServerConfigAsync
+            var result = $"Server Name: {response.ServerConfig.Name}\n" +
+                        $"Location: {response.ServerConfig.Location}\n" +
+                        $"Version: {response.ServerConfig.Version}\n" +
+                        $"SKU: {response.ServerConfig.SkuName}\n" +
+                        $"Storage Size (GB): {response.ServerConfig.StorageSizeGb}\n" +
+                        $"Backup Retention Days: {response.ServerConfig.BackupRetentionDays}\n" +
+                        $"Geo-Redundant Backup: {response.ServerConfig.GeoRedundantBackup}";
+
+            return result;
         }
         catch (LocalServiceCallException)
         {
@@ -1014,7 +1009,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         }
     }
 
-    public async Task<GetPostgreSqlServerParameterResult> GetPostgreSqlServerParameterAsync(
+    public async Task<string> GetPostgreSqlServerParameterAsync(
         string subscriptionId,
         string resourceGroupName,
         string serverName,
@@ -1043,12 +1038,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 throw new LocalServiceCallException("GetPostgreSqlServerParameter", GetErrorMessage(response.ErrorMessage));
             }
 
-            return new GetPostgreSqlServerParameterResult
-            {
-                IsSuccess = response.IsSuccess,
-                ErrorMessage = response.ErrorMessage,
-                ParameterValue = response.ParameterValue
-            };
+            return response.ParameterValue;
         }
         catch (LocalServiceCallException)
         {
@@ -1060,7 +1050,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         }
     }
 
-    public async Task<SetPostgreSqlServerParameterResult> SetPostgreSqlServerParameterAsync(
+    public async Task<string> SetPostgreSqlServerParameterAsync(
         string subscriptionId,
         string resourceGroupName,
         string serverName,
@@ -1091,12 +1081,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 throw new LocalServiceCallException("SetPostgreSqlServerParameter", GetErrorMessage(response.ErrorMessage));
             }
 
-            return new SetPostgreSqlServerParameterResult
-            {
-                IsSuccess = response.IsSuccess,
-                ErrorMessage = response.ErrorMessage,
-                Message = response.Message
-            };
+            return response.Message;
         }
         catch (LocalServiceCallException)
         {
