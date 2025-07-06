@@ -1259,7 +1259,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         }
     }
 
-    public async Task<ListMonitorTablesResult> ListMonitorTablesAsync(
+    public async Task<List<string>> ListMonitorTablesAsync(
         string subscriptionId,
         string resourceGroupName,
         string workspaceName,
@@ -1288,12 +1288,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 throw new LocalServiceCallException("ListMonitorTables", GetErrorMessage(response.ErrorMessage));
             }
 
-            return new ListMonitorTablesResult
-            {
-                IsSuccess = response.IsSuccess,
-                ErrorMessage = response.ErrorMessage,
-                TableNames = response.TableNames.ToList()
-            };
+            return response.TableNames.ToList();
         }
         catch (LocalServiceCallException)
         {
@@ -1305,7 +1300,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         }
     }
 
-    public async Task<ListMonitorTableTypesResult> ListMonitorTableTypesAsync(
+    public async Task<List<string>> ListMonitorTableTypesAsync(
         string subscriptionId,
         string resourceGroupName,
         string workspaceName,
@@ -1333,12 +1328,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 throw new LocalServiceCallException("ListMonitorTableTypes", GetErrorMessage(response.ErrorMessage));
             }
 
-            return new ListMonitorTableTypesResult
-            {
-                IsSuccess = response.IsSuccess,
-                ErrorMessage = response.ErrorMessage,
-                TableTypes = response.TableTypes.ToList()
-            };
+            return response.TableTypes.ToList();
         }
         catch (LocalServiceCallException)
         {

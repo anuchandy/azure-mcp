@@ -749,14 +749,12 @@ public class ArmServiceClientTests : IDisposable
             );
 
             Assert.NotNull(result);
-            if (!result.IsSuccess)
-            {
-                Assert.True(result.ErrorMessage.Contains("not found"),  $"Expected a 'not found' or workspace-related error, but got: {result.ErrorMessage}");
-            }
-            else
-            {
-                Assert.NotNull(result.TableNames);
-            }
+            Assert.IsType<List<string>>(result);
+        }
+        catch (LocalServiceCallException ex)
+        {
+            // We expect this might fail if workspace is not found or not accessible
+            Assert.Contains("not found", ex.ServiceErrorMessage);
         }
         catch (Exception ex)
         {
@@ -798,14 +796,12 @@ public class ArmServiceClientTests : IDisposable
             );
 
             Assert.NotNull(result);
-            if (!result.IsSuccess)
-            {
-                Assert.True(result.ErrorMessage.Contains("not found"),  $"Expected a 'not found' or workspace-related error, but got: {result.ErrorMessage}");
-            }
-            else
-            {
-                Assert.NotNull(result.TableTypes);
-            }
+            Assert.IsType<List<string>>(result);
+        }
+        catch (LocalServiceCallException ex)
+        {
+            // We expect this might fail if workspace is not found or not accessible
+            Assert.Contains("not found", ex.ServiceErrorMessage);
         }
         catch (Exception ex)
         {
