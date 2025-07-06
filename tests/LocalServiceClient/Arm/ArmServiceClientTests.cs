@@ -156,29 +156,7 @@ public class ArmServiceClientTests : IDisposable
         try
         {
             Assert.NotNull(_armServiceClient);
-            var subscriptionsResult = await _armServiceClient.ListSubscriptionsAsync(
-                tenantId: null, 
-                cancellationToken: TestContext.Current.CancellationToken);
-
-            Assert.NotNull(subscriptionsResult);
-            if (!subscriptionsResult.IsSuccess)
-            {
-                Assert.Fail($"Expected subscription list to succeed, but got error: {subscriptionsResult.ErrorMessage}");
-            }
-            Assert.True(subscriptionsResult.IsSuccess, "ListSubscriptionsAsync should succeed");
-            Assert.NotNull(subscriptionsResult.Subscriptions);
-            Assert.True(subscriptionsResult.Subscriptions.Count > 0, "Should have at least one subscription");
-
-            var targetSubscription = subscriptionsResult.Subscriptions.FirstOrDefault(s => 
-                s.DisplayName.Equals(DefaultSubscription, StringComparison.OrdinalIgnoreCase));
-            
-            if (targetSubscription == null)
-            {
-                Assert.Fail($"Could not find '{DefaultSubscription}' subscription. Available subscriptions: " + 
-                    string.Join(", ", subscriptionsResult.Subscriptions.Select(s => s.DisplayName)));
-            }
-
-            var subscriptionId = targetSubscription.SubscriptionId;
+            var subscriptionId = await GetTargetSubscriptionIdAsync(_armServiceClient, TestContext.Current.CancellationToken);
 
             var result = await _armServiceClient.GetStorageAccountsAsync(
                 subscriptionId: subscriptionId,
@@ -189,9 +167,8 @@ public class ArmServiceClientTests : IDisposable
             Assert.NotNull(result);
             if (!result.IsSuccess)
             {
-                Assert.Fail($"Expected storage accounts call to succeed, but got error: {result.ErrorMessage}");
+                Assert.Fail($"Expected GetStorageAccountsAsync call to succeed, but got error: {result.ErrorMessage}");
             }
-            Assert.True(result.IsSuccess, "GetStorageAccountsAsync should succeed");
             Assert.True(result.StorageAccounts.Count > 0, $"Should have at least one storage account in {DefaultSubscription} subscription");
         }
         catch (Exception ex)
@@ -215,29 +192,7 @@ public class ArmServiceClientTests : IDisposable
         try
         {
             Assert.NotNull(_armServiceClient);
-            var subscriptionsResult = await _armServiceClient.ListSubscriptionsAsync(
-                tenantId: null, 
-                cancellationToken: TestContext.Current.CancellationToken);
-
-            Assert.NotNull(subscriptionsResult);
-            if (!subscriptionsResult.IsSuccess)
-            {
-                Assert.Fail($"Expected subscription list to succeed, but got error: {subscriptionsResult.ErrorMessage}");
-            }
-            Assert.True(subscriptionsResult.IsSuccess, "ListSubscriptionsAsync should succeed");
-            Assert.NotNull(subscriptionsResult.Subscriptions);
-            Assert.True(subscriptionsResult.Subscriptions.Count > 0, "Should have at least one subscription");
-
-            var targetSubscription = subscriptionsResult.Subscriptions.FirstOrDefault(s => 
-                s.DisplayName.Equals(DefaultSubscription, StringComparison.OrdinalIgnoreCase));
-            
-            if (targetSubscription == null)
-            {
-                Assert.Fail($"Could not find '{DefaultSubscription}' subscription. Available subscriptions: " + 
-                    string.Join(", ", subscriptionsResult.Subscriptions.Select(s => s.DisplayName)));
-            }
-
-            var subscriptionId = targetSubscription.SubscriptionId;
+            var subscriptionId = await GetTargetSubscriptionIdAsync(_armServiceClient, TestContext.Current.CancellationToken);
 
             var accountsResult = await _armServiceClient.GetCosmosAccountsAsync(
                 subscriptionId: subscriptionId,
@@ -247,9 +202,8 @@ public class ArmServiceClientTests : IDisposable
             Assert.NotNull(accountsResult);
             if (!accountsResult.IsSuccess)
             {
-                Assert.Fail($"Expected Cosmos accounts call to succeed, but got error: {accountsResult.ErrorMessage}");
+                Assert.Fail($"Expected GetCosmosAccountsAsync call to succeed, but got error: {accountsResult.ErrorMessage}");
             }
-            Assert.True(accountsResult.IsSuccess, "GetCosmosAccountsAsync should succeed");
             Assert.NotNull(accountsResult.CosmosAccounts);
             Assert.True(accountsResult.CosmosAccounts.Count > 0, $"Should have at least one Cosmos DB account in {DefaultSubscription} subscription");
 
@@ -264,9 +218,8 @@ public class ArmServiceClientTests : IDisposable
             Assert.NotNull(accountResult);
             if (!accountResult.IsSuccess)
             {
-                Assert.Fail($"Expected Cosmos account call to succeed, but got error: {accountResult.ErrorMessage}");
+                Assert.Fail($"Expected GetCosmosAccountAsync call to succeed, but got error: {accountResult.ErrorMessage}");
             }
-            Assert.True(accountResult.IsSuccess, "GetCosmosAccountAsync should succeed");
             Assert.NotNull(accountResult.Account);
             Assert.Equal(firstAccountName, accountResult.Account.Name);
         }
@@ -279,6 +232,85 @@ public class ArmServiceClientTests : IDisposable
         Assert.NotNull(_armServiceHost);
         Assert.True(_identityServiceHost.IsRunning);
         Assert.True(_armServiceHost.IsRunning);
+    }
+
+    [Fact]
+    public async Task CanAttemptToGetAppConfigAccountThroughGrpcCall()
+    {
+        // Arrange
+        SetupServices();
+
+        // Act
+        try
+        {
+            Assert.NotNull(_armServiceClient);
+            var subscriptionId = await GetTargetSubscriptionIdAsync(_armServiceClient, TestContext.Current.CancellationToken);
+
+            var accountsResult = await _armServiceClient.GetAppConfigAccountsAsync(
+                subscriptionId: subscriptionId,
+                tenantId: null, 
+                cancellationToken: TestContext.Current.CancellationToken);
+
+            Assert.NotNull(accountsResult);
+            if (!accountsResult.IsSuccess)
+            {
+                Assert.Fail($"Expected GetAppConfigAccountsAsync call to succeed, but got error: {accountsResult.ErrorMessage}");
+            }
+            Assert.NotNull(accountsResult.AppConfigAccounts);
+            Assert.True(accountsResult.AppConfigAccounts.Count > 0, $"Should have at least one App Configuration account in {DefaultSubscription} subscription");
+
+            var firstAccountName = accountsResult.AppConfigAccounts.First().Name;
+            Assert.False(string.IsNullOrEmpty(firstAccountName), "App Configuration account name should not be empty");
+
+            var endpointResult = await _armServiceClient.GetAppConfigAccountEndpointAsync(
+                accountName: firstAccountName,
+                subscriptionId: subscriptionId,
+                tenantId: null,
+                cancellationToken: TestContext.Current.CancellationToken);
+
+            Assert.NotNull(endpointResult);
+            if (!endpointResult.IsSuccess)
+            {
+                Assert.Fail($"Expected GetAppConfigAccountEndpointAsync call to succeed, but got error: {endpointResult.ErrorMessage}");
+            }
+            Assert.False(string.IsNullOrEmpty(endpointResult.Endpoint), "App Configuration account endpoint should not be empty");
+            Assert.True(Uri.TryCreate(endpointResult.Endpoint, UriKind.Absolute, out _), "Endpoint should be a valid absolute URI");
+        }
+        catch (Exception ex)
+        {
+            Assert.Fail($"Expected gRPC call to succeed or return a proper error response, but got exception: {ex.GetType().Name}: {ex.Message}");
+        }
+
+        Assert.NotNull(_identityServiceHost);
+        Assert.NotNull(_armServiceHost);
+        Assert.True(_identityServiceHost.IsRunning);
+        Assert.True(_armServiceHost.IsRunning);
+    }
+
+    private async Task<string> GetTargetSubscriptionIdAsync(ArmServiceClient armServiceClient, CancellationToken cancellationToken)
+    {
+        var subscriptionsResult = await armServiceClient.ListSubscriptionsAsync(
+            tenantId: null, 
+            cancellationToken: cancellationToken);
+
+        Assert.NotNull(subscriptionsResult);
+        if (!subscriptionsResult.IsSuccess)
+        {
+            Assert.Fail($"Expected ListSubscriptionsAsync call to succeed, but got error: {subscriptionsResult.ErrorMessage}");
+        }
+        Assert.NotNull(subscriptionsResult.Subscriptions);
+        Assert.True(subscriptionsResult.Subscriptions.Count > 0, "Should have at least one subscription");
+
+        var targetSubscription = subscriptionsResult.Subscriptions.FirstOrDefault(s => 
+            s.DisplayName.Equals(DefaultSubscription, StringComparison.OrdinalIgnoreCase));
+        
+        if (targetSubscription == null)
+        {
+            Assert.Fail($"Could not find '{DefaultSubscription}' subscription. Available subscriptions: " + 
+                string.Join(", ", subscriptionsResult.Subscriptions.Select(s => s.DisplayName)));
+        }
+
+        return targetSubscription.SubscriptionId;
     }
 
     public void Dispose()

@@ -6,6 +6,7 @@ using Azure.ResourceManager.Resources;
 using Azure.ResourceManager.Storage;
 using Azure.ResourceManager.Storage.Models;
 using Azure.ResourceManager.CosmosDB;
+using Azure.ResourceManager.AppConfiguration;
 using AzureMcp.LocalService.Arm.Grpc;
 using AzureMcp.LocalService.Arm.Clients;
 using Grpc.Core;
@@ -462,6 +463,180 @@ public class ArmGrpcService : ArmService.ArmServiceBase
         {
             _logger.LogError(ex, "Failed to get Cosmos DB account: {AccountName}", request.AccountName);
             return new GetCosmosAccountResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message
+            };
+        }
+    }
+
+    /// <summary>
+    /// Gets App Configuration accounts for a subscription.
+    /// </summary>
+    /// <param name="request">The request containing subscription ID and optional tenant.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>A response containing the list of App Configuration accounts.</returns>
+    public override async Task<GetAppConfigAccountsResponse> GetAppConfigAccounts(
+        GetAppConfigAccountsRequest request,
+        ServerCallContext context)
+    {
+        try
+        {
+            ValidateRequiredParameters(request.SubscriptionId);
+
+            var subscriptions = await GetSubscriptionsAsync(request.TenantId);
+            var subscription = subscriptions.FirstOrDefault(s => s.SubscriptionId == request.SubscriptionId);
+            if (subscription == null)
+            {
+                return new GetAppConfigAccountsResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"Subscription '{request.SubscriptionId}' not found"
+                };
+            }
+
+            var armClient = CreateArmClient(request.TenantId);
+            var subscriptionResource = armClient.GetSubscriptionResource(SubscriptionResource.CreateResourceIdentifier(subscription.SubscriptionId));
+            var accounts = new List<AppConfigAccountData>();
+            
+            await foreach (var account in subscriptionResource.GetAppConfigurationStoresAsync())
+            {
+                if (account?.Data?.Name != null)
+                {
+                    var accountData = new AppConfigAccountData
+                    {
+                        Name = account.Data.Name,
+                        Location = account.Data.Location.Name ?? string.Empty,
+                        Endpoint = account.Data.Endpoint ?? string.Empty,
+                        CreationDate = account.Data.CreatedOn?.ToUnixTimeSeconds() ?? 0,
+                        PublicNetworkAccess = account.Data.PublicNetworkAccess.HasValue &&
+                            account.Data.PublicNetworkAccess.Value.ToString().Equals("Enabled", StringComparison.OrdinalIgnoreCase),
+                        Sku = account.Data.SkuName ?? string.Empty,
+                        DisableLocalAuth = account.Data.DisableLocalAuth ?? false,
+                        SoftDeleteRetentionInDays = account.Data.SoftDeleteRetentionInDays ?? 0,
+                        EnablePurgeProtection = account.Data.EnablePurgeProtection ?? false,
+                        CreateMode = account.Data.CreateMode?.ToString() ?? string.Empty
+                    };
+                    
+                    if (account.Data.Tags != null)
+                    {
+                        foreach (var tag in account.Data.Tags)
+                        {
+                            accountData.Tags.Add(tag.Key, tag.Value);
+                        }
+                    }
+
+                    if (account.Data.Identity != null)
+                    {
+                        accountData.ManagedIdentity = new ManagedIdentityInfo();
+                        
+                        accountData.ManagedIdentity.SystemAssignedIdentity = new SystemAssignedIdentityInfo
+                        {
+                            Enabled = account.Data.Identity != null,
+                            TenantId = account.Data.Identity?.TenantId?.ToString() ?? string.Empty,
+                            PrincipalId = account.Data.Identity?.PrincipalId?.ToString() ?? string.Empty
+                        };
+
+                        if (account.Data.Identity?.UserAssignedIdentities != null)
+                        {
+                            foreach (var userIdentity in account.Data.Identity.UserAssignedIdentities)
+                            {
+                                accountData.ManagedIdentity.UserAssignedIdentities.Add(new UserAssignedIdentityInfo
+                                {
+                                    ClientId = userIdentity.Value.ClientId?.ToString() ?? string.Empty,
+                                    PrincipalId = userIdentity.Value.PrincipalId?.ToString() ?? string.Empty
+                                });
+                            }
+                        }
+                    }
+
+                    if (account.Data.EncryptionKeyVaultProperties != null)
+                    {
+                        accountData.Encryption = new EncryptionProperties
+                        {
+                            KeyIdentifier = account.Data.EncryptionKeyVaultProperties.KeyIdentifier ?? string.Empty,
+                            IdentityClientId = account.Data.EncryptionKeyVaultProperties.IdentityClientId ?? string.Empty,
+                            IsKeyVaultKeyIdentifierValid = false,
+                            IsIdentityClientIdValid = false
+                        };
+                    }
+                    
+                    accounts.Add(accountData);
+                }
+            }
+
+            var response = new GetAppConfigAccountsResponse { IsSuccess = true };
+            response.AppConfigAccounts.AddRange(accounts);
+            return response;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get App Configuration accounts for subscription: {SubscriptionId}", request.SubscriptionId);
+            return new GetAppConfigAccountsResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message
+            };
+        }
+    }
+
+    /// <summary>
+    /// Gets the endpoint for a specific App Configuration account.
+    /// </summary>
+    /// <param name="request">The request containing account name, subscription ID and optional tenant.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>A response containing the App Configuration account endpoint.</returns>
+    public override async Task<GetAppConfigAccountEndpointResponse> GetAppConfigAccountEndpoint(
+        GetAppConfigAccountEndpointRequest request,
+        ServerCallContext context)
+    {
+        try
+        {
+            ValidateRequiredParameters(request.AccountName, request.SubscriptionId);
+
+            var subscriptions = await GetSubscriptionsAsync(request.TenantId);
+            var subscription = subscriptions.FirstOrDefault(s => s.SubscriptionId == request.SubscriptionId);
+            if (subscription == null)
+            {
+                return new GetAppConfigAccountEndpointResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"Subscription '{request.SubscriptionId}' not found"
+                };
+            }
+
+            var armClient = CreateArmClient(request.TenantId);
+            var subscriptionResource = armClient.GetSubscriptionResource(SubscriptionResource.CreateResourceIdentifier(subscription.SubscriptionId));
+
+            AppConfigurationStoreResource? appConfigAccount = null;
+            await foreach (var account in subscriptionResource.GetAppConfigurationStoresAsync())
+            {
+                if (account.Data.Name == request.AccountName)
+                {
+                    appConfigAccount = account;
+                    break;
+                }
+            }
+
+            if (appConfigAccount == null)
+            {
+                return new GetAppConfigAccountEndpointResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"App Configuration account '{request.AccountName}' not found in subscription '{request.SubscriptionId}'"
+                };
+            }
+
+            return new GetAppConfigAccountEndpointResponse
+            {
+                IsSuccess = true,
+                Endpoint = appConfigAccount.Data.Endpoint ?? string.Empty
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get App Configuration account endpoint: {AccountName}", request.AccountName);
+            return new GetAppConfigAccountEndpointResponse
             {
                 IsSuccess = false,
                 ErrorMessage = ex.Message

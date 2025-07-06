@@ -97,6 +97,32 @@ public interface IArmServiceClient : IServiceClient
         string subscriptionId,
         string? tenantId = null,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets App Configuration accounts for a subscription.
+    /// </summary>
+    /// <param name="subscriptionId">Subscription ID to get App Configuration accounts for</param>
+    /// <param name="tenantId">Optional tenant ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A response containing the list of App Configuration accounts</returns>
+    Task<GetAppConfigAccountsResult> GetAppConfigAccountsAsync(
+        string subscriptionId,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the endpoint for a specific App Configuration account.
+    /// </summary>
+    /// <param name="accountName">App Configuration account name</param>
+    /// <param name="subscriptionId">Subscription ID where the App Configuration account exists</param>
+    /// <param name="tenantId">Optional tenant ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A response containing the App Configuration account endpoint</returns>
+    Task<GetAppConfigAccountEndpointResult> GetAppConfigAccountEndpointAsync(
+        string accountName,
+        string subscriptionId,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -332,4 +358,199 @@ public class CosmosAccountData
     /// The document endpoint URL.
     /// </summary>
     public required string DocumentEndpoint { get; init; }
+}
+
+/// <summary>
+/// Result of getting App Configuration accounts.
+/// </summary>
+public class GetAppConfigAccountsResult
+{
+    /// <summary>
+    /// Whether the operation was successful.
+    /// </summary>
+    public bool IsSuccess { get; init; }
+
+    /// <summary>
+    /// Error message if operation failed.
+    /// </summary>
+    public string? ErrorMessage { get; init; }
+
+    /// <summary>
+    /// List of App Configuration account data.
+    /// </summary>
+    public IReadOnlyList<AppConfigAccountData> AppConfigAccounts { get; init; } = Array.Empty<AppConfigAccountData>();
+}
+
+/// <summary>
+/// Result of getting an App Configuration account.
+/// </summary>
+/// <summary>
+/// Result of getting App Configuration account endpoint.
+/// </summary>
+public class GetAppConfigAccountEndpointResult
+{
+    /// <summary>
+    /// Whether the operation was successful.
+    /// </summary>
+    public bool IsSuccess { get; init; }
+
+    /// <summary>
+    /// Error message if operation failed.
+    /// </summary>
+    public string? ErrorMessage { get; init; }
+
+    /// <summary>
+    /// The App Configuration account endpoint URL.
+    /// </summary>
+    public string? Endpoint { get; init; }
+}
+
+/// <summary>
+/// App Configuration account information.
+/// </summary>
+public class AppConfigAccountData
+{
+    /// <summary>
+    /// The account name.
+    /// </summary>
+    public required string Name { get; init; }
+
+    /// <summary>
+    /// The account location.
+    /// </summary>
+    public required string Location { get; init; }
+
+    /// <summary>
+    /// The endpoint URL.
+    /// </summary>
+    public required string Endpoint { get; init; }
+
+    /// <summary>
+    /// The creation date.
+    /// </summary>
+    public DateTime CreationDate { get; init; }
+
+    /// <summary>
+    /// Whether public network access is enabled.
+    /// </summary>
+    public bool PublicNetworkAccess { get; init; }
+
+    /// <summary>
+    /// The SKU name.
+    /// </summary>
+    public string? Sku { get; init; }
+
+    /// <summary>
+    /// Resource tags.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> Tags { get; init; } = new Dictionary<string, string>();
+
+    /// <summary>
+    /// Whether local auth is disabled.
+    /// </summary>
+    public bool DisableLocalAuth { get; init; }
+
+    /// <summary>
+    /// Soft delete retention in days.
+    /// </summary>
+    public int SoftDeleteRetentionInDays { get; init; }
+
+    /// <summary>
+    /// Whether purge protection is enabled.
+    /// </summary>
+    public bool EnablePurgeProtection { get; init; }
+
+    /// <summary>
+    /// The create mode.
+    /// </summary>
+    public string? CreateMode { get; init; }
+
+    /// <summary>
+    /// Managed identity information.
+    /// </summary>
+    public ManagedIdentityData? ManagedIdentity { get; init; }
+
+    /// <summary>
+    /// Encryption properties.
+    /// </summary>
+    public EncryptionData? Encryption { get; init; }
+}
+
+/// <summary>
+/// Managed identity information.
+/// </summary>
+public class ManagedIdentityData
+{
+    /// <summary>
+    /// System assigned identity information.
+    /// </summary>
+    public SystemAssignedIdentityData? SystemAssignedIdentity { get; init; }
+
+    /// <summary>
+    /// User assigned identities.
+    /// </summary>
+    public IReadOnlyList<UserAssignedIdentityData> UserAssignedIdentities { get; init; } = Array.Empty<UserAssignedIdentityData>();
+}
+
+/// <summary>
+/// System assigned identity information.
+/// </summary>
+public class SystemAssignedIdentityData
+{
+    /// <summary>
+    /// Whether system assigned identity is enabled.
+    /// </summary>
+    public bool Enabled { get; init; }
+
+    /// <summary>
+    /// Tenant ID.
+    /// </summary>
+    public string? TenantId { get; init; }
+
+    /// <summary>
+    /// Principal ID.
+    /// </summary>
+    public string? PrincipalId { get; init; }
+}
+
+/// <summary>
+/// User assigned identity information.
+/// </summary>
+public class UserAssignedIdentityData
+{
+    /// <summary>
+    /// Client ID.
+    /// </summary>
+    public string? ClientId { get; init; }
+
+    /// <summary>
+    /// Principal ID.
+    /// </summary>
+    public string? PrincipalId { get; init; }
+}
+
+/// <summary>
+/// Encryption properties.
+/// </summary>
+public class EncryptionData
+{
+    /// <summary>
+    /// Key identifier.
+    /// </summary>
+    public string? KeyIdentifier { get; init; }
+
+    /// <summary>
+    /// Identity client ID.
+    /// </summary>
+    public string? IdentityClientId { get; init; }
+
+    /// <summary>
+    /// Whether key vault key identifier is valid.
+    /// </summary>
+    public bool IsKeyVaultKeyIdentifierValid { get; init; }
+
+    /// <summary>
+    /// Whether identity client ID is valid.
+    /// </summary>
+    public bool IsIdentityClientIdValid { get; init; }
 }

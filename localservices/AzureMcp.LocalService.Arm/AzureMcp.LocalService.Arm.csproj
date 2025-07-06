@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <PackageReference Include="Azure.ResourceManager" />
+    <PackageReference Include="Azure.ResourceManager.AppConfiguration" />
     <PackageReference Include="Azure.ResourceManager.Authorization" />
     <PackageReference Include="Azure.ResourceManager.CosmosDB" />
     <PackageReference Include="Azure.ResourceManager.Datadog" />

@@ -352,6 +352,116 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         }
     }
 
+    public async Task<GetAppConfigAccountsResult> GetAppConfigAccountsAsync(
+        string subscriptionId,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var endpoint = await EnsureServiceStartedAsync(cancellationToken);
+        try
+        {
+            EnsureClient(endpoint);
+            var request = new GetAppConfigAccountsRequest
+            {
+                SubscriptionId = subscriptionId,
+                TenantId = tenantId ?? string.Empty
+            };
+
+            var response = await _client!.GetAppConfigAccountsAsync(request, cancellationToken: cancellationToken);
+
+            var accounts = response.AppConfigAccounts.Select(a => new AppConfigAccountData
+            {
+                Name = a.Name,
+                Location = a.Location,
+                Endpoint = a.Endpoint,
+                CreationDate = DateTimeOffset.FromUnixTimeSeconds(a.CreationDate).DateTime,
+                PublicNetworkAccess = a.PublicNetworkAccess,
+                Sku = string.IsNullOrEmpty(a.Sku) ? null : a.Sku,
+                Tags = a.Tags.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
+                DisableLocalAuth = a.DisableLocalAuth,
+                SoftDeleteRetentionInDays = a.SoftDeleteRetentionInDays,
+                EnablePurgeProtection = a.EnablePurgeProtection,
+                CreateMode = string.IsNullOrEmpty(a.CreateMode) ? null : a.CreateMode,
+                ManagedIdentity = a.ManagedIdentity == null ? null : new ManagedIdentityData
+                {
+                    SystemAssignedIdentity = a.ManagedIdentity.SystemAssignedIdentity == null ? null : new SystemAssignedIdentityData
+                    {
+                        Enabled = a.ManagedIdentity.SystemAssignedIdentity.Enabled,
+                        TenantId = string.IsNullOrEmpty(a.ManagedIdentity.SystemAssignedIdentity.TenantId) ? null : a.ManagedIdentity.SystemAssignedIdentity.TenantId,
+                        PrincipalId = string.IsNullOrEmpty(a.ManagedIdentity.SystemAssignedIdentity.PrincipalId) ? null : a.ManagedIdentity.SystemAssignedIdentity.PrincipalId
+                    },
+                    UserAssignedIdentities = a.ManagedIdentity.UserAssignedIdentities.Select(u => new UserAssignedIdentityData
+                    {
+                        ClientId = string.IsNullOrEmpty(u.ClientId) ? null : u.ClientId,
+                        PrincipalId = string.IsNullOrEmpty(u.PrincipalId) ? null : u.PrincipalId
+                    }).ToArray()
+                },
+                Encryption = a.Encryption == null ? null : new EncryptionData
+                {
+                    KeyIdentifier = string.IsNullOrEmpty(a.Encryption.KeyIdentifier) ? null : a.Encryption.KeyIdentifier,
+                    IdentityClientId = string.IsNullOrEmpty(a.Encryption.IdentityClientId) ? null : a.Encryption.IdentityClientId,
+                    IsKeyVaultKeyIdentifierValid = a.Encryption.IsKeyVaultKeyIdentifierValid,
+                    IsIdentityClientIdValid = a.Encryption.IsIdentityClientIdValid
+                }
+            }).ToList();
+
+            return new GetAppConfigAccountsResult
+            {
+                IsSuccess = response.IsSuccess,
+                ErrorMessage = string.IsNullOrEmpty(response.ErrorMessage) ? null : response.ErrorMessage,
+                AppConfigAccounts = accounts
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to call ARM LocalService for App Configuration accounts");
+            return new GetAppConfigAccountsResult
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message,
+                AppConfigAccounts = Array.Empty<AppConfigAccountData>()
+            };
+        }
+    }
+
+    public async Task<GetAppConfigAccountEndpointResult> GetAppConfigAccountEndpointAsync(
+        string accountName,
+        string subscriptionId,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var endpoint = await EnsureServiceStartedAsync(cancellationToken);
+        try
+        {
+            EnsureClient(endpoint);
+            var request = new GetAppConfigAccountEndpointRequest
+            {
+                AccountName = accountName,
+                SubscriptionId = subscriptionId,
+                TenantId = tenantId ?? string.Empty
+            };
+
+            var response = await _client!.GetAppConfigAccountEndpointAsync(request, cancellationToken: cancellationToken);
+
+            return new GetAppConfigAccountEndpointResult
+            {
+                IsSuccess = response.IsSuccess,
+                ErrorMessage = string.IsNullOrEmpty(response.ErrorMessage) ? null : response.ErrorMessage,
+                Endpoint = string.IsNullOrEmpty(response.Endpoint) ? null : response.Endpoint
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to call ARM LocalService for App Configuration account endpoint");
+            return new GetAppConfigAccountEndpointResult
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message,
+                Endpoint = null
+            };
+        }
+    }
+
     public void Dispose()
     {
         if (!_disposed)

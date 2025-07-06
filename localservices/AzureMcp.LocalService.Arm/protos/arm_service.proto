@@ -26,6 +26,12 @@ service ArmService {
   
   // Get a specific Cosmos DB account details
   rpc GetCosmosAccount(GetCosmosAccountRequest) returns (GetCosmosAccountResponse);
+  
+  // Get App Configuration accounts for a subscription
+  rpc GetAppConfigAccounts(GetAppConfigAccountsRequest) returns (GetAppConfigAccountsResponse);
+  
+  // Get App Configuration account endpoint for creating configuration client
+  rpc GetAppConfigAccountEndpoint(GetAppConfigAccountEndpointRequest) returns (GetAppConfigAccountEndpointResponse);
 }
 
 // Request for checking Identity service status
@@ -196,4 +202,111 @@ message CosmosAccountData {
   string provisioning_state = 6;
   // The document endpoint URL
   string document_endpoint = 7;
+}
+
+// Request for getting App Configuration accounts
+message GetAppConfigAccountsRequest {
+  // Subscription ID to get App Configuration accounts for
+  string subscription_id = 1;
+  // Optional tenant ID
+  string tenant_id = 2;
+}
+
+// Response containing list of App Configuration accounts
+message GetAppConfigAccountsResponse {
+  // List of App Configuration account data
+  repeated AppConfigAccountData app_config_accounts = 1;
+  // Whether the operation was successful
+  bool is_success = 2;
+  // Error message if operation failed
+  string error_message = 3;
+}
+
+// Request for getting a specific App Configuration account
+// Request for getting App Configuration account endpoint
+message GetAppConfigAccountEndpointRequest {
+  // App Configuration account name
+  string account_name = 1;
+  // Subscription ID where the App Configuration account exists
+  string subscription_id = 2;
+  // Optional tenant ID
+  string tenant_id = 3;
+}
+
+// Response containing App Configuration account endpoint
+message GetAppConfigAccountEndpointResponse {
+  // The App Configuration account endpoint URL
+  string endpoint = 1;
+  // Whether the operation was successful
+  bool is_success = 2;
+  // Error message if operation failed
+  string error_message = 3;
+}
+
+// App Configuration account data
+message AppConfigAccountData {
+  // The account name
+  string name = 1;
+  // The account location
+  string location = 2;
+  // The endpoint URL
+  string endpoint = 3;
+  // The creation date (Unix timestamp)
+  int64 creation_date = 4;
+  // Whether public network access is enabled
+  bool public_network_access = 5;
+  // The SKU name
+  string sku = 6;
+  // Resource tags (key-value pairs)
+  map<string, string> tags = 7;
+  // Whether local auth is disabled
+  bool disable_local_auth = 8;
+  // Soft delete retention in days
+  int32 soft_delete_retention_in_days = 9;
+  // Whether purge protection is enabled
+  bool enable_purge_protection = 10;
+  // The create mode
+  string create_mode = 11;
+  // Managed identity information
+  ManagedIdentityInfo managed_identity = 12;
+  // Encryption properties
+  EncryptionProperties encryption = 13;
+}
+
+// Managed identity information
+message ManagedIdentityInfo {
+  // System assigned identity
+  SystemAssignedIdentityInfo system_assigned_identity = 1;
+  // User assigned identities
+  repeated UserAssignedIdentityInfo user_assigned_identities = 2;
+}
+
+// System assigned identity information
+message SystemAssignedIdentityInfo {
+  // Whether system assigned identity is enabled
+  bool enabled = 1;
+  // Tenant ID
+  string tenant_id = 2;
+  // Principal ID
+  string principal_id = 3;
+}
+
+// User assigned identity information
+message UserAssignedIdentityInfo {
+  // Client ID
+  string client_id = 1;
+  // Principal ID
+  string principal_id = 2;
+}
+
+// Encryption properties
+message EncryptionProperties {
+  // Key identifier
+  string key_identifier = 1;
+  // Identity client ID
+  string identity_client_id = 2;
+  // Whether key vault key identifier is valid
+  bool is_key_vault_key_identifier_valid = 3;
+  // Whether identity client ID is valid
+  bool is_identity_client_id_valid = 4;
 }
