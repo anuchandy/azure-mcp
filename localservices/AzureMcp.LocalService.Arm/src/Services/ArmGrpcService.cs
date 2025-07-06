@@ -11,6 +11,7 @@ using Azure.ResourceManager.Kusto;
 using Azure.ResourceManager.Redis;
 using Azure.ResourceManager.RedisEnterprise;
 using Azure.ResourceManager.PostgreSql.FlexibleServers;
+using Azure.ResourceManager.Search;
 using AzureMcp.LocalService.Arm.Grpc;
 using AzureMcp.LocalService.Arm.Clients;
 using Grpc.Core;
@@ -1671,6 +1672,50 @@ public class ArmGrpcService : ArmService.ArmServiceBase
             };
         }
     }
+
+    #region Search Services
+
+    /// <summary>
+    /// Lists Azure Search services in a subscription.
+    /// </summary>
+    /// <param name="request">The request containing subscription ID and optional tenant ID.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>A response containing the list of Search service names.</returns>
+    public override async Task<ListSearchServicesResponse> ListSearchServices(
+        ListSearchServicesRequest request,
+        ServerCallContext context)
+    {
+        try
+        {
+            var subscription = await GetSubscriptionAsync(request.SubscriptionId, request.TenantId);
+
+            var serviceNames = new List<string>();
+            await foreach (var service in subscription.GetSearchServicesAsync())
+            {
+                if (!string.IsNullOrWhiteSpace(service?.Data?.Name))
+                {
+                    serviceNames.Add(service.Data.Name);
+                }
+            }
+
+            return new ListSearchServicesResponse
+            {
+                IsSuccess = true,
+                ServiceNames = { serviceNames }
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error listing Search services for subscription {SubscriptionId}", request.SubscriptionId);
+            return new ListSearchServicesResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message
+            };
+        }
+    }
+
+    #endregion
 
     #endregion
 }

@@ -617,6 +617,38 @@ public class ArmServiceClientTests : IDisposable
         AssertServicesAreRunning();
     }
 
+    [Fact]
+    public async Task CanAttemptToListSearchServicesThroughGrpcCall()
+    {
+        // Arrange
+        SetupServices();
+        var subscriptionId = await GetTargetSubscriptionIdAsync(_armServiceClient!, TestContext.Current.CancellationToken);
+
+        // Act
+        try
+        {
+            Assert.NotNull(_armServiceClient);
+            var result = await _armServiceClient.ListSearchServicesAsync(
+                subscriptionId: subscriptionId,
+                tenantId: null,
+                cancellationToken: TestContext.Current.CancellationToken);
+
+            // Assert
+            Assert.NotNull(result);
+            if (!result.IsSuccess)
+            {
+                Assert.Fail($"ListSearchServicesAsync should succeed, but got: {result.ErrorMessage}");
+            }
+            Assert.NotNull(result.ServiceNames);
+        }
+        catch (Exception ex)
+        {
+            FailOnException(ex);
+        }
+
+        AssertServicesAreRunning();
+    }
+
     public void Dispose()
     {
         _armServiceClient?.Dispose();

@@ -68,6 +68,9 @@ service ArmService {
   
   // Set a specific PostgreSQL server configuration parameter
   rpc SetPostgreSqlServerParameter(SetPostgreSqlServerParameterRequest) returns (SetPostgreSqlServerParameterResponse);
+
+  // List Azure Search services in a subscription
+  rpc ListSearchServices(ListSearchServicesRequest) returns (ListSearchServicesResponse);
 }
 
 // Request for checking Identity service status
@@ -659,6 +662,26 @@ message SetPostgreSqlServerParameterResponse {
   string error_message = 2;
   // Success message with details
   string message = 3;
+}
+
+// Search Services
+
+// Request to list Azure Search services in a subscription
+message ListSearchServicesRequest {
+  // The subscription ID
+  string subscription_id = 1;
+  // Optional tenant ID for multi-tenant scenarios
+  string tenant_id = 2;
+}
+
+// Response containing list of Azure Search services
+message ListSearchServicesResponse {
+  // Indicates if the operation was successful
+  bool is_success = 1;
+  // Error message if operation failed
+  string error_message = 2;
+  // List of Search service names
+  repeated string service_names = 3;
 }
 
 // Redis Services Messages

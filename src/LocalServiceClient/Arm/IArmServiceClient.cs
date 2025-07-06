@@ -299,6 +299,18 @@ public interface IArmServiceClient : IServiceClient
         string parameterValue,
         string? tenantId = null,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Lists Azure Search services in a subscription.
+    /// </summary>
+    /// <param name="subscriptionId">Subscription ID where the Search services exist</param>
+    /// <param name="tenantId">Optional tenant ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A response containing the list of Search service names</returns>
+    Task<ListSearchServicesResult> ListSearchServicesAsync(
+        string subscriptionId,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -1545,4 +1557,25 @@ public class PostgreSqlServerConfigData
     /// Geo-redundant backup enabled.
     /// </summary>
     public string GeoRedundantBackup { get; init; } = string.Empty;
+}
+
+/// <summary>
+/// Result of listing Azure Search services.
+/// </summary>
+public class ListSearchServicesResult
+{
+    /// <summary>
+    /// Whether the operation was successful.
+    /// </summary>
+    public bool IsSuccess { get; init; }
+
+    /// <summary>
+    /// Error message if operation failed.
+    /// </summary>
+    public string ErrorMessage { get; init; } = string.Empty;
+
+    /// <summary>
+    /// List of Search service names.
+    /// </summary>
+    public List<string> ServiceNames { get; init; } = [];
 }

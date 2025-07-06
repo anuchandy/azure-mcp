@@ -647,9 +647,9 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         string? tenantId = null,
         CancellationToken cancellationToken = default)
     {
+        var endpoint = await EnsureServiceStartedAsync(cancellationToken);
         try
         {
-            var endpoint = await _initServiceTask.Value;
             EnsureClient(endpoint);
 
             var request = new ListRedisCachesRequest
@@ -742,9 +742,9 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         string? tenantId = null,
         CancellationToken cancellationToken = default)
     {
+        var endpoint = await EnsureServiceStartedAsync(cancellationToken);
         try
         {
-            var endpoint = await _initServiceTask.Value;
             EnsureClient(endpoint);
 
             var request = new ListRedisAccessPolicyAssignmentsRequest
@@ -786,9 +786,9 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         string? tenantId = null,
         CancellationToken cancellationToken = default)
     {
+        var endpoint = await EnsureServiceStartedAsync(cancellationToken);
         try
         {
-            var endpoint = await _initServiceTask.Value;
             EnsureClient(endpoint);
 
             var request = new ListRedisClustersRequest
@@ -854,9 +854,9 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         string? tenantId = null,
         CancellationToken cancellationToken = default)
     {
+        var endpoint = await EnsureServiceStartedAsync(cancellationToken);
         try
         {
-            var endpoint = await _initServiceTask.Value;
             EnsureClient(endpoint);
 
             var request = new ListRedisDatabasesRequest
@@ -918,9 +918,9 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         string? tenantId = null,
         CancellationToken cancellationToken = default)
     {
+        var endpoint = await EnsureServiceStartedAsync(cancellationToken);
         try
         {
-            var endpoint = await _initServiceTask.Value;
             EnsureClient(endpoint);
 
             var request = new ListPostgreSqlServersRequest
@@ -958,9 +958,9 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         string? tenantId = null,
         CancellationToken cancellationToken = default)
     {
+        var endpoint = await EnsureServiceStartedAsync(cancellationToken);
         try
         {
-            var endpoint = await _initServiceTask.Value;
             EnsureClient(endpoint);
 
             var request = new GetPostgreSqlServerConfigRequest
@@ -1009,9 +1009,9 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         string? tenantId = null,
         CancellationToken cancellationToken = default)
     {
+        var endpoint = await EnsureServiceStartedAsync(cancellationToken);
         try
         {
-            var endpoint = await _initServiceTask.Value;
             EnsureClient(endpoint);
 
             var request = new GetPostgreSqlServerParameterRequest
@@ -1053,9 +1053,9 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         string? tenantId = null,
         CancellationToken cancellationToken = default)
     {
+        var endpoint = await EnsureServiceStartedAsync(cancellationToken);
         try
         {
-            var endpoint = await _initServiceTask.Value;
             EnsureClient(endpoint);
 
             var request = new SetPostgreSqlServerParameterRequest
@@ -1085,6 +1085,43 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 IsSuccess = false,
                 ErrorMessage = ex.Message,
                 Message = string.Empty
+            };
+        }
+    }
+
+    public async Task<ListSearchServicesResult> ListSearchServicesAsync(
+        string subscriptionId,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var endpoint = await EnsureServiceStartedAsync(cancellationToken);
+        try
+        {
+            EnsureClient(endpoint);
+
+            var request = new ListSearchServicesRequest
+            {
+                SubscriptionId = subscriptionId,
+                TenantId = tenantId ?? string.Empty
+            };
+
+            var response = await _client!.ListSearchServicesAsync(request, cancellationToken: cancellationToken);
+
+            return new ListSearchServicesResult
+            {
+                IsSuccess = response.IsSuccess,
+                ErrorMessage = response.ErrorMessage,
+                ServiceNames = response.ServiceNames.ToList()
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to call ARM LocalService for Search services");
+            return new ListSearchServicesResult
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message,
+                ServiceNames = []
             };
         }
     }
