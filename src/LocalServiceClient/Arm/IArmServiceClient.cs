@@ -196,8 +196,8 @@ public interface IArmServiceClient : IServiceClient
     /// <param name="scope">The scope that the role assignments apply to</param>
     /// <param name="tenantId">Optional tenant ID for cross-tenant operations</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>A response containing the list of role assignments</returns>
-    Task<ListRoleAssignmentsResult> ListRoleAssignmentsAsync(
+    /// <returns>List of role assignments</returns>
+    Task<List<AzureMcp.Areas.Authorization.Models.RoleAssignment>> ListRoleAssignmentsAsync(
         string scope,
         string? tenantId = null,
         CancellationToken cancellationToken = default);
@@ -340,8 +340,8 @@ public interface IArmServiceClient : IServiceClient
     /// <param name="subscriptionId">Subscription ID where the Search services exist</param>
     /// <param name="tenantId">Optional tenant ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>A response containing the list of Search service names</returns>
-    Task<ListSearchServicesResult> ListSearchServicesAsync(
+    /// <returns>List of Search service names</returns>
+    Task<List<string>> ListSearchServicesAsync(
         string subscriptionId,
         string? tenantId = null,
         CancellationToken cancellationToken = default);
@@ -354,8 +354,8 @@ public interface IArmServiceClient : IServiceClient
     /// <param name="datadogResourceName">Name of the Datadog resource</param>
     /// <param name="tenantId">Optional tenant ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>A response containing the list of monitored resource names</returns>
-    Task<ListMonitoredDatadogResourcesResult> ListMonitoredDatadogResourcesAsync(
+    /// <returns>List of monitored resource names</returns>
+    Task<List<string>> ListMonitoredDatadogResourcesAsync(
         string subscriptionId,
         string resourceGroupName,
         string datadogResourceName,
@@ -1036,27 +1036,6 @@ public class ResourceGroupData
 }
 
 /// <summary>
-/// Result of listing role assignments.
-/// </summary>
-public class ListRoleAssignmentsResult
-{
-    /// <summary>
-    /// Whether the operation was successful.
-    /// </summary>
-    public bool IsSuccess { get; init; }
-
-    /// <summary>
-    /// Error message if operation failed.
-    /// </summary>
-    public string ErrorMessage { get; init; } = string.Empty;
-
-    /// <summary>
-    /// List of role assignments.
-    /// </summary>
-    public List<AzureMcp.Areas.Authorization.Models.RoleAssignment> RoleAssignments { get; init; } = [];
-}
-
-/// <summary>
 /// Result of listing Redis caches.
 /// </summary>
 public class ListRedisCachesResult
@@ -1679,48 +1658,6 @@ public class PostgreSqlServerConfigData
     /// Geo-redundant backup enabled.
     /// </summary>
     public string GeoRedundantBackup { get; init; } = string.Empty;
-}
-
-/// <summary>
-/// Result of listing Azure Search services.
-/// </summary>
-public class ListSearchServicesResult
-{
-    /// <summary>
-    /// Whether the operation was successful.
-    /// </summary>
-    public bool IsSuccess { get; init; }
-
-    /// <summary>
-    /// Error message if operation failed.
-    /// </summary>
-    public string ErrorMessage { get; init; } = string.Empty;
-
-    /// <summary>
-    /// List of Search service names.
-    /// </summary>
-    public List<string> ServiceNames { get; init; } = [];
-}
-
-/// <summary>
-/// Result of listing monitored resources for a Datadog monitor.
-/// </summary>
-public class ListMonitoredDatadogResourcesResult
-{
-    /// <summary>
-    /// Whether the operation was successful.
-    /// </summary>
-    public bool IsSuccess { get; init; }
-
-    /// <summary>
-    /// Error message if operation failed.
-    /// </summary>
-    public string ErrorMessage { get; init; } = string.Empty;
-
-    /// <summary>
-    /// List of monitored resource names.
-    /// </summary>
-    public List<string> MonitoredResourceNames { get; init; } = [];
 }
 
 /// <summary>

@@ -1093,7 +1093,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         }
     }
 
-    public async Task<ListSearchServicesResult> ListSearchServicesAsync(
+    public async Task<List<string>> ListSearchServicesAsync(
         string subscriptionId,
         string? tenantId = null,
         CancellationToken cancellationToken = default)
@@ -1116,12 +1116,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 throw new LocalServiceCallException("ListSearchServices", GetErrorMessage(response.ErrorMessage));
             }
 
-            return new ListSearchServicesResult
-            {
-                IsSuccess = response.IsSuccess,
-                ErrorMessage = response.ErrorMessage,
-                ServiceNames = response.ServiceNames.ToList()
-            };
+            return response.ServiceNames.ToList();
         }
         catch (LocalServiceCallException)
         {
@@ -1133,7 +1128,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         }
     }
 
-    public async Task<ListMonitoredDatadogResourcesResult> ListMonitoredDatadogResourcesAsync(
+    public async Task<List<string>> ListMonitoredDatadogResourcesAsync(
         string subscriptionId,
         string resourceGroupName,
         string datadogResourceName,
@@ -1160,12 +1155,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 throw new LocalServiceCallException("ListMonitoredDatadogResources", GetErrorMessage(response.ErrorMessage));
             }
 
-            return new ListMonitoredDatadogResourcesResult
-            {
-                IsSuccess = response.IsSuccess,
-                ErrorMessage = response.ErrorMessage,
-                MonitoredResourceNames = response.MonitoredResourceNames.ToList()
-            };
+            return response.MonitoredResourceNames.ToList();
         }
         catch (LocalServiceCallException)
         {
@@ -1177,7 +1167,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         }
     }
 
-    public async Task<ListRoleAssignmentsResult> ListRoleAssignmentsAsync(
+    public async Task<List<AzureMcp.Areas.Authorization.Models.RoleAssignment>> ListRoleAssignmentsAsync(
         string scope,
         string? tenantId = null,
         CancellationToken cancellationToken = default)
@@ -1212,12 +1202,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
                 Condition = ra.Condition
             }).ToList();
 
-            return new ListRoleAssignmentsResult
-            {
-                IsSuccess = response.IsSuccess,
-                ErrorMessage = string.IsNullOrEmpty(response.ErrorMessage) ? string.Empty : response.ErrorMessage,
-                RoleAssignments = roleAssignments
-            };
+            return roleAssignments;
         }
         catch (LocalServiceCallException)
         {

@@ -614,11 +614,8 @@ public class ArmServiceClientTests : IDisposable
 
             // Assert
             Assert.NotNull(result);
-            if (!result.IsSuccess)
-            {
-                Assert.Fail($"ListSearchServicesAsync should succeed, but got: {result.ErrorMessage}");
-            }
-            Assert.NotNull(result.ServiceNames);
+            // Should return a list of strings, even if empty
+            Assert.IsType<List<string>>(result);
         }
         catch (Exception ex)
         {
@@ -641,14 +638,9 @@ public class ArmServiceClientTests : IDisposable
             );
 
             Assert.NotNull(result);
-            if (!result.IsSuccess)
+            if (result.Any())
             {
-                Assert.Fail($"ListRoleAssignmentsAsync should succeed, but got: {result.ErrorMessage}");
-            }
-            Assert.NotNull(result.RoleAssignments);
-            if (result.RoleAssignments.Any())
-            {
-                var firstAssignment = result.RoleAssignments.First();
+                var firstAssignment = result.First();
                 Assert.NotNull(firstAssignment.Id);
                 Assert.NotNull(firstAssignment.Scope);
             }
@@ -680,7 +672,6 @@ public class ArmServiceClientTests : IDisposable
             );
 
             Assert.NotNull(result);
-            Assert.NotNull(result.MonitoredResourceNames);
         }
         catch (LocalServiceCallException ex)
         {
