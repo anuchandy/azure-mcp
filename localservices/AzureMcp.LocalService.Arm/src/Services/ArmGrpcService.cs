@@ -27,6 +27,16 @@ namespace AzureMcp.LocalService.Arm.Services;
 /// </summary>
 public class ArmGrpcService : ArmService.ArmServiceBase
 {
+    private const string ErrorSubscriptionIdRequired = "Subscription ID cannot be null or empty";
+    private const string ErrorResourceGroupNameRequired = "Resource group name cannot be null or empty";
+    private const string ErrorAccountNameRequired = "Account name cannot be null or empty";
+    private const string ErrorClusterNameRequired = "Cluster name cannot be null or empty";
+    private const string ErrorCacheNameRequired = "Cache name cannot be null or empty";
+    private const string ErrorServerNameRequired = "Server name cannot be null or empty";
+    private const string ErrorParameterNameRequired = "Parameter name cannot be null or empty";
+    private const string ErrorParameterValueRequired = "Parameter value cannot be null or empty";
+    private const string ErrorWorkspaceNameRequired = "Workspace name cannot be null or empty";
+
     private readonly ILogger<ArmGrpcService> _logger;
     private readonly IdentityClient _identityClient;
     private readonly IServiceProvider _serviceProvider;
@@ -118,7 +128,7 @@ public class ArmGrpcService : ArmService.ArmServiceBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to list subscriptions for tenant: {TenantId}", 
+            _logger.LogError(ex, "Failed to list subscriptions for tenant: {TenantId}",
                 string.IsNullOrWhiteSpace(request.TenantId) ? "default" : request.TenantId);
             return new ListSubscriptionsResponse
             {
@@ -153,10 +163,17 @@ public class ArmGrpcService : ArmService.ArmServiceBase
         GetStorageAccountsRequest request,
         ServerCallContext context)
     {
+        if (string.IsNullOrWhiteSpace(request.SubscriptionId))
+        {
+            return new GetStorageAccountsResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorSubscriptionIdRequired
+            };
+        }
+
         try
         {
-            ValidateRequiredParameters(request.SubscriptionId);
-
             var cacheKey = string.IsNullOrEmpty(request.TenantId)
                 ? $"storage_accounts_{request.SubscriptionId}"
                 : $"storage_accounts_{request.SubscriptionId}_{request.TenantId}";
@@ -218,9 +235,26 @@ public class ArmGrpcService : ArmService.ArmServiceBase
         GetStorageAccountKeysRequest request,
         ServerCallContext context)
     {
+        if (string.IsNullOrWhiteSpace(request.AccountName))
+        {
+            return new GetStorageAccountKeysResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorAccountNameRequired
+            };
+        }
+
+        if (string.IsNullOrWhiteSpace(request.SubscriptionId))
+        {
+            return new GetStorageAccountKeysResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorSubscriptionIdRequired
+            };
+        }
+
         try
         {
-            ValidateRequiredParameters(request.AccountName, request.SubscriptionId);
 
             var subscriptions = await GetSubscriptionsAsync(request.TenantId);
             var subscription = subscriptions.FirstOrDefault(s => s.SubscriptionId == request.SubscriptionId);
@@ -289,10 +323,27 @@ public class ArmGrpcService : ArmService.ArmServiceBase
         GetStorageAccountConnectionStringRequest request,
         ServerCallContext context)
     {
+
+        if (string.IsNullOrWhiteSpace(request.AccountName))
+        {
+            return new GetStorageAccountConnectionStringResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorAccountNameRequired
+            };
+        }
+
+        if (string.IsNullOrWhiteSpace(request.SubscriptionId))
+        {
+            return new GetStorageAccountConnectionStringResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorSubscriptionIdRequired
+            };
+        }
+
         try
         {
-            ValidateRequiredParameters(request.AccountName, request.SubscriptionId);
-
             var subscriptions = await GetSubscriptionsAsync(request.TenantId);
             var subscription = subscriptions.FirstOrDefault(s => s.SubscriptionId == request.SubscriptionId);
             if (subscription == null)
@@ -362,10 +413,17 @@ public class ArmGrpcService : ArmService.ArmServiceBase
         GetCosmosAccountsRequest request,
         ServerCallContext context)
     {
+        if (string.IsNullOrWhiteSpace(request.SubscriptionId))
+        {
+            return new GetCosmosAccountsResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorSubscriptionIdRequired
+            };
+        }
+
         try
         {
-            ValidateRequiredParameters(request.SubscriptionId);
-
             var subscriptions = await GetSubscriptionsAsync(request.TenantId);
             var subscription = subscriptions.FirstOrDefault(s => s.SubscriptionId == request.SubscriptionId);
             if (subscription == null)
@@ -413,10 +471,26 @@ public class ArmGrpcService : ArmService.ArmServiceBase
         GetCosmosAccountRequest request,
         ServerCallContext context)
     {
+        if (string.IsNullOrWhiteSpace(request.AccountName))
+        {
+            return new GetCosmosAccountResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorAccountNameRequired
+            };
+        }
+
+        if (string.IsNullOrWhiteSpace(request.SubscriptionId))
+        {
+            return new GetCosmosAccountResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorSubscriptionIdRequired
+            };
+        }
+
         try
         {
-            ValidateRequiredParameters(request.AccountName, request.SubscriptionId);
-
             var subscriptions = await GetSubscriptionsAsync(request.TenantId);
             var subscription = subscriptions.FirstOrDefault(s => s.SubscriptionId == request.SubscriptionId);
             if (subscription == null)
@@ -504,25 +578,32 @@ public class ArmGrpcService : ArmService.ArmServiceBase
         GetAppConfigAccountsRequest request,
         ServerCallContext context)
     {
+        if (string.IsNullOrWhiteSpace(request.SubscriptionId))
+        {
+            return new GetAppConfigAccountsResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorSubscriptionIdRequired
+            };
+        }
+
+        var subscriptions = await GetSubscriptionsAsync(request.TenantId);
+        var subscription = subscriptions.FirstOrDefault(s => s.SubscriptionId == request.SubscriptionId);
+        if (subscription == null)
+        {
+            return new GetAppConfigAccountsResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = $"Subscription '{request.SubscriptionId}' not found"
+            };
+        }
+
         try
         {
-            ValidateRequiredParameters(request.SubscriptionId);
-
-            var subscriptions = await GetSubscriptionsAsync(request.TenantId);
-            var subscription = subscriptions.FirstOrDefault(s => s.SubscriptionId == request.SubscriptionId);
-            if (subscription == null)
-            {
-                return new GetAppConfigAccountsResponse
-                {
-                    IsSuccess = false,
-                    ErrorMessage = $"Subscription '{request.SubscriptionId}' not found"
-                };
-            }
-
             var armClient = CreateArmClient(request.TenantId);
             var subscriptionResource = armClient.GetSubscriptionResource(SubscriptionResource.CreateResourceIdentifier(subscription.SubscriptionId));
             var accounts = new List<AppConfigAccountData>();
-            
+
             await foreach (var account in subscriptionResource.GetAppConfigurationStoresAsync())
             {
                 if (account?.Data?.Name != null)
@@ -541,7 +622,7 @@ public class ArmGrpcService : ArmService.ArmServiceBase
                         EnablePurgeProtection = account.Data.EnablePurgeProtection ?? false,
                         CreateMode = account.Data.CreateMode?.ToString() ?? string.Empty
                     };
-                    
+
                     if (account.Data.Tags != null)
                     {
                         foreach (var tag in account.Data.Tags)
@@ -553,7 +634,7 @@ public class ArmGrpcService : ArmService.ArmServiceBase
                     if (account.Data.Identity != null)
                     {
                         accountData.ManagedIdentity = new ManagedIdentityInfo();
-                        
+
                         accountData.ManagedIdentity.SystemAssignedIdentity = new SystemAssignedIdentityInfo
                         {
                             Enabled = account.Data.Identity != null,
@@ -584,7 +665,7 @@ public class ArmGrpcService : ArmService.ArmServiceBase
                             IsIdentityClientIdValid = false
                         };
                     }
-                    
+
                     accounts.Add(accountData);
                 }
             }
@@ -614,10 +695,26 @@ public class ArmGrpcService : ArmService.ArmServiceBase
         GetAppConfigAccountEndpointRequest request,
         ServerCallContext context)
     {
+        if (string.IsNullOrWhiteSpace(request.AccountName))
+        {
+            return new GetAppConfigAccountEndpointResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorAccountNameRequired
+            };
+        }
+
+        if (string.IsNullOrWhiteSpace(request.SubscriptionId))
+        {
+            return new GetAppConfigAccountEndpointResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorSubscriptionIdRequired
+            };
+        }
+
         try
         {
-            ValidateRequiredParameters(request.AccountName, request.SubscriptionId);
-
             var subscriptions = await GetSubscriptionsAsync(request.TenantId);
             var subscription = subscriptions.FirstOrDefault(s => s.SubscriptionId == request.SubscriptionId);
             if (subscription == null)
@@ -678,10 +775,17 @@ public class ArmGrpcService : ArmService.ArmServiceBase
         GetKustoClustersRequest request,
         ServerCallContext context)
     {
+        if (string.IsNullOrWhiteSpace(request.SubscriptionId))
+        {
+            return new GetKustoClustersResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorSubscriptionIdRequired
+            };
+        }
+
         try
         {
-            ValidateRequiredParameters(request.SubscriptionId);
-
             var cacheKey = string.IsNullOrEmpty(request.TenantId)
                 ? $"kusto_clusters_{request.SubscriptionId}"
                 : $"kusto_clusters_{request.SubscriptionId}_{request.TenantId}";
@@ -743,10 +847,26 @@ public class ArmGrpcService : ArmService.ArmServiceBase
         GetKustoClusterRequest request,
         ServerCallContext context)
     {
+        if (string.IsNullOrWhiteSpace(request.ClusterName))
+        {
+            return new GetKustoClusterResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorClusterNameRequired
+            };
+        }
+
+        if (string.IsNullOrWhiteSpace(request.SubscriptionId))
+        {
+            return new GetKustoClusterResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorSubscriptionIdRequired
+            };
+        }
+
         try
         {
-            ValidateRequiredParameters(request.ClusterName, request.SubscriptionId);
-
             var subscriptions = await GetSubscriptionsAsync(request.TenantId);
             var subscription = subscriptions.FirstOrDefault(s => s.SubscriptionId == request.SubscriptionId);
             if (subscription == null)
@@ -894,7 +1014,7 @@ public class ArmGrpcService : ArmService.ArmServiceBase
             var cacheKey = $"resourcegroups_{subscriptionId}_{request.TenantId ?? "default"}";
             if (_cache.TryGetValue(cacheKey, out List<AzureMcp.LocalService.Arm.Grpc.ResourceGroupData>? cachedResourceGroups))
             {
-                var cachedRg = cachedResourceGroups!.FirstOrDefault(rg => 
+                var cachedRg = cachedResourceGroups!.FirstOrDefault(rg =>
                     rg.Name.Equals(request.ResourceGroupName, StringComparison.OrdinalIgnoreCase));
                 if (cachedRg != null)
                 {
@@ -935,120 +1055,13 @@ public class ArmGrpcService : ArmService.ArmServiceBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting resource group {ResourceGroupName} for subscription {SubscriptionId}", 
+            _logger.LogError(ex, "Error getting resource group {ResourceGroupName} for subscription {SubscriptionId}",
                 request.ResourceGroupName, request.SubscriptionId);
             return new GetResourceGroupResponse
             {
                 IsSuccess = false,
                 ErrorMessage = ex.Message
             };
-        }
-    }
-
-    #endregion
-
-    #region Subscription related internal methods.
-
-    private const string CacheGroup = "subscription";
-    private const string CacheKey = "subscriptions";
-    private const string SubscriptionCacheKey = "subscription";
-    private static readonly TimeSpan s_cacheDuration = TimeSpan.FromHours(12);
-
-    private async Task<List<Azure.ResourceManager.Resources.SubscriptionData>> GetSubscriptionsAsync(string? tenant = null)
-    {
-        var cacheKey = string.IsNullOrEmpty(tenant) ? CacheKey : $"{CacheKey}_{tenant}";
-        var fullCacheKey = $"{CacheGroup}_{cacheKey}";
-
-        if (_cache.TryGetValue(fullCacheKey, out List<Azure.ResourceManager.Resources.SubscriptionData>? cachedResults) && cachedResults != null)
-        {
-            _logger.LogDebug("Retrieved {Count} subscriptions from cache for tenant: {Tenant}", cachedResults.Count, tenant ?? "default");
-            return cachedResults;
-        }
-
-        var armClient = CreateArmClient(tenant);
-        var subscriptions = armClient.GetSubscriptions();
-        var results = new List<Azure.ResourceManager.Resources.SubscriptionData>();
-
-        await foreach (var subscription in subscriptions)
-        {
-            results.Add(subscription.Data);
-        }
-
-        _cache.Set(fullCacheKey, results, s_cacheDuration);
-        _logger.LogDebug("Cached {Count} subscriptions for tenant: {Tenant}", results.Count, tenant ?? "default");
-
-        return results;
-    }
-
-    private async Task<SubscriptionResource> GetSubscriptionAsync(string subscription, string? tenant = null)
-    {
-        ValidateRequiredParameters(subscription);
-
-        var subscriptionId = await GetSubscriptionIdAsync(subscription, tenant);
-        var cacheKey = string.IsNullOrEmpty(tenant)
-            ? $"{SubscriptionCacheKey}_{subscriptionId}"
-            : $"{SubscriptionCacheKey}_{subscriptionId}_{tenant}";
-        var fullCacheKey = $"{CacheGroup}_{cacheKey}";
-
-        if (_cache.TryGetValue(fullCacheKey, out SubscriptionResource? cachedSubscription) && cachedSubscription != null)
-        {
-            _logger.LogDebug("Retrieved subscription {SubscriptionId} from cache", subscriptionId);
-            return cachedSubscription;
-        }
-
-        var armClient = CreateArmClient(tenant);
-        var response = await armClient.GetSubscriptionResource(SubscriptionResource.CreateResourceIdentifier(subscriptionId)).GetAsync();
-        if (response?.Value == null)
-        {
-            throw new Exception($"Could not retrieve subscription {subscription}");
-        }
-
-        _cache.Set(fullCacheKey, response.Value, s_cacheDuration);
-        _logger.LogDebug("Cached subscription {SubscriptionId}", subscriptionId);
-        return response.Value;
-    }
-
-    private static bool IsSubscriptionId(string subscription, string? tenant = null)
-    {
-        return Guid.TryParse(subscription, out _);
-    }
-
-    private async Task<string> GetSubscriptionIdByNameAsync(string subscriptionName, string? tenant = null)
-    {
-        var subscriptions = await GetSubscriptionsAsync(tenant);
-        var subscription = subscriptions.FirstOrDefault(s => s.DisplayName.Equals(subscriptionName, StringComparison.OrdinalIgnoreCase)) ??
-            throw new Exception($"Could not find subscription with name {subscriptionName}");
-
-        return subscription.SubscriptionId;
-    }
-
-    private async Task<string> GetSubscriptionNameByIdAsync(string subscriptionId, string? tenant = null)
-    {
-        var subscriptions = await GetSubscriptionsAsync(tenant);
-        var subscription = subscriptions.FirstOrDefault(s => s.SubscriptionId.Equals(subscriptionId, StringComparison.OrdinalIgnoreCase)) ??
-            throw new Exception($"Could not find subscription with ID {subscriptionId}");
-
-        return subscription.DisplayName;
-    }
-
-    private async Task<string> GetSubscriptionIdAsync(string subscription, string? tenant)
-    {
-        if (IsSubscriptionId(subscription))
-        {
-            return subscription;
-        }
-
-        return await GetSubscriptionIdByNameAsync(subscription, tenant);
-    }
-
-    private static void ValidateRequiredParameters(params string[] parameters)
-    {
-        foreach (var parameter in parameters)
-        {
-            if (string.IsNullOrWhiteSpace(parameter))
-            {
-                throw new ArgumentException("Required parameter cannot be null or empty", nameof(parameter));
-            }
         }
     }
 
@@ -1066,10 +1079,17 @@ public class ArmGrpcService : ArmService.ArmServiceBase
         ListRedisCachesRequest request,
         ServerCallContext context)
     {
+        if (string.IsNullOrWhiteSpace(request.SubscriptionId))
+        {
+            return new ListRedisCachesResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorSubscriptionIdRequired
+            };
+        }
+
         try
         {
-            ValidateRequiredParameters(request.SubscriptionId);
-
             var armClient = CreateArmClient(request.TenantId);
             var subscription = armClient.GetSubscriptionResource(SubscriptionResource.CreateResourceIdentifier(request.SubscriptionId));
 
@@ -1197,10 +1217,34 @@ public class ArmGrpcService : ArmService.ArmServiceBase
         ListRedisAccessPolicyAssignmentsRequest request,
         ServerCallContext context)
     {
+        if (string.IsNullOrWhiteSpace(request.CacheName))
+        {
+            return new ListRedisAccessPolicyAssignmentsResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorCacheNameRequired
+            };
+        }
+
+        if (string.IsNullOrWhiteSpace(request.ResourceGroupName))
+        {
+            return new ListRedisAccessPolicyAssignmentsResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorResourceGroupNameRequired
+            };
+        }
+
+        if (string.IsNullOrWhiteSpace(request.SubscriptionId))
+        {
+            return new ListRedisAccessPolicyAssignmentsResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorSubscriptionIdRequired
+            };
+        }
         try
         {
-            ValidateRequiredParameters(request.CacheName, request.ResourceGroupName, request.SubscriptionId);
-
             var armClient = CreateArmClient(request.TenantId);
             var resourceGroupResponse = armClient.GetSubscriptionResource(SubscriptionResource.CreateResourceIdentifier(request.SubscriptionId))
                 .GetResourceGroups()
@@ -1252,10 +1296,17 @@ public class ArmGrpcService : ArmService.ArmServiceBase
         ListRedisClustersRequest request,
         ServerCallContext context)
     {
+        if (string.IsNullOrWhiteSpace(request.SubscriptionId))
+        {
+            return new ListRedisClustersResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorSubscriptionIdRequired
+            };
+        }
+
         try
         {
-            ValidateRequiredParameters(request.SubscriptionId);
-
             var armClient = CreateArmClient(request.TenantId);
             var subscription = armClient.GetSubscriptionResource(SubscriptionResource.CreateResourceIdentifier(request.SubscriptionId));
 
@@ -1346,10 +1397,35 @@ public class ArmGrpcService : ArmService.ArmServiceBase
         ListRedisDatabasesRequest request,
         ServerCallContext context)
     {
+        if (string.IsNullOrWhiteSpace(request.ClusterName))
+        {
+            return new ListRedisDatabasesResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorClusterNameRequired
+            };
+        }
+
+        if (string.IsNullOrWhiteSpace(request.ResourceGroupName))
+        {
+            return new ListRedisDatabasesResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorResourceGroupNameRequired
+            };
+        }
+
+        if (string.IsNullOrWhiteSpace(request.SubscriptionId))
+        {
+            return new ListRedisDatabasesResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorSubscriptionIdRequired
+            };
+        }
+
         try
         {
-            ValidateRequiredParameters(request.ClusterName, request.ResourceGroupName, request.SubscriptionId);
-
             var armClient = CreateArmClient(request.TenantId);
             var resourceGroupResponse = armClient.GetSubscriptionResource(SubscriptionResource.CreateResourceIdentifier(request.SubscriptionId))
                 .GetResourceGroups()
@@ -1437,10 +1513,26 @@ public class ArmGrpcService : ArmService.ArmServiceBase
         ListPostgreSqlServersRequest request,
         ServerCallContext context)
     {
+        if (string.IsNullOrWhiteSpace(request.SubscriptionId))
+        {
+            return new ListPostgreSqlServersResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorSubscriptionIdRequired
+            };
+        }
+
+        if (string.IsNullOrWhiteSpace(request.ResourceGroupName))
+        {
+            return new ListPostgreSqlServersResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorResourceGroupNameRequired
+            };
+        }
+
         try
         {
-            ValidateRequiredParameters(request.SubscriptionId, request.ResourceGroupName);
-
             var armClient = CreateArmClient(request.TenantId);
             var subscriptionResource = armClient.GetSubscriptionResource(SubscriptionResource.CreateResourceIdentifier(request.SubscriptionId));
             var resourceGroup = await subscriptionResource.GetResourceGroups().GetAsync(request.ResourceGroupName);
@@ -1487,10 +1579,35 @@ public class ArmGrpcService : ArmService.ArmServiceBase
         GetPostgreSqlServerConfigRequest request,
         ServerCallContext context)
     {
+        if (string.IsNullOrWhiteSpace(request.SubscriptionId))
+        {
+            return new GetPostgreSqlServerConfigResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorSubscriptionIdRequired
+            };
+        }
+
+        if (string.IsNullOrWhiteSpace(request.ResourceGroupName))
+        {
+            return new GetPostgreSqlServerConfigResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorResourceGroupNameRequired
+            };
+        }
+
+        if (string.IsNullOrWhiteSpace(request.ServerName))
+        {
+            return new GetPostgreSqlServerConfigResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorServerNameRequired
+            };
+        }
+
         try
         {
-            ValidateRequiredParameters(request.SubscriptionId, request.ResourceGroupName, request.ServerName);
-
             var armClient = CreateArmClient(request.TenantId);
             var subscriptionResource = armClient.GetSubscriptionResource(SubscriptionResource.CreateResourceIdentifier(request.SubscriptionId));
             var resourceGroup = await subscriptionResource.GetResourceGroups().GetAsync(request.ResourceGroupName);
@@ -1553,10 +1670,44 @@ public class ArmGrpcService : ArmService.ArmServiceBase
         GetPostgreSqlServerParameterRequest request,
         ServerCallContext context)
     {
+        if (string.IsNullOrWhiteSpace(request.SubscriptionId))
+        {
+            return new GetPostgreSqlServerParameterResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorSubscriptionIdRequired
+            };
+        }
+
+        if (string.IsNullOrWhiteSpace(request.ResourceGroupName))
+        {
+            return new GetPostgreSqlServerParameterResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorResourceGroupNameRequired
+            };
+        }
+
+        if (string.IsNullOrWhiteSpace(request.ServerName))
+        {
+            return new GetPostgreSqlServerParameterResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorServerNameRequired
+            };
+        }
+
+        if (string.IsNullOrWhiteSpace(request.ParameterName))
+        {
+            return new GetPostgreSqlServerParameterResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorParameterNameRequired
+            };
+        }
+
         try
         {
-            ValidateRequiredParameters(request.SubscriptionId, request.ResourceGroupName, request.ServerName, request.ParameterName);
-
             var armClient = CreateArmClient(request.TenantId);
             var subscriptionResource = armClient.GetSubscriptionResource(SubscriptionResource.CreateResourceIdentifier(request.SubscriptionId));
             var resourceGroup = await subscriptionResource.GetResourceGroups().GetAsync(request.ResourceGroupName);
@@ -1598,7 +1749,7 @@ public class ArmGrpcService : ArmService.ArmServiceBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting PostgreSQL server parameter {ParameterName} for server {ServerName}", 
+            _logger.LogError(ex, "Error getting PostgreSQL server parameter {ParameterName} for server {ServerName}",
                 request.ParameterName, request.ServerName);
             return new GetPostgreSqlServerParameterResponse
             {
@@ -1618,11 +1769,53 @@ public class ArmGrpcService : ArmService.ArmServiceBase
         SetPostgreSqlServerParameterRequest request,
         ServerCallContext context)
     {
+        if (string.IsNullOrWhiteSpace(request.SubscriptionId))
+        {
+            return new SetPostgreSqlServerParameterResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorSubscriptionIdRequired
+            };
+        }
+
+        if (string.IsNullOrWhiteSpace(request.ResourceGroupName))
+        {
+            return new SetPostgreSqlServerParameterResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorResourceGroupNameRequired
+            };
+        }
+
+        if (string.IsNullOrWhiteSpace(request.ServerName))
+        {
+            return new SetPostgreSqlServerParameterResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorServerNameRequired
+            };
+        }
+
+        if (string.IsNullOrWhiteSpace(request.ParameterName))
+        {
+            return new SetPostgreSqlServerParameterResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorParameterNameRequired
+            };
+        }
+
+        if (string.IsNullOrWhiteSpace(request.ParameterValue))
+        {
+            return new SetPostgreSqlServerParameterResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorParameterValueRequired
+            };
+        }
+
         try
         {
-            ValidateRequiredParameters(request.SubscriptionId, request.ResourceGroupName, request.ServerName, 
-                request.ParameterName, request.ParameterValue);
-
             var armClient = CreateArmClient(request.TenantId);
             var subscriptionResource = armClient.GetSubscriptionResource(SubscriptionResource.CreateResourceIdentifier(request.SubscriptionId));
             var resourceGroup = await subscriptionResource.GetResourceGroups().GetAsync(request.ResourceGroupName);
@@ -1682,7 +1875,7 @@ public class ArmGrpcService : ArmService.ArmServiceBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error setting PostgreSQL server parameter {ParameterName} to {ParameterValue} for server {ServerName}", 
+            _logger.LogError(ex, "Error setting PostgreSQL server parameter {ParameterName} to {ParameterValue} for server {ServerName}",
                 request.ParameterName, request.ParameterValue, request.ServerName);
             return new SetPostgreSqlServerParameterResponse
             {
@@ -1750,36 +1943,36 @@ public class ArmGrpcService : ArmService.ArmServiceBase
         ListMonitoredDatadogResourcesRequest request,
         ServerCallContext context)
     {
+        if (string.IsNullOrWhiteSpace(request.SubscriptionId))
+        {
+            return new ListMonitoredDatadogResourcesResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorSubscriptionIdRequired
+            };
+        }
+
+        if (string.IsNullOrWhiteSpace(request.ResourceGroupName))
+        {
+            return new ListMonitoredDatadogResourcesResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorResourceGroupNameRequired
+            };
+        }
+
+        if (string.IsNullOrWhiteSpace(request.DatadogResourceName))
+        {
+            return new ListMonitoredDatadogResourcesResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = "Datadog resource name cannot be null or empty"
+            };
+        }
+
         try
         {
             await Task.Yield(); // Hack (todo: anu) Ensure this method runs asynchronously
-
-            if (string.IsNullOrWhiteSpace(request.SubscriptionId))
-            {
-                return new ListMonitoredDatadogResourcesResponse
-                {
-                    IsSuccess = false,
-                    ErrorMessage = "Subscription ID cannot be null or empty"
-                };
-            }
-
-            if (string.IsNullOrWhiteSpace(request.ResourceGroupName))
-            {
-                return new ListMonitoredDatadogResourcesResponse
-                {
-                    IsSuccess = false,
-                    ErrorMessage = "Resource group name cannot be null or empty"
-                };
-            }
-
-            if (string.IsNullOrWhiteSpace(request.DatadogResourceName))
-            {
-                return new ListMonitoredDatadogResourcesResponse
-                {
-                    IsSuccess = false,
-                    ErrorMessage = "Datadog resource name cannot be null or empty"
-                };
-            }
 
             var armClient = CreateArmClient(request.TenantId);
 
@@ -1831,28 +2024,28 @@ public class ArmGrpcService : ArmService.ArmServiceBase
         ListMonitorWorkspacesRequest request,
         ServerCallContext context)
     {
+        if (string.IsNullOrWhiteSpace(request.SubscriptionId))
+        {
+            return new ListMonitorWorkspacesResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorSubscriptionIdRequired
+            };
+        }
+
+        var subscriptions = await GetSubscriptionsAsync(request.TenantId);
+        var subscription = subscriptions.FirstOrDefault(s => s.SubscriptionId == request.SubscriptionId);
+        if (subscription == null)
+        {
+            return new ListMonitorWorkspacesResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = $"Subscription '{request.SubscriptionId}' not found"
+            };
+        }
+
         try
         {
-            if (string.IsNullOrWhiteSpace(request.SubscriptionId))
-            {
-                return new ListMonitorWorkspacesResponse
-                {
-                    IsSuccess = false,
-                    ErrorMessage = "Subscription ID cannot be null or empty"
-                };
-            }
-
-            var subscriptions = await GetSubscriptionsAsync(request.TenantId);
-            var subscription = subscriptions.FirstOrDefault(s => s.SubscriptionId == request.SubscriptionId);
-            if (subscription == null)
-            {
-                return new ListMonitorWorkspacesResponse
-                {
-                    IsSuccess = false,
-                    ErrorMessage = $"Subscription '{request.SubscriptionId}' not found"
-                };
-            }
-
             var armClient = CreateArmClient(request.TenantId);
             var subscriptionResource = armClient.GetSubscriptionResource(SubscriptionResource.CreateResourceIdentifier(subscription.SubscriptionId));
 
@@ -1894,35 +2087,35 @@ public class ArmGrpcService : ArmService.ArmServiceBase
         ListMonitorTablesRequest request,
         ServerCallContext context)
     {
+        if (string.IsNullOrWhiteSpace(request.SubscriptionId))
+        {
+            return new ListMonitorTablesResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorSubscriptionIdRequired
+            };
+        }
+
+        if (string.IsNullOrWhiteSpace(request.ResourceGroupName))
+        {
+            return new ListMonitorTablesResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorResourceGroupNameRequired
+            };
+        }
+
+        if (string.IsNullOrWhiteSpace(request.WorkspaceName))
+        {
+            return new ListMonitorTablesResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorWorkspaceNameRequired
+            };
+        }
+
         try
         {
-            if (string.IsNullOrWhiteSpace(request.SubscriptionId))
-            {
-                return new ListMonitorTablesResponse
-                {
-                    IsSuccess = false,
-                    ErrorMessage = "Subscription ID cannot be null or empty"
-                };
-            }
-
-            if (string.IsNullOrWhiteSpace(request.ResourceGroupName))
-            {
-                return new ListMonitorTablesResponse
-                {
-                    IsSuccess = false,
-                    ErrorMessage = "Resource group name cannot be null or empty"
-                };
-            }
-
-            if (string.IsNullOrWhiteSpace(request.WorkspaceName))
-            {
-                return new ListMonitorTablesResponse
-                {
-                    IsSuccess = false,
-                    ErrorMessage = "Workspace name cannot be null or empty"
-                };
-            }
-
             var subscriptions = await GetSubscriptionsAsync(request.TenantId);
             var subscription = subscriptions.FirstOrDefault(s => s.SubscriptionId == request.SubscriptionId);
             if (subscription == null)
@@ -1936,7 +2129,7 @@ public class ArmGrpcService : ArmService.ArmServiceBase
 
             var armClient = CreateArmClient(request.TenantId);
             var subscriptionResource = armClient.GetSubscriptionResource(SubscriptionResource.CreateResourceIdentifier(subscription.SubscriptionId));
-            
+
             var resourceGroupResponse = await subscriptionResource.GetResourceGroups().GetAsync(request.ResourceGroupName);
             if (resourceGroupResponse?.Value == null)
             {
@@ -1949,7 +2142,7 @@ public class ArmGrpcService : ArmService.ArmServiceBase
 
             // Resolve workspace name (could be name or ID)
             var (workspaceId, workspaceName) = GetWorkspaceInfoAsync(request.WorkspaceName, subscriptionResource, request.TenantId);
-            
+
             // Get the workspace
             var workspaceResponse = await resourceGroupResponse.Value.GetOperationalInsightsWorkspaceAsync(workspaceName);
             if (workspaceResponse?.Value == null)
@@ -2006,35 +2199,35 @@ public class ArmGrpcService : ArmService.ArmServiceBase
         ListMonitorTableTypesRequest request,
         ServerCallContext context)
     {
+        if (string.IsNullOrWhiteSpace(request.SubscriptionId))
+        {
+            return new ListMonitorTableTypesResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorSubscriptionIdRequired
+            };
+        }
+
+        if (string.IsNullOrWhiteSpace(request.ResourceGroupName))
+        {
+            return new ListMonitorTableTypesResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorResourceGroupNameRequired
+            };
+        }
+
+        if (string.IsNullOrWhiteSpace(request.WorkspaceName))
+        {
+            return new ListMonitorTableTypesResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorWorkspaceNameRequired
+            };
+        }
+
         try
         {
-            if (string.IsNullOrWhiteSpace(request.SubscriptionId))
-            {
-                return new ListMonitorTableTypesResponse
-                {
-                    IsSuccess = false,
-                    ErrorMessage = "Subscription ID cannot be null or empty"
-                };
-            }
-
-            if (string.IsNullOrWhiteSpace(request.ResourceGroupName))
-            {
-                return new ListMonitorTableTypesResponse
-                {
-                    IsSuccess = false,
-                    ErrorMessage = "Resource group name cannot be null or empty"
-                };
-            }
-
-            if (string.IsNullOrWhiteSpace(request.WorkspaceName))
-            {
-                return new ListMonitorTableTypesResponse
-                {
-                    IsSuccess = false,
-                    ErrorMessage = "Workspace name cannot be null or empty"
-                };
-            }
-
             var subscriptions = await GetSubscriptionsAsync(request.TenantId);
             var subscription = subscriptions.FirstOrDefault(s => s.SubscriptionId == request.SubscriptionId);
             if (subscription == null)
@@ -2048,7 +2241,7 @@ public class ArmGrpcService : ArmService.ArmServiceBase
 
             var armClient = CreateArmClient(request.TenantId);
             var subscriptionResource = armClient.GetSubscriptionResource(SubscriptionResource.CreateResourceIdentifier(subscription.SubscriptionId));
-            
+
             var resourceGroupResponse = await subscriptionResource.GetResourceGroups().GetAsync(request.ResourceGroupName);
             if (resourceGroupResponse?.Value == null)
             {
@@ -2061,7 +2254,7 @@ public class ArmGrpcService : ArmService.ArmServiceBase
 
             // Resolve workspace name (could be name or ID)
             var (workspaceId, workspaceName) = GetWorkspaceInfoAsync(request.WorkspaceName, subscriptionResource, request.TenantId);
-            
+
             // Get the workspace
             var workspaceResponse = await resourceGroupResponse.Value.GetOperationalInsightsWorkspaceAsync(workspaceName);
             if (workspaceResponse?.Value == null)
@@ -2118,7 +2311,7 @@ public class ArmGrpcService : ArmService.ArmServiceBase
     {
         // Check if it's a workspace ID (GUID)
         bool isId = Guid.TryParse(workspace, out _);
-        
+
         // Get all workspaces in the subscription
         var workspaces = new List<MonitorWorkspace>();
         foreach (var workspaceResource in subscriptionResource.GetOperationalInsightsWorkspaces())
@@ -2158,17 +2351,17 @@ public class ArmGrpcService : ArmService.ArmServiceBase
         ListRoleAssignmentsRequest request,
         ServerCallContext context)
     {
+        if (string.IsNullOrEmpty(request.Scope))
+        {
+            return new ListRoleAssignmentsResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = "Scope is required"
+            };
+        }
+
         try
         {
-            if (string.IsNullOrEmpty(request.Scope))
-            {
-                return new ListRoleAssignmentsResponse
-                {
-                    IsSuccess = false,
-                    ErrorMessage = "Scope is required"
-                };
-            }
-
             var armClient = CreateArmClient(request.TenantId);
             var scopeResourceId = new Azure.Core.ResourceIdentifier(request.Scope);
             var roleAssignmentCollection = armClient.GetRoleAssignments(scopeResourceId);
@@ -2196,7 +2389,8 @@ public class ArmGrpcService : ArmService.ArmServiceBase
                 IsSuccess = true,
                 RoleAssignments = { assignments }
             };
-        }        catch (Exception ex)
+        }
+        catch (Exception ex)
         {
             _logger.LogError(ex, "Error listing role assignments for scope {Scope}", request.Scope);
             return new ListRoleAssignmentsResponse
@@ -2205,6 +2399,105 @@ public class ArmGrpcService : ArmService.ArmServiceBase
                 ErrorMessage = ex.Message
             };
         }
+    }
+
+    #endregion
+
+    #region Subscription related internal methods.
+
+    private const string CacheGroup = "subscription";
+    private const string CacheKey = "subscriptions";
+    private const string SubscriptionCacheKey = "subscription";
+    private static readonly TimeSpan s_cacheDuration = TimeSpan.FromHours(12);
+
+    private async Task<List<Azure.ResourceManager.Resources.SubscriptionData>> GetSubscriptionsAsync(string? tenant = null)
+    {
+        var cacheKey = string.IsNullOrEmpty(tenant) ? CacheKey : $"{CacheKey}_{tenant}";
+        var fullCacheKey = $"{CacheGroup}_{cacheKey}";
+
+        if (_cache.TryGetValue(fullCacheKey, out List<Azure.ResourceManager.Resources.SubscriptionData>? cachedResults) && cachedResults != null)
+        {
+            _logger.LogDebug("Retrieved {Count} subscriptions from cache for tenant: {Tenant}", cachedResults.Count, tenant ?? "default");
+            return cachedResults;
+        }
+
+        var armClient = CreateArmClient(tenant);
+        var subscriptions = armClient.GetSubscriptions();
+        var results = new List<Azure.ResourceManager.Resources.SubscriptionData>();
+
+        await foreach (var subscription in subscriptions)
+        {
+            results.Add(subscription.Data);
+        }
+
+        _cache.Set(fullCacheKey, results, s_cacheDuration);
+        _logger.LogDebug("Cached {Count} subscriptions for tenant: {Tenant}", results.Count, tenant ?? "default");
+
+        return results;
+    }
+
+    private async Task<SubscriptionResource> GetSubscriptionAsync(string subscription, string? tenant = null)
+    {
+        if (string.IsNullOrWhiteSpace(subscription))
+        {
+            throw new ArgumentException("Subscription cannot be null or empty", nameof(subscription));
+        }
+
+        var subscriptionId = await GetSubscriptionIdAsync(subscription, tenant);
+        var cacheKey = string.IsNullOrEmpty(tenant)
+            ? $"{SubscriptionCacheKey}_{subscriptionId}"
+            : $"{SubscriptionCacheKey}_{subscriptionId}_{tenant}";
+        var fullCacheKey = $"{CacheGroup}_{cacheKey}";
+
+        if (_cache.TryGetValue(fullCacheKey, out SubscriptionResource? cachedSubscription) && cachedSubscription != null)
+        {
+            _logger.LogDebug("Retrieved subscription {SubscriptionId} from cache", subscriptionId);
+            return cachedSubscription;
+        }
+
+        var armClient = CreateArmClient(tenant);
+        var response = await armClient.GetSubscriptionResource(SubscriptionResource.CreateResourceIdentifier(subscriptionId)).GetAsync();
+        if (response?.Value == null)
+        {
+            throw new Exception($"Could not retrieve subscription {subscription}");
+        }
+
+        _cache.Set(fullCacheKey, response.Value, s_cacheDuration);
+        _logger.LogDebug("Cached subscription {SubscriptionId}", subscriptionId);
+        return response.Value;
+    }
+
+    private static bool IsSubscriptionId(string subscription, string? tenant = null)
+    {
+        return Guid.TryParse(subscription, out _);
+    }
+
+    private async Task<string> GetSubscriptionIdByNameAsync(string subscriptionName, string? tenant = null)
+    {
+        var subscriptions = await GetSubscriptionsAsync(tenant);
+        var subscription = subscriptions.FirstOrDefault(s => s.DisplayName.Equals(subscriptionName, StringComparison.OrdinalIgnoreCase)) ??
+            throw new Exception($"Could not find subscription with name {subscriptionName}");
+
+        return subscription.SubscriptionId;
+    }
+
+    private async Task<string> GetSubscriptionNameByIdAsync(string subscriptionId, string? tenant = null)
+    {
+        var subscriptions = await GetSubscriptionsAsync(tenant);
+        var subscription = subscriptions.FirstOrDefault(s => s.SubscriptionId.Equals(subscriptionId, StringComparison.OrdinalIgnoreCase)) ??
+            throw new Exception($"Could not find subscription with ID {subscriptionId}");
+
+        return subscription.DisplayName;
+    }
+
+    private async Task<string> GetSubscriptionIdAsync(string subscription, string? tenant)
+    {
+        if (IsSubscriptionId(subscription))
+        {
+            return subscription;
+        }
+
+        return await GetSubscriptionIdByNameAsync(subscription, tenant);
     }
 
     #endregion

@@ -7,7 +7,7 @@ using AzureMcp.Areas.Redis.Models.CacheForRedis;
 using AzureMcp.Areas.Redis.Models.ManagedRedis;
 using AzureMcp.Commands.Kusto;
 using AzureMcp.LocalServiceClient.Identity;
-using AzureMcp.LocalService.Arm.Grpc;
+using AzureMcp.LocalServiceClient.Arm.Grpc;
 using AzureMcp.Models.Identity;
 using AzureMcp.Models.ResourceGroup;
 using Grpc.Net.Client;

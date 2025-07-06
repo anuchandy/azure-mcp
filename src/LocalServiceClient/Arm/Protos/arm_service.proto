@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option csharp_namespace = "AzureMcp.LocalService.Arm.Grpc";
+option csharp_namespace = "AzureMcp.LocalServiceClient.Arm.Grpc";
 
 package arm;
 
