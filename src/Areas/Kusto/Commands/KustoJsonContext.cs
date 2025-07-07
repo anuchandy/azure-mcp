@@ -1,10 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
-using Azure.ResourceManager.Kusto;
 using AzureMcp.Areas.Kusto.Commands;
 
 namespace AzureMcp.Commands.Kusto;
@@ -42,25 +40,4 @@ public sealed record KustoClusterResourceProxy()
     public required bool IsStreamingIngestEnabled { get; set; }
     public required string EngineType { get; set; }
     public required bool IsAutoStopEnabled { get; set; }
-
-    [SetsRequiredMembers]
-    public KustoClusterResourceProxy(KustoClusterResource kustoClusterResource) : this()
-    {
-        ClusterName = kustoClusterResource.Data.Name;
-        Location = kustoClusterResource.Data.Location.ToString();
-        ResourceGroupName = kustoClusterResource.Id.ResourceGroupName ?? string.Empty;
-        SubscriptionId = kustoClusterResource.Id.SubscriptionId ?? string.Empty;
-        Sku = kustoClusterResource.Data.Sku.Capacity.ToString() ?? string.Empty;
-        Zones = string.Join(",", kustoClusterResource.Data.Zones.ToList()) ?? string.Empty;
-        Identity = kustoClusterResource.Data.Identity?.ManagedServiceIdentityType.ToString() ?? string.Empty;
-        ETag = kustoClusterResource.Data.ETag?.ToString() ?? string.Empty;
-        State = kustoClusterResource.Data.State?.ToString() ?? string.Empty;
-        ProvisioningState = kustoClusterResource.Data.ProvisioningState?.ToString() ?? string.Empty;
-        ClusterUri = kustoClusterResource.Data.ClusterUri?.ToString() ?? string.Empty;
-        DataIngestionUri = kustoClusterResource.Data.DataIngestionUri?.ToString() ?? string.Empty;
-        StateReason = kustoClusterResource.Data.StateReason ?? string.Empty;
-        IsStreamingIngestEnabled = kustoClusterResource.Data.IsStreamingIngestEnabled ?? false;
-        EngineType = kustoClusterResource.Data.EngineType?.ToString() ?? string.Empty;
-        IsAutoStopEnabled = kustoClusterResource.Data.IsAutoStopEnabled ?? false;
-    }
 }
