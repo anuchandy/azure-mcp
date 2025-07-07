@@ -58,6 +58,8 @@ public class ArmGrpcService : ArmService.ArmServiceBase
         _cache = cache;
     }
 
+    #region Dependency Service Status API
+
     /// <summary>
     /// Gets the status of the Identity service connectivity.
     /// </summary>
@@ -96,63 +98,9 @@ public class ArmGrpcService : ArmService.ArmServiceBase
         }
     }
 
-    /// <summary>
-    /// Lists all accessible subscriptions for the specified tenant.
-    /// </summary>
-    /// <param name="request">The request containing optional tenant ID.</param>
-    /// <param name="context">The server call context.</param>
-    /// <returns>A response containing the list of subscriptions.</returns>
-    public override async Task<ListSubscriptionsResponse> ListSubscriptions(
-        ListSubscriptionsRequest request,
-        ServerCallContext context)
-    {
-        try
-        {
-            var tenantId = string.IsNullOrWhiteSpace(request.TenantId) ? null : request.TenantId;
-            var subscriptions = await GetSubscriptionsAsync(tenantId);
-            var response = new ListSubscriptionsResponse
-            {
-                IsSuccess = true
-            };
+    #endregion
 
-            foreach (var subscription in subscriptions)
-            {
-                response.Subscriptions.Add(new AzureMcp.LocalService.Arm.Grpc.SubscriptionData
-                {
-                    SubscriptionId = subscription.SubscriptionId,
-                    DisplayName = subscription.DisplayName,
-                    TenantId = subscription.TenantId?.ToString() ?? string.Empty,
-                    State = subscription.State?.ToString() ?? "Unknown"
-                });
-            }
-            return response;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to list subscriptions for tenant: {TenantId}",
-                string.IsNullOrWhiteSpace(request.TenantId) ? "default" : request.TenantId);
-            return new ListSubscriptionsResponse
-            {
-                IsSuccess = false,
-                ErrorMessage = ex.Message
-            };
-        }
-    }
-
-    /// <summary>
-    /// Creates an ArmClient with the Identity credential for the specified tenant.
-    /// </summary>
-    /// <param name="tenantId">Optional tenant ID for the ARM client.</param>
-    /// <returns>An ArmClient instance configured with Identity authentication.</returns>
-    private ArmClient CreateArmClient(string? tenantId = null)
-    {
-        var credential = new IdentityCredential(
-            _identityClient,
-            _serviceProvider.GetRequiredService<ILogger<IdentityCredential>>(),
-            tenantId);
-        _logger.LogDebug("Created ArmClient for tenant: {TenantId}", tenantId ?? "default");
-        return new ArmClient(credential);
-    }
+    #region Azure_Storage ARM APIs
 
     /// <summary>
     /// Gets storage accounts for a subscription.
@@ -404,6 +352,10 @@ public class ArmGrpcService : ArmService.ArmServiceBase
         }
     }
 
+    #endregion
+
+    #region Azure_Cosmos ARM APIs
+
     /// <summary>
     /// Gets Cosmos DB accounts for a subscription.
     /// </summary>
@@ -568,6 +520,10 @@ public class ArmGrpcService : ArmService.ArmServiceBase
             };
         }
     }
+
+    #endregion
+
+    #region Azure_AppConfig ARM APIs
 
     /// <summary>
     /// Gets App Configuration accounts for a subscription.
@@ -766,6 +722,10 @@ public class ArmGrpcService : ArmService.ArmServiceBase
         }
     }
 
+    #endregion
+
+    #region Azure_Kusto ARM APIs
+
     /// <summary>
     /// Gets Kusto clusters for a subscription.
     /// </summary>
@@ -938,7 +898,9 @@ public class ArmGrpcService : ArmService.ArmServiceBase
         }
     }
 
-    #region Resource Group Operations
+    #endregion
+
+    #region Azure_ResourceGroup ARM APIs
 
     /// <summary>
     /// Gets all resource groups for a subscription.
@@ -1068,7 +1030,7 @@ public class ArmGrpcService : ArmService.ArmServiceBase
 
     #endregion
 
-    #region Redis Methods
+    #region Azure_Redis ARM APIs
 
     /// <summary>
     /// Lists Redis caches for a subscription.
@@ -1502,7 +1464,7 @@ public class ArmGrpcService : ArmService.ArmServiceBase
 
     #endregion
 
-    #region PostgreSQL Methods
+    #region Azure_PostgreSQL ARM APIs
 
     /// <summary>
     /// Lists PostgreSQL flexible servers in a resource group.
@@ -1888,7 +1850,7 @@ public class ArmGrpcService : ArmService.ArmServiceBase
 
     #endregion
 
-    #region Search Services
+    #region Azure_Search ARM APIs
 
     /// <summary>
     /// Lists Azure Search services in a subscription.
@@ -1932,7 +1894,7 @@ public class ArmGrpcService : ArmService.ArmServiceBase
 
     #endregion
 
-    #region Datadog Methods
+    #region Azure_Datadog ARM APIs
 
     /// <summary>
     /// Lists monitored resources for a Datadog monitor.
@@ -2013,7 +1975,7 @@ public class ArmGrpcService : ArmService.ArmServiceBase
 
     #endregion
 
-    #region Monitor Methods
+    #region Azure_Monitor ARM APIs
 
     /// <summary>
     /// Lists Monitor workspaces for a subscription.
@@ -2340,7 +2302,7 @@ public class ArmGrpcService : ArmService.ArmServiceBase
 
     #endregion
 
-    #region Authorization Methods
+    #region Azure_Authorization ARM APIs
 
     /// <summary>
     /// Lists role assignments for a scope.
@@ -2401,6 +2363,10 @@ public class ArmGrpcService : ArmService.ArmServiceBase
             };
         }
     }
+
+    #endregion
+
+    #region Azure_Resources ARM APIs
 
     /// <summary>
     /// Resolves a resource identifier from provided parameters.
@@ -2573,7 +2539,50 @@ public class ArmGrpcService : ArmService.ArmServiceBase
 
     #endregion
 
-    #region Subscription related internal methods.
+    #region Azure_Subscription ARM APIs.
+
+    /// <summary>
+    /// Lists all accessible subscriptions for the specified tenant.
+    /// </summary>
+    /// <param name="request">The request containing optional tenant ID.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>A response containing the list of subscriptions.</returns>
+    public override async Task<ListSubscriptionsResponse> ListSubscriptions(
+        ListSubscriptionsRequest request,
+        ServerCallContext context)
+    {
+        try
+        {
+            var tenantId = string.IsNullOrWhiteSpace(request.TenantId) ? null : request.TenantId;
+            var subscriptions = await GetSubscriptionsAsync(tenantId);
+            var response = new ListSubscriptionsResponse
+            {
+                IsSuccess = true
+            };
+
+            foreach (var subscription in subscriptions)
+            {
+                response.Subscriptions.Add(new AzureMcp.LocalService.Arm.Grpc.SubscriptionData
+                {
+                    SubscriptionId = subscription.SubscriptionId,
+                    DisplayName = subscription.DisplayName,
+                    TenantId = subscription.TenantId?.ToString() ?? string.Empty,
+                    State = subscription.State?.ToString() ?? "Unknown"
+                });
+            }
+            return response;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to list subscriptions for tenant: {TenantId}",
+                string.IsNullOrWhiteSpace(request.TenantId) ? "default" : request.TenantId);
+            return new ListSubscriptionsResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message
+            };
+        }
+    }
 
     private const string CacheGroup = "subscription";
     private const string CacheKey = "subscriptions";
@@ -2671,4 +2680,19 @@ public class ArmGrpcService : ArmService.ArmServiceBase
     }
 
     #endregion
+
+    /// <summary>
+    /// Creates an ArmClient with the Identity credential for the specified tenant.
+    /// </summary>
+    /// <param name="tenantId">Optional tenant ID for the ARM client.</param>
+    /// <returns>An ArmClient instance configured with Identity authentication.</returns>
+    private ArmClient CreateArmClient(string? tenantId = null)
+    {
+        var credential = new IdentityCredential(
+            _identityClient,
+            _serviceProvider.GetRequiredService<ILogger<IdentityCredential>>(),
+            tenantId);
+        _logger.LogDebug("Created ArmClient for tenant: {TenantId}", tenantId ?? "default");
+        return new ArmClient(credential);
+    }
 }
