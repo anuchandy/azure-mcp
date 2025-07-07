@@ -1,9 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using Azure.ResourceManager;
+using Azure.Core;
 using AzureMcp.LocalServiceClient.Identity;
-using AzureMcp.Options;
 using AzureMcp.Services.Azure;
 using AzureMcp.Services.Azure.Tenant;
 using NSubstitute;
@@ -28,29 +27,30 @@ public class BaseAzureServiceTests
     }
 
     [Fact]
-    public async Task CreateArmClientAsync_CreatesAndUsesCachedClient()
+    public async Task GetCredential_CreatesAndUsesCachedCredential()
     {
-        // Act
+        // Arrange
         var tenantName2 = "Other-Tenant-Name";
         var tenantId2 = "Other-Tenant-Id";
 
         _tenantService.GetTenantId(tenantName2).Returns(tenantId2);
 
-        var retryPolicyArgs = new RetryPolicyOptions
-        {
-            DelaySeconds = 5,
-            MaxDelaySeconds = 15,
-            MaxRetries = 3
-        };
+        // Act - Get credential for first tenant twice
+        var credential1 = await _azureService.GetCredential(TenantName);
+        var credential2 = await _azureService.GetCredential(TenantName);
 
-        var client = await _azureService.GetArmClientAsync(TenantName, retryPolicyArgs);
-        var client2 = await _azureService.GetArmClientAsync(TenantName, retryPolicyArgs);
+        // Assert - Should return the same cached credential
+        Assert.Equal(credential1, credential2);
 
-        Assert.Equal(client, client2);
+        // Act - Get credential for different tenant
+        var otherCredential = await _azureService.GetCredential(tenantName2);
 
-        var otherClient = await _azureService.GetArmClientAsync(tenantName2, retryPolicyArgs);
+        // Assert - Should be different credential
+        Assert.NotEqual(credential1, otherCredential);
 
-        Assert.NotEqual(client, otherClient);
+        // Verify the credential service was called appropriately
+        await _credentialService.Received(1).GetCredentialAsync(TenantId, Arg.Any<CancellationToken>());
+        await _credentialService.Received(1).GetCredentialAsync(tenantId2, Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -67,8 +67,8 @@ public class BaseAzureServiceTests
 
     private sealed class TestAzureService(IIdentityServiceClient credentialService, ITenantService? tenantService = null) : BaseAzureService(credentialService, tenantService)
     {
-        public Task<ArmClient> GetArmClientAsync(string? tenant = null, RetryPolicyOptions? retryPolicy = null) =>
-            CreateArmClientAsync(tenant, retryPolicy);
+        public new Task<TokenCredential> GetCredential(string? tenant = null) =>
+            base.GetCredential(tenant);
 
         public Task<string?> ResolveTenantId(string? tenant) => ResolveTenantIdAsync(tenant);
     }

@@ -4,10 +4,7 @@
 using System.Reflection;
 using System.Runtime.Versioning;
 using Azure.Core;
-using Azure.ResourceManager;
-using AzureMcp.Options;
 using AzureMcp.Services.Azure.Tenant;
-using AzureMcp.LocalServiceClient;
 using AzureMcp.LocalServiceClient.Identity;
 
 namespace AzureMcp.Services.Azure;
@@ -19,9 +16,6 @@ public abstract class BaseAzureService(IIdentityServiceClient credentialService,
 
     private TokenCredential? _credential;
     private string? _lastTenantId;
-    private ArmClient? _armClient;
-    private string? _lastArmClientTenantId;
-    private RetryPolicyOptions? _lastRetryPolicy;
     private readonly ITenantService? _tenantService = tenantService;
     private readonly IIdentityServiceClient _credentialService = credentialService;
 
@@ -72,61 +66,6 @@ public abstract class BaseAzureService(IIdentityServiceClient credentialService,
         clientOptions.AddPolicy(s_sharedUserAgentPolicy, HttpPipelinePosition.BeforeTransport);
 
         return clientOptions;
-    }
-
-    /// <summary>
-    /// Configures retry policy options on the provided client options
-    /// </summary>
-    /// <typeparam name="T">Type of client options that inherits from ClientOptions</typeparam>
-    /// <param name="clientOptions">The client options to configure</param>
-    /// <param name="retryPolicy">Optional retry policy configuration</param>
-    /// <returns>The configured client options</returns>
-    protected static T ConfigureRetryPolicy<T>(T clientOptions, RetryPolicyOptions? retryPolicy) where T : ClientOptions
-    {
-        if (retryPolicy != null)
-        {
-            clientOptions.Retry.Delay = TimeSpan.FromSeconds(retryPolicy.DelaySeconds);
-            clientOptions.Retry.MaxDelay = TimeSpan.FromSeconds(retryPolicy.MaxDelaySeconds);
-            clientOptions.Retry.MaxRetries = retryPolicy.MaxRetries;
-            clientOptions.Retry.Mode = retryPolicy.Mode;
-            clientOptions.Retry.NetworkTimeout = TimeSpan.FromSeconds(retryPolicy.NetworkTimeoutSeconds);
-        }
-
-        return clientOptions;
-    }
-
-    /// <summary>
-    /// Creates an Azure Resource Manager client with optional retry policy
-    /// </summary>
-    /// <param name="tenant">Optional Azure tenant ID or name</param>
-    /// <param name="retryPolicy">Optional retry policy configuration</param>
-    protected async Task<ArmClient> CreateArmClientAsync(string? tenant = null, RetryPolicyOptions? retryPolicy = null)
-    {
-        var tenantId = await ResolveTenantIdAsync(tenant);
-
-        // Return cached client if parameters match
-        if (_armClient != null &&
-            _lastArmClientTenantId == tenantId &&
-            RetryPolicyOptions.AreEqual(_lastRetryPolicy, retryPolicy))
-        {
-            return _armClient;
-        }
-
-        try
-        {
-            var credential = await GetCredential(tenantId);
-            var options = ConfigureRetryPolicy(AddDefaultPolicies(new ArmClientOptions()), retryPolicy);
-
-            _armClient = new ArmClient(credential, default, options);
-            _lastArmClientTenantId = tenantId;
-            _lastRetryPolicy = retryPolicy;
-
-            return _armClient;
-        }
-        catch (Exception ex)
-        {
-            throw new Exception($"Failed to create ARM client: {ex.Message}", ex);
-        }
     }
 
     /// <summary>
