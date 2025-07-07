@@ -26,6 +26,13 @@ public interface IArmServiceClient : IServiceClient
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets all accessible tenants.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A list of tenant data</returns>
+    Task<List<TenantData>> GetTenantsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Lists all accessible subscriptions for the specified tenant.
     /// </summary>
     /// <param name="tenantId">Optional tenant ID to list subscriptions for</param>
@@ -538,5 +545,61 @@ public class MonitorWorkspaceInfo
     /// Workspace ARM resource ID.
     /// </summary>
     public string ArmId { get; init; } = string.Empty;
+}
+
+/// <summary>
+/// Tenant information.
+/// </summary>
+public class TenantData
+{
+    /// <summary>
+    /// The fully qualified ID of the tenant (e.g., /tenants/8d65815f-a5b6-402f-9298-045155da7d74).
+    /// </summary>
+    public required string Id { get; init; }
+
+    /// <summary>
+    /// The tenant ID (GUID).
+    /// </summary>
+    public required string TenantId { get; init; }
+
+    /// <summary>
+    /// Category of the tenant (as string value).
+    /// </summary>
+    public required string TenantCategory { get; init; }
+
+    /// <summary>
+    /// Country/region name of the address for the tenant.
+    /// </summary>
+    public required string Country { get; init; }
+
+    /// <summary>
+    /// Country/region abbreviation for the tenant.
+    /// </summary>
+    public required string CountryCode { get; init; }
+
+    /// <summary>
+    /// The display name of the tenant.
+    /// </summary>
+    public required string DisplayName { get; init; }
+
+    /// <summary>
+    /// The list of domains for the tenant.
+    /// </summary>
+    public required List<string> Domains { get; init; }
+
+    /// <summary>
+    /// The default domain for the tenant.
+    /// </summary>
+    public required string DefaultDomain { get; init; }
+
+    /// <summary>
+    /// The tenant type (only available for 'Home' tenant category).
+    /// </summary>
+    public required string TenantType { get; init; }
+
+    /// <summary>
+    /// The tenant's branding logo URL (only available for 'Home' tenant category).
+    /// </summary>
+    public required string TenantBrandingLogoUri { get; init; }
 }
 

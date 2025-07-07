@@ -193,6 +193,39 @@ public class ArmServiceClientTests : IDisposable
     }
 
     [Fact]
+    public async Task CanAttemptToGetTenantsThroughGrpcCall()
+    {
+        // Arrange
+        SetupServices();
+
+        // Act
+        try
+        {
+            Assert.NotNull(_armServiceClient);
+            var result = await _armServiceClient.GetTenantsAsync(
+                cancellationToken: TestContext.Current.CancellationToken);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.True(result.Count > 0, "Should have at least one tenant");
+            
+            foreach (var tenant in result)
+            {
+                Assert.NotNull(tenant.Id);
+                Assert.NotNull(tenant.TenantId);
+                Assert.NotNull(tenant.DisplayName);
+                Assert.NotNull(tenant.Domains);
+            }
+        }
+        catch (Exception ex)
+        {
+            FailOnException(ex);
+        }
+
+        AssertServicesAreRunning();
+    }
+
+    [Fact]
     public async Task CanAttemptToGetStorageAccountsThroughGrpcCall()
     {
         // Arrange

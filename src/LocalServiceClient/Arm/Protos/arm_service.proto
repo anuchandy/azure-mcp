@@ -9,6 +9,9 @@ service ArmService {
   // Get the status of the Identity service connectivity
   rpc GetIdentityServiceStatus(IdentityServiceStatusRequest) returns (IdentityServiceStatusResponse);
   
+  // List all accessible tenants
+  rpc GetTenants(GetTenantsRequest) returns (GetTenantsResponse);
+  
   // List all accessible subscriptions for the specified tenant
   rpc ListSubscriptions(ListSubscriptionsRequest) returns (ListSubscriptionsResponse);
   
@@ -107,6 +110,45 @@ message IdentityServiceStatusResponse {
   string error_message = 2;
   // Additional details about the check
   string details = 3;
+}
+
+// Request for getting tenants
+message GetTenantsRequest {
+  // Currently no parameters needed for getting tenants
+}
+
+// Response containing list of tenants
+message GetTenantsResponse {
+  // List of tenant information
+  repeated TenantInfo tenants = 1;
+  // Whether the operation was successful
+  bool is_success = 2;
+  // Error message if operation failed
+  string error_message = 3;
+}
+
+// Tenant information message
+message TenantInfo {
+  // The fully qualified ID of the tenant (e.g., /tenants/8d65815f-a5b6-402f-9298-045155da7d74)
+  string id = 1;
+  // The tenant ID (GUID)
+  string tenant_id = 2;
+  // Category of the tenant (as string value)
+  string tenant_category = 3;
+  // Country/region name of the address for the tenant
+  string country = 4;
+  // Country/region abbreviation for the tenant
+  string country_code = 5;
+  // The display name of the tenant
+  string display_name = 6;
+  // The list of domains for the tenant
+  repeated string domains = 7;
+  // The default domain for the tenant
+  string default_domain = 8;
+  // The tenant type (only available for 'Home' tenant category)
+  string tenant_type = 9;
+  // The tenant's branding logo URL (only available for 'Home' tenant category)
+  string tenant_branding_logo_uri = 10;
 }
 
 // Request for listing subscriptions

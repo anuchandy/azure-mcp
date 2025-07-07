@@ -101,6 +101,62 @@ public class ArmGrpcService : ArmService.ArmServiceBase
         }
     }
 
+    /// <summary>
+    /// Gets all accessible tenants.
+    /// </summary>
+    /// <param name="request">The request for getting tenants.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>A response containing the list of tenants.</returns>
+    public override async Task<GetTenantsResponse> GetTenants(
+        GetTenantsRequest request,
+        ServerCallContext context)
+    {
+        try
+        {
+            var armClient = CreateArmClient(tenantId: null);
+            var response = new GetTenantsResponse
+            {
+                IsSuccess = true
+            };
+
+            await foreach (var tenant in armClient.GetTenants())
+            {
+                var tenantInfo = new TenantInfo
+                {
+                    Id = tenant.Data.Id?.ToString() ?? string.Empty,
+                    TenantId = tenant.Data.TenantId?.ToString() ?? string.Empty,
+                    TenantCategory = tenant.Data.TenantCategory?.ToString() ?? string.Empty,
+                    Country = tenant.Data.Country ?? string.Empty,
+                    CountryCode = tenant.Data.CountryCode ?? string.Empty,
+                    DisplayName = tenant.Data.DisplayName ?? string.Empty,
+                    DefaultDomain = tenant.Data.DefaultDomain ?? string.Empty,
+                    TenantType = tenant.Data.TenantType ?? string.Empty,
+                    TenantBrandingLogoUri = tenant.Data.TenantBrandingLogoUri?.ToString() ?? string.Empty
+                };
+
+                if (tenant.Data.Domains != null)
+                {
+                    foreach (var domain in tenant.Data.Domains)
+                    {
+                        tenantInfo.Domains.Add(domain);
+                    }
+                }
+
+                response.Tenants.Add(tenantInfo);
+            }
+
+            return response;
+        }
+        catch (Exception ex)
+        {
+            return new GetTenantsResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message
+            };
+        }
+    }
+
     #endregion
 
     #region Azure_Storage ARM APIs

@@ -114,6 +114,44 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         }
     }
 
+    public async Task<List<TenantData>> GetTenantsAsync(CancellationToken cancellationToken = default)
+    {
+        var endpoint = await EnsureServiceStartedAsync(cancellationToken);
+        try
+        {
+            EnsureClient(endpoint);
+            var request = new GetTenantsRequest();
+            var response = await _client!.GetTenantsAsync(request, cancellationToken: cancellationToken);
+            
+            if (!response.IsSuccess)
+            {
+                throw new LocalServiceCallException("GetTenants", GetErrorMessage(response.ErrorMessage));
+            }
+            
+            return response.Tenants.Select(t => new TenantData
+            {
+                Id = t.Id,
+                TenantId = t.TenantId,
+                TenantCategory = t.TenantCategory,
+                Country = t.Country,
+                CountryCode = t.CountryCode,
+                DisplayName = t.DisplayName,
+                Domains = t.Domains.ToList(),
+                DefaultDomain = t.DefaultDomain,
+                TenantType = t.TenantType,
+                TenantBrandingLogoUri = t.TenantBrandingLogoUri
+            }).ToList();
+        }
+        catch (LocalServiceCallException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new LocalServiceCallException("GetTenants", ArmLocalServiceConnectError, ex);
+        }
+    }
+
     public async Task<List<SubscriptionData>> ListSubscriptionsAsync(
         string? tenantId = null,
         CancellationToken cancellationToken = default)
