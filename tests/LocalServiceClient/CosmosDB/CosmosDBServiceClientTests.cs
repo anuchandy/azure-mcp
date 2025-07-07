@@ -27,6 +27,7 @@ public class CosmosDBServiceClientTests : IDisposable
     private CosmosDBServiceClient? _cosmosDBServiceClient;
 
     private const string DefaultSubscriptionId = "faa080af-c1d8-40ad-9cce-e1a450ca5b57";
+    private const string TestCosmosAccountName = "td08288e8c7e88f73";
 
     public CosmosDBServiceClientTests()
     {
@@ -107,13 +108,12 @@ public class CosmosDBServiceClientTests : IDisposable
                 DefaultSubscriptionId,
                 cancellationToken: TestContext.Current.CancellationToken);
 
-            if (!accounts.Any())
+            if (!accounts.Any(a => a == TestCosmosAccountName))
             {
-                _logger.LogWarning("No Cosmos DB accounts found in subscription {SubscriptionId}. Skipping test.", DefaultSubscriptionId);
-                return;
+                Assert.Fail($"Cosmos DB account '{TestCosmosAccountName}' not found in subscription {DefaultSubscriptionId}. Available accounts: {string.Join(", ", accounts)}");
             }
 
-            var account = accounts.First();
+            var account = TestCosmosAccountName;
             var databases = await _cosmosDBServiceClient!.ListDatabasesAsync(
                 account,
                 DefaultSubscriptionId,
@@ -139,15 +139,14 @@ public class CosmosDBServiceClientTests : IDisposable
                 DefaultSubscriptionId,
                 cancellationToken: TestContext.Current.CancellationToken);
 
-            if (!accounts.Any())
+            if (!accounts.Any(a => a == TestCosmosAccountName))
             {
-                _logger.LogWarning("No Cosmos DB accounts found in subscription {SubscriptionId}. Skipping test.", DefaultSubscriptionId);
-                return;
+                Assert.Fail($"Cosmos DB account '{TestCosmosAccountName}' not found in subscription {DefaultSubscriptionId}. Available accounts: {string.Join(", ", accounts)}");
             }
 
-            var account = accounts.First();
+            var account = TestCosmosAccountName;
             var databases = await _cosmosDBServiceClient!.ListDatabasesAsync(
-                "td08288e8c7e88f73",
+                TestCosmosAccountName,
                 DefaultSubscriptionId,
                 "Credential",
                 cancellationToken: TestContext.Current.CancellationToken);
@@ -160,7 +159,7 @@ public class CosmosDBServiceClientTests : IDisposable
 
             var database = databases.First();
             var containers = await _cosmosDBServiceClient!.ListContainersAsync(
-                "td08288e8c7e88f73",
+                TestCosmosAccountName,
                 database,
                 DefaultSubscriptionId,
                 "Credential",
