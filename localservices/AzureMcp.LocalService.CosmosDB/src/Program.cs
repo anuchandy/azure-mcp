@@ -41,6 +41,7 @@ builder.WebHost.ConfigureKestrel(options =>
 
 builder.Services.AddGrpc();
 builder.Services.AddLogging();
+builder.Services.AddMemoryCache();
 
 if (builder.Environment.IsDevelopment())
 {

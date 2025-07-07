@@ -5,14 +5,14 @@ using Microsoft.Azure.Cosmos;
 using Grpc.Core;
 using AzureMcp.LocalService.CosmosDB.Grpc;
 using AzureMcp.LocalService.CosmosDB.Clients;
-using System.Collections.Concurrent;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace AzureMcp.LocalService.CosmosDB.Services;
 
 /// <summary>
 /// gRPC service for providing Cosmos DB data operations.
 /// </summary>
-public class CosmosDBGrpcService : CosmosDBService.CosmosDBServiceBase, IDisposable
+public class CosmosDBGrpcService : CosmosDBService.CosmosDBServiceBase
 {
     private const string ErrorAccountNameRequired = "Account name cannot be null or empty";
     private const string ErrorDatabaseNameRequired = "Database name cannot be null or empty";
@@ -29,7 +29,7 @@ public class CosmosDBGrpcService : CosmosDBService.CosmosDBServiceBase, IDisposa
     private readonly ArmServiceClient _armClient;
     private readonly IdentityClient _identityClient;
     private readonly ILoggerFactory _loggerFactory;
-    private readonly ConcurrentDictionary<string, CosmosClient> _cosmosClients = new();
+    private readonly IMemoryCache _cache;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CosmosDBGrpcService"/> class.
@@ -38,12 +38,14 @@ public class CosmosDBGrpcService : CosmosDBService.CosmosDBServiceBase, IDisposa
     /// <param name="armClient">The ARM service client.</param>
     /// <param name="identityClient">The identity service client.</param>
     /// <param name="loggerFactory">The logger factory for creating loggers.</param>
-    public CosmosDBGrpcService(ILogger<CosmosDBGrpcService> logger, ArmServiceClient armClient, IdentityClient identityClient, ILoggerFactory loggerFactory)
+    /// <param name="cache">The memory cache instance.</param>
+    public CosmosDBGrpcService(ILogger<CosmosDBGrpcService> logger, ArmServiceClient armClient, IdentityClient identityClient, ILoggerFactory loggerFactory, IMemoryCache cache)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _armClient = armClient ?? throw new ArgumentNullException(nameof(armClient));
         _identityClient = identityClient ?? throw new ArgumentNullException(nameof(identityClient));
         _loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
+        _cache = cache ?? throw new ArgumentNullException(nameof(cache));
     }
 
     /// <summary>
@@ -265,9 +267,9 @@ public class CosmosDBGrpcService : CosmosDBService.CosmosDBServiceBase, IDisposa
         string? tenantId,
         CancellationToken cancellationToken)
     {
-        var clientKey = accountName;
+        var clientKey = $"cosmosclient_{accountName}";
         
-        if (_cosmosClients.TryGetValue(clientKey, out var existingClient))
+        if (_cache.TryGetValue(clientKey, out CosmosClient? existingClient) && existingClient != null)
         {
             return existingClient;
         }
@@ -284,7 +286,7 @@ public class CosmosDBGrpcService : CosmosDBService.CosmosDBServiceBase, IDisposa
                 tenantId,
                 cancellationToken);
 
-            _cosmosClients[clientKey] = cosmosClient;
+            _cache.Set(clientKey, cosmosClient, TimeSpan.FromHours(1));
             return cosmosClient;
         }
         catch (Exception ex) when (
@@ -299,7 +301,7 @@ public class CosmosDBGrpcService : CosmosDBService.CosmosDBServiceBase, IDisposa
                 tenantId,
                 cancellationToken);
 
-            _cosmosClients[clientKey] = cosmosClient;
+            _cache.Set(clientKey, cosmosClient, TimeSpan.FromHours(1));
             return cosmosClient;
         }
     }
@@ -329,31 +331,5 @@ public class CosmosDBGrpcService : CosmosDBService.CosmosDBServiceBase, IDisposa
     private static string NormalizeAuthMethod(string? authMethod)
     {
         return string.IsNullOrWhiteSpace(authMethod) ? "Credential" : authMethod;
-    }
-
-    /// <summary>
-    /// Disposes the service and cleans up resources.
-    /// </summary>
-    public void Dispose()
-    {
-        Dispose(true);
-    }
-
-    /// <summary>
-    /// Disposes the service and cleans up resources.
-    /// </summary>
-    /// <param name="disposing">True if disposing from Dispose method, false if from finalizer.</param>
-    protected virtual void Dispose(bool disposing)
-    {
-        if (disposing)
-        {
-            foreach (var client in _cosmosClients.Values)
-            {
-                client?.Dispose();
-            }
-            _cosmosClients.Clear();
-            _armClient?.Dispose();
-            _identityClient?.Dispose();
-        }
     }
 }
