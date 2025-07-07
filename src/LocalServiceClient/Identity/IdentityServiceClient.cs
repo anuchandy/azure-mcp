@@ -21,7 +21,7 @@ public sealed class IdentityServiceClient : IIdentityServiceClient, IDisposable
     private bool _disposed;
 
     public IdentityServiceClient(ILoggerFactory loggerFactory)
-        : this(loggerFactory, CreateDefaultServiceHost(loggerFactory))
+        : this(loggerFactory, IServiceClient.CreateDefaultServiceHost(loggerFactory, LocalServiceName, Path.Combine("localservices", LocalServiceName)))
     {
     }
 
@@ -84,21 +84,4 @@ public sealed class IdentityServiceClient : IIdentityServiceClient, IDisposable
     }
 
     private ILogger<T> CreateLogger<T>() => _loggerFactory.CreateLogger<T>();
-
-    private static GrpcServiceHost CreateDefaultServiceHost(ILoggerFactory loggerFactory)
-    {
-        var config = new GrpcServiceConfig
-        {
-            ServiceName = "Identity",
-            ExtensionPath = "/Users/anuchandy/code/azure-mcp/localservices/AzureMcp.LocalService.Identity/bin/Debug/net9.0/", // Path.Combine("localservices", LocalServiceName),
-            ExecutableNames = new[]
-            {
-                $"{LocalServiceName}.exe",
-                LocalServiceName
-            },
-            HealthEndpoint = "/ishealthy",
-            StartupTimeoutSeconds = 30
-        };
-        return new GrpcServiceHost(loggerFactory.CreateLogger<GrpcServiceHost>(), config);
-    }
 }

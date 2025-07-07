@@ -34,7 +34,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
     private bool _disposed;
 
     public ArmServiceClient(ILoggerFactory loggerFactory, IIdentityServiceClient identityServiceClient)
-        : this(loggerFactory, identityServiceClient, CreateDefaultServiceHost(loggerFactory))
+        : this(loggerFactory, identityServiceClient, IServiceClient.CreateDefaultServiceHost(loggerFactory, LocalServiceName, Path.Combine("localservices", LocalServiceName)))
     {
     }
 
@@ -1435,23 +1435,6 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
     }
 
     private ILogger<T> CreateLogger<T>() => _loggerFactory.CreateLogger<T>();
-
-    private static GrpcServiceHost CreateDefaultServiceHost(ILoggerFactory loggerFactory)
-    {
-        var config = new GrpcServiceConfig
-        {
-            ServiceName = "Arm",
-            ExtensionPath = "/Users/anuchandy/code/azure-mcp/localservices/AzureMcp.LocalService.Arm/bin/Debug/net9.0/", // Path.Combine("localservices", LocalServiceName),
-            ExecutableNames = new[]
-            {
-                $"{LocalServiceName}.exe",
-                LocalServiceName
-            },
-            HealthEndpoint = "/ishealthy",
-            StartupTimeoutSeconds = 30
-        };
-        return new GrpcServiceHost(loggerFactory.CreateLogger<GrpcServiceHost>(), config);
-    }
 
     private static string GetErrorMessage(string? responseErrorMessage)
     {
