@@ -2,24 +2,23 @@
 // Licensed under the MIT License.
 
 using Azure;
-using Azure.ResourceManager.Search;
 using Azure.Search.Documents;
 using Azure.Search.Documents.Indexes;
 using Azure.Search.Documents.Indexes.Models;
 using Azure.Search.Documents.Models;
 using AzureMcp.Areas.Search.Models;
 using AzureMcp.LocalServiceClient.Identity;
+using AzureMcp.LocalServiceClient.Arm;
 using AzureMcp.Options;
 using AzureMcp.Services.Azure;
-using AzureMcp.Services.Azure.Subscription;
 using AzureMcp.Services.Caching;
 using static AzureMcp.Areas.Search.Commands.Index.IndexDescribeCommand;
 
 namespace AzureMcp.Areas.Search.Services;
 
-public sealed class SearchService(ISubscriptionService subscriptionService, ICacheService cacheService, IIdentityServiceClient credentialService) : BaseAzureService(credentialService), ISearchService
+public sealed class SearchService(IArmServiceClient armService, ICacheService cacheService, IIdentityServiceClient credentialService) : BaseAzureService(credentialService), ISearchService
 {
-    private readonly ISubscriptionService _subscriptionService = subscriptionService ?? throw new ArgumentNullException(nameof(subscriptionService));
+    private readonly IArmServiceClient _armService = armService ?? throw new ArgumentNullException(nameof(armService));
     private readonly ICacheService _cacheService = cacheService ?? throw new ArgumentNullException(nameof(cacheService));
     private const string CacheGroup = "search";
     private const string SearchServicesCacheKey = "services";
@@ -43,26 +42,17 @@ public sealed class SearchService(ISubscriptionService subscriptionService, ICac
             return cachedServices;
         }
 
-        var subscriptionResource = await _subscriptionService.GetSubscription(subscription, tenantId, retryPolicy);
-        var services = new List<string>();
         try
         {
-            await foreach (var service in subscriptionResource.GetSearchServicesAsync())
-            {
-                if (service?.Data?.Name != null)
-                {
-                    services.Add(service.Data.Name);
-                }
-            }
-
+            var services = await _armService.ListSearchServicesAsync(subscription, tenantId);
             await _cacheService.SetAsync(CacheGroup, cacheKey, services, s_cacheDurationServices);
+            
+            return services;
         }
         catch (Exception ex)
         {
             throw new Exception($"Error retrieving Search services: {ex.Message}", ex);
         }
-
-        return services;
     }
 
     public async Task<List<IndexInfo>> ListIndexes(

@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using Azure.ResourceManager.Resources;
+using AzureMcp.LocalServiceClient.Arm;
 using AzureMcp.LocalServiceClient.Identity;
 using AzureMcp.Models.ResourceGroup;
 using AzureMcp.Options;
@@ -10,9 +10,10 @@ using AzureMcp.Services.Caching;
 
 namespace AzureMcp.Services.Azure.ResourceGroup;
 
-public class ResourceGroupService(ICacheService cacheService, ISubscriptionService subscriptionService, IIdentityServiceClient credentialService)
+public class ResourceGroupService(IArmServiceClient armService, ICacheService cacheService, ISubscriptionService subscriptionService, IIdentityServiceClient credentialService)
     : BaseAzureService(credentialService), IResourceGroupService
 {
+    private readonly IArmServiceClient _armService = armService ?? throw new ArgumentNullException(nameof(armService));
     private readonly ICacheService _cacheService = cacheService ?? throw new ArgumentNullException(nameof(cacheService));
     private readonly ISubscriptionService _subscriptionService = subscriptionService ?? throw new ArgumentNullException(nameof(subscriptionService));
     private const string CacheGroup = "resourcegroup";
@@ -23,8 +24,7 @@ public class ResourceGroupService(ICacheService cacheService, ISubscriptionServi
     {
         ValidateRequiredParameters(subscription);
 
-        var subscriptionResource = await _subscriptionService.GetSubscription(subscription, tenant, retryPolicy);
-        var subscriptionId = subscriptionResource.Data.SubscriptionId;
+        var subscriptionId = await getSubscriptionId(subscription, tenant, retryPolicy);
 
         // Try to get from cache first
         var cacheKey = $"{CacheKey}_{subscriptionId}_{tenant ?? "default"}";
@@ -37,14 +37,7 @@ public class ResourceGroupService(ICacheService cacheService, ISubscriptionServi
         // If not in cache, fetch from Azure
         try
         {
-            var resourceGroups = await subscriptionResource.GetResourceGroups()
-                .GetAllAsync()
-                .Select(rg => new ResourceGroupInfo(
-                    rg.Data.Name,
-                    rg.Data.Id.ToString(),
-                    rg.Data.Location.ToString()))
-                .ToListAsync();
-
+            var resourceGroups = await _armService.GetResourceGroupsAsync(subscriptionId, tenant);
             // Cache the results
             await _cacheService.SetAsync(CacheGroup, cacheKey, resourceGroups, s_cacheDuration);
 
@@ -60,8 +53,7 @@ public class ResourceGroupService(ICacheService cacheService, ISubscriptionServi
     {
         ValidateRequiredParameters(subscription, resourceGroupName);
 
-        var subscriptionResource = await _subscriptionService.GetSubscription(subscription, tenant, retryPolicy);
-        var subscriptionId = subscriptionResource.Data.SubscriptionId;
+        var subscriptionId = await getSubscriptionId(subscription, tenant, retryPolicy);
 
         // Try to get from cache first
         var cacheKey = $"{CacheKey}_{subscriptionId}_{tenant ?? "default"}";
@@ -73,16 +65,8 @@ public class ResourceGroupService(ICacheService cacheService, ISubscriptionServi
 
         try
         {
-            var rg = await GetResourceGroupResource(subscription, resourceGroupName, tenant, retryPolicy);
-            if (rg == null)
-            {
-                return null;
-            }
-
-            return new ResourceGroupInfo(
-                rg.Data.Name,
-                rg.Data.Id.ToString(),
-                rg.Data.Location.ToString());
+            var rg = await _armService.GetResourceGroupAsync(resourceGroupName, subscription, tenant);
+            return rg;
         }
         catch (Exception ex)
         {
@@ -90,22 +74,12 @@ public class ResourceGroupService(ICacheService cacheService, ISubscriptionServi
         }
     }
 
-    public async Task<ResourceGroupResource?> GetResourceGroupResource(string subscription, string resourceGroupName, string? tenant = null, RetryPolicyOptions? retryPolicy = null)
+    private async Task<string> getSubscriptionId(string subscription, string? tenant, RetryPolicyOptions? retryPolicy)
     {
-        ValidateRequiredParameters(subscription, resourceGroupName);
-
-        try
+        if (_subscriptionService.IsSubscriptionId(subscription, tenant))
         {
-            var subscriptionResource = await _subscriptionService.GetSubscription(subscription, tenant, retryPolicy);
-            var resourceGroupResponse = await subscriptionResource.GetResourceGroups()
-                .GetAsync(resourceGroupName)
-                .ConfigureAwait(false);
-
-            return resourceGroupResponse?.Value;
+            return subscription;
         }
-        catch (Exception ex)
-        {
-            throw new Exception($"Error retrieving resource group {resourceGroupName}: {ex.Message}", ex);
-        }
+        return await _subscriptionService.GetSubscriptionIdByName(subscription, tenant, retryPolicy);
     }
 }

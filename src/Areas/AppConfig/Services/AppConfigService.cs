@@ -3,81 +3,24 @@
 
 using Azure.Core;
 using Azure.Data.AppConfiguration;
-using Azure.ResourceManager.AppConfiguration;
-using Azure.ResourceManager.Resources;
 using AzureMcp.Areas.AppConfig.Models;
+using AzureMcp.LocalServiceClient.Arm;
 using AzureMcp.LocalServiceClient.Identity;
-using AzureMcp.Models.Identity;
 using AzureMcp.Options;
 using AzureMcp.Services.Azure;
-using AzureMcp.Services.Azure.Subscription;
-using AzureMcp.Services.Azure.Tenant;
 
 namespace AzureMcp.Areas.AppConfig.Services;
 
-public class AppConfigService(ISubscriptionService subscriptionService, ITenantService tenantService, IIdentityServiceClient credentialService)
-    : BaseAzureService(credentialService, tenantService), IAppConfigService
+public class AppConfigService(IArmServiceClient armService, IIdentityServiceClient credentialService) 
+    : BaseAzureService(credentialService), IAppConfigService
 {
-    private readonly ISubscriptionService _subscriptionService = subscriptionService ?? throw new ArgumentNullException(nameof(subscriptionService));
+    private readonly IArmServiceClient _armService = armService ?? throw new ArgumentNullException(nameof(armService));
 
     public async Task<List<AppConfigurationAccount>> GetAppConfigAccounts(string subscriptionId, string? tenant = null, RetryPolicyOptions? retryPolicy = null)
     {
         ValidateRequiredParameters(subscriptionId);
 
-        var subscription = await _subscriptionService.GetSubscription(subscriptionId, tenant, retryPolicy);
-        var accounts = new List<AppConfigurationAccount>();
-
-        await foreach (var account in subscription.GetAppConfigurationStoresAsync())
-        {
-            ResourceIdentifier resourceId = account.Id;
-            if (resourceId.ToString().Length == 0)
-                continue;
-
-            var acc = new AppConfigurationAccount
-            {
-                Name = account.Data.Name,
-                Location = account.Data.Location.ToString(),
-                Endpoint = account.Data.Endpoint,
-                CreationDate = account.Data.CreatedOn?.DateTime ?? DateTime.MinValue,
-                PublicNetworkAccess = account.Data.PublicNetworkAccess.HasValue &&
-                    account.Data.PublicNetworkAccess.Value.ToString().Equals("Enabled", StringComparison.OrdinalIgnoreCase),
-                Sku = account.Data.SkuName,
-                Tags = account.Data.Tags ?? new Dictionary<string, string>(),
-                DisableLocalAuth = account.Data.DisableLocalAuth,
-                SoftDeleteRetentionInDays = account.Data.SoftDeleteRetentionInDays,
-                EnablePurgeProtection = account.Data.EnablePurgeProtection,
-                CreateMode = account.Data.CreateMode?.ToString(),
-
-                // Map the new managed identity structure
-                ManagedIdentity = account.Data.Identity == null ? null : new ManagedIdentityInfo
-                {
-                    SystemAssignedIdentity = new SystemAssignedIdentityInfo
-                    {
-                        Enabled = account.Data.Identity != null,
-                        TenantId = account.Data.Identity?.TenantId?.ToString(),
-                        PrincipalId = account.Data.Identity?.PrincipalId?.ToString()
-                    },
-                    UserAssignedIdentities = account.Data.Identity?.UserAssignedIdentities?
-                        .Select(id => new UserAssignedIdentityInfo
-                        {
-                            ClientId = id.Value.ClientId?.ToString(),
-                            PrincipalId = id.Value.PrincipalId?.ToString()
-                        })
-                        .ToArray()
-                },
-
-                // Full encryption properties from KeyVaultProperties
-                Encryption = account.Data.EncryptionKeyVaultProperties == null ? null : new EncryptionProperties
-                {
-                    KeyIdentifier = account.Data.EncryptionKeyVaultProperties.KeyIdentifier,
-                    IdentityClientId = account.Data.EncryptionKeyVaultProperties.IdentityClientId,
-                }
-            };
-
-            accounts.Add(acc);
-        }
-
-        return accounts;
+        return await _armService.GetAppConfigAccountsAsync(subscriptionId, tenant);
     }
 
     public async Task<List<KeyValueSetting>> ListKeyValues(
@@ -168,30 +111,10 @@ public class AppConfigService(ISubscriptionService subscriptionService, ITenantS
 
     private async Task<ConfigurationClient> GetConfigurationClient(string accountName, string subscriptionId, string? tenant, RetryPolicyOptions? retryPolicy)
     {
-        var subscription = await _subscriptionService.GetSubscription(subscriptionId, tenant, retryPolicy);
-        var configStore = await FindAppConfigStore(subscription, accountName, subscriptionId);
-        var endpoint = configStore.Data.Endpoint;
+        var endpoint = await _armService.GetAppConfigAccountEndpointAsync(accountName, subscriptionId, tenant);
         var credential = await GetCredential(tenant);
-        AddDefaultPolicies(new ConfigurationClientOptions());
 
         return new ConfigurationClient(new Uri(endpoint), credential);
     }
 
-    private static async Task<AppConfigurationStoreResource> FindAppConfigStore(SubscriptionResource subscription, string accountName, string subscriptionId)
-    {
-        AppConfigurationStoreResource? configStore = null;
-        await foreach (var store in subscription.GetAppConfigurationStoresAsync())
-        {
-            if (store.Data.Name == accountName)
-            {
-                configStore = store;
-                break;
-            }
-        }
-
-        if (configStore == null)
-            throw new Exception($"App Configuration store '{accountName}' not found in subscription '{subscriptionId}'");
-
-        return configStore;
-    }
 }

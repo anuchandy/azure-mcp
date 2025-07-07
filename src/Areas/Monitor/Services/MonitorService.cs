@@ -6,27 +6,23 @@ using Azure;
 using Azure.Core;
 using Azure.Monitor.Query;
 using Azure.Monitor.Query.Models;
-using Azure.ResourceManager.OperationalInsights;
 using AzureMcp.Areas.Monitor.Models;
 using AzureMcp.LocalServiceClient.Identity;
+using AzureMcp.LocalServiceClient.Arm;
 using AzureMcp.Options;
 using AzureMcp.Services.Azure;
-using AzureMcp.Services.Azure.ResourceGroup;
-using AzureMcp.Services.Azure.Subscription;
 using AzureMcp.Services.Azure.Tenant;
 
 namespace AzureMcp.Areas.Monitor.Services;
 
 public class MonitorService : BaseAzureService, IMonitorService
 {
-    private readonly ISubscriptionService _subscriptionService;
-    private readonly IResourceGroupService _resourceGroupService;
+    private readonly IArmServiceClient _armService;
 
-    public MonitorService(ISubscriptionService subscriptionService, ITenantService tenantService, IResourceGroupService resourceGroupService, IIdentityServiceClient credentialService)
+    public MonitorService(IArmServiceClient armService, ITenantService tenantService, IIdentityServiceClient credentialService)
         : base(credentialService, tenantService)
     {
-        _subscriptionService = subscriptionService ?? throw new ArgumentNullException(nameof(subscriptionService));
-        _resourceGroupService = resourceGroupService ?? throw new ArgumentNullException(nameof(resourceGroupService));
+        _armService = armService ?? throw new ArgumentNullException(nameof(armService));
     }
 
     public async Task<List<JsonNode>> QueryResourceLogs(
@@ -163,30 +159,8 @@ public class MonitorService : BaseAzureService, IMonitorService
 
         try
         {
-            var (_, resolvedWorkspaceName) = await GetWorkspaceInfo(workspace, subscription, tenant, retryPolicy);
-
-            var resourceGroupResource = await _resourceGroupService.GetResourceGroupResource(subscription, resourceGroup, tenant, retryPolicy) ??
-                throw new Exception($"Resource group {resourceGroup} not found in subscription {subscription}");
-            var workspaceResponse = await resourceGroupResource.GetOperationalInsightsWorkspaceAsync(resolvedWorkspaceName)
-                .ConfigureAwait(false);
-
-            if (workspaceResponse?.Value == null)
-            {
-                throw new Exception($"Workspace {resolvedWorkspaceName} not found in resource group {resourceGroup}");
-            }
-
-            var workspaceResource = workspaceResponse.Value;
-            var tableOperations = workspaceResource.GetOperationalInsightsTables();
-            var tables = await tableOperations.GetAllAsync()
-                .ToListAsync()
-                .ConfigureAwait(false);
-
-            return tables
-                .Where(table => string.IsNullOrEmpty(tableType) || table.Data.Schema.TableType.ToString() == tableType)
-                .Select(table => table.Data.Name ?? string.Empty) // ensure non-null
-                .Where(name => !string.IsNullOrEmpty(name))
-                .OrderBy(name => name)
-                .ToList();
+            return await _armService.ListMonitorTablesAsync(
+                subscription, resourceGroup, workspace, tableType, tenant);
         }
         catch (Exception ex)
         {
@@ -203,19 +177,13 @@ public class MonitorService : BaseAzureService, IMonitorService
 
         try
         {
-            var subscriptionResource = await _subscriptionService.GetSubscription(subscription, tenant, retryPolicy);
-
-            var workspaces = await subscriptionResource
-                .GetOperationalInsightsWorkspacesAsync()
-                .Select(workspace => new WorkspaceInfo
-                {
-                    Name = workspace.Data.Name,
-                    CustomerId = workspace.Data.CustomerId?.ToString() ?? string.Empty,
-                })
-                .ToListAsync()
-                .ConfigureAwait(false);
-
-            return workspaces;
+            var monitorWorkspaces = await _armService.ListMonitorWorkspacesAsync(subscription, tenant);
+            
+            return monitorWorkspaces.Select(workspace => new WorkspaceInfo
+            {
+                Name = workspace.Name,
+                CustomerId = workspace.CustomerId
+            }).ToList();
         }
         catch (Exception ex) when (ex is not ArgumentNullException)
         {
@@ -323,32 +291,11 @@ public class MonitorService : BaseAzureService, IMonitorService
         RetryPolicyOptions? retryPolicy)
     {
         ValidateRequiredParameters(subscription, resourceGroup, workspace);
+        
         try
         {
-            var (_, resolvedWorkspaceName) = await GetWorkspaceInfo(workspace, subscription, tenant, retryPolicy);
-
-            var resourceGroupResource = await _resourceGroupService.GetResourceGroupResource(subscription, resourceGroup, tenant, retryPolicy)
-                ?? throw new Exception($"Resource group {resourceGroup} not found in subscription {subscription}");
-            var workspaceResponse = await resourceGroupResource.GetOperationalInsightsWorkspaceAsync(resolvedWorkspaceName)
-                .ConfigureAwait(false);
-
-            if (workspaceResponse?.Value == null)
-            {
-                throw new Exception($"Workspace {resolvedWorkspaceName} not found in resource group {resourceGroup}");
-            }
-
-            var workspaceResource = workspaceResponse.Value;
-            var tableOperations = workspaceResource.GetOperationalInsightsTables();
-            var tables = await tableOperations.GetAllAsync().ToListAsync().ConfigureAwait(false);
-
-            var tableTypes = tables
-                .Select(table => table.Data.Schema.TableType?.ToString() ?? string.Empty)
-                .Where(type => !string.IsNullOrEmpty(type))
-                .Distinct()
-                .OrderBy(type => type)
-                .ToList();
-
-            return tableTypes;
+            return await _armService.ListMonitorTableTypesAsync(
+                subscription, resourceGroup, workspace, tenant);
         }
         catch (Exception ex)
         {

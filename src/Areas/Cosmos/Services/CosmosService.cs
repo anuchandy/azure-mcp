@@ -2,22 +2,21 @@
 // Licensed under the MIT License.
 
 using System.Text.Json.Nodes;
-using Azure.ResourceManager.CosmosDB;
 using AzureMcp.Areas.Cosmos.Exceptions;
 using AzureMcp.LocalServiceClient.Identity;
+using AzureMcp.LocalServiceClient.Arm;
 using AzureMcp.Options;
 using AzureMcp.Services.Azure;
-using AzureMcp.Services.Azure.Subscription;
 using AzureMcp.Services.Azure.Tenant;
 using AzureMcp.Services.Caching;
 using Microsoft.Azure.Cosmos;
 
 namespace AzureMcp.Areas.Cosmos.Services;
 
-public class CosmosService(ISubscriptionService subscriptionService, ITenantService tenantService, ICacheService cacheService, IIdentityServiceClient credentialService)
+public class CosmosService(IArmServiceClient armService, ITenantService tenantService, ICacheService cacheService, IIdentityServiceClient credentialService)
     : BaseAzureService(credentialService, tenantService), ICosmosService, IDisposable
 {
-    private readonly ISubscriptionService _subscriptionService = subscriptionService ?? throw new ArgumentNullException(nameof(subscriptionService));
+    private readonly IArmServiceClient _armService = armService ?? throw new ArgumentNullException(nameof(armService));
     private readonly ICacheService _cacheService = cacheService ?? throw new ArgumentNullException(nameof(cacheService));
     private const string CosmosBaseUri = "https://{0}.documents.azure.com:443/";
     private const string CacheGroup = "cosmos";
@@ -25,7 +24,7 @@ public class CosmosService(ISubscriptionService subscriptionService, ITenantServ
     private static readonly TimeSpan s_cacheDurationClients = TimeSpan.FromMinutes(15);
     private bool _disposed;
 
-    private async Task<CosmosDBAccountResource> GetCosmosAccountAsync(
+    private async Task<CosmosAccountData> GetCosmosAccountAsync(
         string subscriptionId,
         string accountName,
         string? tenant = null,
@@ -33,16 +32,14 @@ public class CosmosService(ISubscriptionService subscriptionService, ITenantServ
     {
         ValidateRequiredParameters(subscriptionId, accountName);
 
-        var subscription = await _subscriptionService.GetSubscription(subscriptionId, tenant, retryPolicy);
-
-        await foreach (var account in subscription.GetCosmosDBAccountsAsync())
+        try
         {
-            if (account.Data.Name == accountName)
-            {
-                return account;
-            }
+            return await _armService.GetCosmosAccountAsync(accountName, subscriptionId, tenant);
         }
-        throw new Exception($"Cosmos DB account '{accountName}' not found in subscription '{subscriptionId}'");
+        catch (Exception ex)
+        {
+            throw new Exception($"Cosmos DB account '{accountName}' not found in subscription '{subscriptionId}': {ex.Message}", ex);
+        }
     }
 
     private async Task<CosmosClient> CreateCosmosClientWithAuth(
@@ -67,10 +64,9 @@ public class CosmosService(ISubscriptionService subscriptionService, ITenantServ
         {
             case AuthMethod.Key:
                 var cosmosAccount = await GetCosmosAccountAsync(subscriptionId, accountName, tenant);
-                var keys = await cosmosAccount.GetKeysAsync();
                 cosmosClient = new CosmosClient(
                     string.Format(CosmosBaseUri, accountName),
-                    keys.Value.PrimaryMasterKey,
+                    cosmosAccount.PrimaryMasterKey,
                     clientOptions);
                 break;
 
@@ -156,24 +152,14 @@ public class CosmosService(ISubscriptionService subscriptionService, ITenantServ
     {
         ValidateRequiredParameters(subscriptionId);
 
-        var subscription = await _subscriptionService.GetSubscription(subscriptionId, tenant, retryPolicy);
-        var accounts = new List<string>();
         try
         {
-            await foreach (var account in subscription.GetCosmosDBAccountsAsync())
-            {
-                if (account?.Data?.Name != null)
-                {
-                    accounts.Add(account.Data.Name);
-                }
-            }
+            return await _armService.GetCosmosAccountsAsync(subscriptionId, tenant);
         }
         catch (Exception ex)
         {
             throw new Exception($"Error retrieving Cosmos DB accounts: {ex.Message}", ex);
         }
-
-        return accounts;
     }
 
     public async Task<List<string>> ListDatabases(

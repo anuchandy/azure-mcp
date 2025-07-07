@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using Azure.ResourceManager.Resources;
+using AzureMcp.LocalServiceClient.Arm;
 using AzureMcp.LocalServiceClient.Identity;
 using AzureMcp.Options;
 using AzureMcp.Services.Azure.Tenant;
@@ -9,69 +9,31 @@ using AzureMcp.Services.Caching;
 
 namespace AzureMcp.Services.Azure.Subscription;
 
-public class SubscriptionService(ICacheService cacheService, ITenantService tenantService, IIdentityServiceClient credentialService)
+public class SubscriptionService(IArmServiceClient armServiceClient, ICacheService cacheService, ITenantService tenantService, IIdentityServiceClient credentialService)
     : BaseAzureService(credentialService, tenantService), ISubscriptionService
 {
+    private readonly IArmServiceClient _armServiceClient = armServiceClient ?? throw new ArgumentNullException(nameof(armServiceClient));
     private readonly ICacheService _cacheService = cacheService ?? throw new ArgumentNullException(nameof(cacheService));
     private const string CacheGroup = "subscription";
     private const string CacheKey = "subscriptions";
-    private const string SubscriptionCacheKey = "subscription";
     private static readonly TimeSpan s_cacheDuration = TimeSpan.FromHours(12);
 
-    public async Task<List<SubscriptionData>> GetSubscriptions(string? tenant = null, RetryPolicyOptions? retryPolicy = null)
+    public async Task<List<AzureMcp.LocalServiceClient.Arm.SubscriptionData>> GetSubscriptions(string? tenant = null, RetryPolicyOptions? retryPolicy = null)
     {
         // Try to get from cache first
         var cacheKey = string.IsNullOrEmpty(tenant) ? CacheKey : $"{CacheKey}_{tenant}";
-        var cachedResults = await _cacheService.GetAsync<List<SubscriptionData>>(CacheGroup, cacheKey, s_cacheDuration);
+        var cachedResults = await _cacheService.GetAsync<List<AzureMcp.LocalServiceClient.Arm.SubscriptionData>>(CacheGroup, cacheKey, s_cacheDuration);
         if (cachedResults != null)
         {
             return cachedResults;
         }
 
         // If not in cache, fetch from Azure
-        var armClient = await CreateArmClientAsync(tenant, retryPolicy);
-        var subscriptions = armClient.GetSubscriptions();
-        var results = new List<SubscriptionData>();
-
-        await foreach (var subscription in subscriptions)
-        {
-            results.Add(subscription.Data);
-        }
-
+        var results = await _armServiceClient.ListSubscriptionsAsync(tenant);
         // Cache the results
         await _cacheService.SetAsync(CacheGroup, cacheKey, results, s_cacheDuration);
 
         return results;
-    }
-
-    public async Task<SubscriptionResource> GetSubscription(string subscription, string? tenant = null, RetryPolicyOptions? retryPolicy = null)
-    {
-        ValidateRequiredParameters(subscription);
-
-        // Get the subscription ID first, whether the input is a name or ID
-        var subscriptionId = await GetSubscriptionId(subscription, tenant, retryPolicy);
-
-        // Use subscription ID for cache key
-        var cacheKey = string.IsNullOrEmpty(tenant)
-            ? $"{SubscriptionCacheKey}_{subscriptionId}"
-            : $"{SubscriptionCacheKey}_{subscriptionId}_{tenant}";
-        var cachedSubscription = await _cacheService.GetAsync<SubscriptionResource>(CacheGroup, cacheKey, s_cacheDuration);
-        if (cachedSubscription != null)
-        {
-            return cachedSubscription;
-        }
-
-        var armClient = await CreateArmClientAsync(tenant, retryPolicy);
-        var response = await armClient.GetSubscriptionResource(SubscriptionResource.CreateResourceIdentifier(subscriptionId)).GetAsync();
-        if (response?.Value == null)
-        {
-            throw new Exception($"Could not retrieve subscription {subscription}");
-        }
-
-        // Cache the result using subscription ID
-        await _cacheService.SetAsync(CacheGroup, cacheKey, response.Value, s_cacheDuration);
-
-        return response.Value;
     }
 
     public bool IsSubscriptionId(string subscription, string? tenant = null)

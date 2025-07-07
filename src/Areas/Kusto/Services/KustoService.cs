@@ -1,12 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using Azure.ResourceManager.Kusto;
 using AzureMcp.Commands.Kusto;
 using AzureMcp.LocalServiceClient.Identity;
+using AzureMcp.LocalServiceClient.Arm;
 using AzureMcp.Options;
 using AzureMcp.Services.Azure;
-using AzureMcp.Services.Azure.Subscription;
 using AzureMcp.Services.Azure.Tenant;
 using AzureMcp.Services.Caching;
 
@@ -14,12 +13,12 @@ namespace AzureMcp.Areas.Kusto.Services;
 
 
 public sealed class KustoService(
-    ISubscriptionService subscriptionService,
+    IArmServiceClient armService,
     ITenantService tenantService,
     ICacheService cacheService,
     IIdentityServiceClient credentialService) : BaseAzureService(credentialService, tenantService), IKustoService
 {
-    private readonly ISubscriptionService _subscriptionService = subscriptionService ?? throw new ArgumentNullException(nameof(subscriptionService));
+    private readonly IArmServiceClient _armService = armService ?? throw new ArgumentNullException(nameof(armService));
     private readonly ICacheService _cacheService = cacheService ?? throw new ArgumentNullException(nameof(cacheService));
 
     private const string CacheGroup = "kusto";
@@ -50,19 +49,19 @@ public sealed class KustoService(
             return cachedClusters;
         }
 
-        var subscription = await _subscriptionService.GetSubscription(subscriptionId, tenant, retryPolicy);
-        var clusters = new List<string>();
-
-        await foreach (var cluster in subscription.GetKustoClustersAsync())
+        try
         {
-            if (cluster?.Data?.Name != null)
-            {
-                clusters.Add(cluster.Data.Name);
-            }
-        }
-        await _cacheService.SetAsync(CacheGroup, cacheKey, clusters, s_cacheDuration);
+            var clusters = await _armService.GetKustoClustersAsync(subscriptionId, tenant);
 
-        return clusters;
+            // Cache the results
+            await _cacheService.SetAsync(CacheGroup, cacheKey, clusters, s_cacheDuration);
+            
+            return clusters;
+        }
+        catch (Exception ex)
+        {
+            throw new Exception($"Error retrieving Kusto clusters: {ex.Message}", ex);
+        }
     }
 
     public async Task<KustoClusterResourceProxy?> GetCluster(
@@ -73,16 +72,15 @@ public sealed class KustoService(
     {
         ValidateRequiredParameters(subscriptionId);
 
-        var subscription = await _subscriptionService.GetSubscription(subscriptionId, tenant, retryPolicy);
-        await foreach (var cluster in subscription.GetKustoClustersAsync())
+        try
         {
-            if (string.Equals(cluster.Data.Name, clusterName, StringComparison.OrdinalIgnoreCase))
-            {
-                return new KustoClusterResourceProxy(cluster);
-            }
+            return await _armService.GetKustoClusterAsync(clusterName, subscriptionId, tenant);
         }
-
-        return null;
+        catch (Exception)
+        {
+            // Return null if cluster not found, to match original behavior
+            return null;
+        }
     }
 
     public async Task<List<string>> ListDatabases(

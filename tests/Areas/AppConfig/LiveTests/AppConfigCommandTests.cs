@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using AzureMcp.Areas.AppConfig.Services;
+using AzureMcp.LocalServiceClient.Arm;
 using AzureMcp.LocalServiceClient.Identity;
 using AzureMcp.Services.Azure.Subscription;
 using AzureMcp.Services.Azure.Tenant;
@@ -31,8 +32,9 @@ public class AppConfigCommandTests : CommandTestsBase,
         var cacheService = new CacheService(memoryCache);
         var credentialService = Substitute.For<IIdentityServiceClient>();
         var tenantService = new TenantService(cacheService, credentialService);
-        var subscriptionService = new SubscriptionService(cacheService, tenantService, credentialService);
-        _appConfigService = new AppConfigService(subscriptionService, tenantService, credentialService);
+        var armServiceClient = Substitute.For<IArmServiceClient>();
+        var subscriptionService = new SubscriptionService(armServiceClient, cacheService, tenantService, credentialService);
+        _appConfigService = new AppConfigService(armServiceClient, credentialService);
         _subscriptionId = Settings.SubscriptionId;
         _accountName = Settings.ResourceBaseName;
     }

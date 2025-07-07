@@ -3,26 +3,23 @@
 
 using Azure;
 using Azure.Data.Tables;
-using Azure.ResourceManager.Resources;
-using Azure.ResourceManager.Storage;
-using Azure.ResourceManager.Storage.Models;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Azure.Storage.Files.DataLake;
 using AzureMcp.Areas.Storage.Models;
 using AzureMcp.GrpcClient.Credential;
 using AzureMcp.LocalServiceClient.Identity;
+using AzureMcp.LocalServiceClient.Arm;
 using AzureMcp.Options;
 using AzureMcp.Services.Azure;
-using AzureMcp.Services.Azure.Subscription;
 using AzureMcp.Services.Azure.Tenant;
 using AzureMcp.Services.Caching;
 
 namespace AzureMcp.Areas.Storage.Services;
 
-public class StorageService(ISubscriptionService subscriptionService, ITenantService tenantService, ICacheService cacheService, IIdentityServiceClient credentialService) : BaseAzureService(credentialService, tenantService), IStorageService
+public class StorageService(IArmServiceClient armService, ITenantService tenantService, ICacheService cacheService, IIdentityServiceClient credentialService) : BaseAzureService(credentialService, tenantService), IStorageService
 {
-    private readonly ISubscriptionService _subscriptionService = subscriptionService ?? throw new ArgumentNullException(nameof(subscriptionService));
+    private readonly IArmServiceClient _armService = armService ?? throw new ArgumentNullException(nameof(armService));
     private readonly ICacheService _cacheService = cacheService ?? throw new ArgumentNullException(nameof(cacheService));
     private const string CacheGroup = "storage";
     private const string StorageAccountsCacheKey = "accounts";
@@ -44,27 +41,18 @@ public class StorageService(ISubscriptionService subscriptionService, ITenantSer
             return cachedAccounts;
         }
 
-        var subscription = await _subscriptionService.GetSubscription(subscriptionId, tenant, retryPolicy);
-        var accounts = new List<string>();
         try
         {
-            await foreach (var account in subscription.GetStorageAccountsAsync())
-            {
-                if (account?.Data?.Name != null)
-                {
-                    accounts.Add(account.Data.Name);
-                }
-            }
-
+            var accounts = await _armService.GetStorageAccountsAsync(subscriptionId, tenant);
             // Cache the results
             await _cacheService.SetAsync(CacheGroup, cacheKey, accounts, s_cacheDuration);
+            
+            return accounts;
         }
         catch (Exception ex)
         {
             throw new Exception($"Error retrieving Storage accounts: {ex.Message}", ex);
         }
-
-        return accounts;
     }
 
     public async Task<List<string>> ListContainers(string accountName, string subscriptionId, string? tenant = null, RetryPolicyOptions? retryPolicy = null)
@@ -230,47 +218,26 @@ public class StorageService(ISubscriptionService subscriptionService, ITenantSer
 
     private async Task<string> GetStorageAccountKey(string accountName, string subscriptionId, string? tenant = null)
     {
-        var subscription = await _subscriptionService.GetSubscription(subscriptionId, tenant);
-        var storageAccount = await GetStorageAccount(subscription, accountName) ??
-            throw new Exception($"Storage account '{accountName}' not found in subscription '{subscriptionId}'");
-
-        var keys = new List<StorageAccountKey>();
-        await foreach (var key in storageAccount.GetKeysAsync())
+        try
         {
-            keys.Add(key);
+            return await _armService.GetStorageAccountKeysAsync(accountName, subscriptionId, tenant);
         }
-
-        var firstKey = keys.FirstOrDefault() ?? throw new Exception($"No keys found for storage account '{accountName}'");
-        return firstKey.Value;
+        catch (Exception ex)
+        {
+            throw new Exception($"Error getting storage account key for '{accountName}': {ex.Message}", ex);
+        }
     }
 
     private async Task<string> GetStorageAccountConnectionString(string accountName, string subscriptionId, string? tenant = null)
     {
-        var subscription = await _subscriptionService.GetSubscription(subscriptionId, tenant);
-        var storageAccount = await GetStorageAccount(subscription, accountName) ??
-            throw new Exception($"Storage account '{accountName}' not found in subscription '{subscriptionId}'");
-
-        var keys = new List<StorageAccountKey>();
-        await foreach (var key in storageAccount.GetKeysAsync())
+        try
         {
-            keys.Add(key);
+            return await _armService.GetStorageAccountConnectionStringAsync(accountName, subscriptionId, tenant);
         }
-
-        var firstKey = keys.FirstOrDefault() ?? throw new Exception($"No keys found for storage account '{accountName}'");
-        return $"DefaultEndpointsProtocol=https;AccountName={accountName};AccountKey={firstKey.Value};EndpointSuffix=core.windows.net";
-    }
-
-    // Helper method to get storage account
-    private static async Task<StorageAccountResource?> GetStorageAccount(SubscriptionResource subscription, string accountName)
-    {
-        await foreach (var account in subscription.GetStorageAccountsAsync())
+        catch (Exception ex)
         {
-            if (account.Data.Name == accountName)
-            {
-                return account;
-            }
+            throw new Exception($"Error getting storage account connection string for '{accountName}': {ex.Message}", ex);
         }
-        return null;
     }
 
     protected async Task<TableServiceClient> CreateTableServiceClientWithAuth(

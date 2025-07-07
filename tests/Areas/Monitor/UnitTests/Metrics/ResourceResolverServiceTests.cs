@@ -8,9 +8,9 @@ using Azure;
 using Azure.Core;
 using Azure.ResourceManager.Resources;
 using AzureMcp.Areas.Monitor.Services;
+using AzureMcp.LocalServiceClient.Arm;
 using AzureMcp.LocalServiceClient.Identity;
 using AzureMcp.Options;
-using AzureMcp.Services.Azure.Subscription;
 using AzureMcp.Services.Azure.Tenant;
 using NSubstitute;
 using Xunit;
@@ -19,22 +19,17 @@ namespace AzureMcp.Tests.Areas.Monitor.UnitTests.Metrics;
 
 public class ResourceResolverServiceTests
 {
-    private readonly ISubscriptionService _subscriptionService;
+    private readonly IArmServiceClient _armServiceClient;
     private readonly ITenantService _tenantService;
     private readonly IIdentityServiceClient _credentialService;
     private readonly ResourceResolverService _service;
 
-    private readonly SubscriptionResource _subscriptionResource = Substitute.For<SubscriptionResource>();
-
     public ResourceResolverServiceTests()
     {
-        _subscriptionService = Substitute.For<ISubscriptionService>();
+        _armServiceClient = Substitute.For<IArmServiceClient>();
         _tenantService = Substitute.For<ITenantService>();
         _credentialService = Substitute.For<IIdentityServiceClient>();
-        _service = new ResourceResolverService(_subscriptionService, _tenantService, _credentialService);
-
-        _subscriptionService.GetSubscription(Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<RetryPolicyOptions?>())
-            .Returns(_subscriptionResource);
+        _service = new ResourceResolverService(_armServiceClient, _tenantService, _credentialService);
     }
 
     #region Constructor Tests
@@ -43,7 +38,7 @@ public class ResourceResolverServiceTests
     public void Constructor_WithValidParameters_Succeeds()
     {
         // Act & Assert - Constructor should not throw
-        var service = new ResourceResolverService(_subscriptionService, _tenantService, _credentialService);
+        var service = new ResourceResolverService(_armServiceClient, _tenantService, _credentialService);
         Assert.NotNull(service);
     }
 
@@ -70,27 +65,29 @@ public class ResourceResolverServiceTests
 
         // Assert
         Assert.Equal(fullResourceId, result.ToString());
-        // Verify that subscription service was not called since we're passing a full resource ID
-        await _subscriptionService.DidNotReceive().GetSubscription(Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<RetryPolicyOptions?>());
+        // Verify that ARM service client was not called since we're passing a full resource ID
+        await _armServiceClient.DidNotReceive().ResolveResourceIdAsync(Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task ResolveResourceIdAsync_WithResourceGroupAndType_BuildsDirectPath()
+    public async Task ResolveResourceIdAsync_WithResourceNameRequiringResolution_CallsArmService()
     {
         // Arrange
         var subscription = "12345678-1234-1234-1234-123456789012";
         var resourceGroup = "test-rg";
         var resourceType = "Microsoft.Storage/storageAccounts";
         var resourceName = "test";
-
         var expectedResourceId = $"/subscriptions/{subscription}/resourceGroups/{resourceGroup}/providers/{resourceType}/{resourceName}";
+
+        _armServiceClient.ResolveResourceIdAsync(subscription, resourceGroup, resourceType, resourceName, null, Arg.Any<CancellationToken>())
+            .Returns(expectedResourceId);
 
         // Act
         var result = await _service.ResolveResourceIdAsync(subscription, resourceGroup, resourceType, resourceName);
 
         // Assert
-        Assert.Equal(expectedResourceId, result);
-        await _subscriptionService.DidNotReceive().GetSubscription(Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<RetryPolicyOptions?>());
+        Assert.Equal(expectedResourceId, result.ToString());
+        await _armServiceClient.Received(1).ResolveResourceIdAsync(subscription, resourceGroup, resourceType, resourceName, null, Arg.Any<CancellationToken>());
     }
 
     [Theory]
@@ -112,166 +109,45 @@ public class ResourceResolverServiceTests
     }
 
     [Fact]
-    public async Task ResolveResourceIdAsync_ResourceDiscovery_NoResourcesFound_ThrowsException()
+    public async Task ResolveResourceIdAsync_WithValidInputs_CallsArmServiceAndReturnsResourceIdentifier()
     {
         // Arrange
         var subscription = "sub1";
-        var resourceName = "nonexistent-resource";
+        var resourceGroup = "rg1";
+        var resourceType = "Microsoft.Storage/storageAccounts";
+        var resourceName = "testresource";
+        var tenant = "tenant1";
+        var expectedResourceId = $"/subscriptions/{subscription}/resourceGroups/{resourceGroup}/providers/{resourceType}/{resourceName}";
 
-        var emptyAsyncPageable = CreateEmptyAsyncPageable();
+        _armServiceClient.ResolveResourceIdAsync(subscription, resourceGroup, resourceType, resourceName, tenant, Arg.Any<CancellationToken>())
+            .Returns(expectedResourceId);
 
-        _subscriptionResource.GetGenericResourcesAsync(cancellationToken: Arg.Any<CancellationToken>()).Returns(emptyAsyncPageable);
+        // Act
+        var result = await _service.ResolveResourceIdAsync(subscription, resourceGroup, resourceType, resourceName, tenant);
 
-        // Act & Assert
-        var exception = await Assert.ThrowsAsync<Exception>(() =>
-            _service.ResolveResourceIdAsync(subscription, null, null, resourceName));
-
-        Assert.Contains($"Resource '{resourceName}' not found in subscription '{subscription}'", exception.Message);
+        // Assert
+        Assert.Equal(expectedResourceId, result.ToString());
+        await _armServiceClient.Received(1).ResolveResourceIdAsync(subscription, resourceGroup, resourceType, resourceName, tenant, Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task ResolveResourceIdAsync_ResourceDiscovery_MultipleResourcesFound_ThrowsException()
+    public async Task ResolveResourceIdAsync_WithMinimalInputs_CallsArmServiceWithNulls()
     {
         // Arrange
-        var subscription = Guid.NewGuid().ToString();
-        var resourceName = "duplicate-resource";
+        var subscription = "sub1";
+        var resourceName = "testresource";
+        var expectedResourceId = $"/subscriptions/{subscription}/resourceGroups/discovered-rg/providers/Microsoft.Storage/storageAccounts/{resourceName}";
 
-        var resource1 = CreateMockGenericResource($"/subscriptions/{subscription}/resourceGroups/rg1/providers/Microsoft.Storage/storageAccounts/{resourceName}", "rg1", "Microsoft.Storage/storageAccounts", resourceName);
-        var resource2 = CreateMockGenericResource($"/subscriptions/{subscription}/resourceGroups/rg2/providers/Microsoft.Compute/virtualMachines/{resourceName}", "rg2", "Microsoft.Compute/virtualMachines", resourceName);
-
-        var resourcesAsyncPageable = CreateAsyncPageableWithItems(resource1, resource2);
-
-        _subscriptionResource.GetGenericResourcesAsync(cancellationToken: Arg.Any<CancellationToken>()).Returns(resourcesAsyncPageable);
-
-        // Act & Assert
-        var exception = await Assert.ThrowsAsync<Exception>(() =>
-            _service.ResolveResourceIdAsync(subscription, null, null, resourceName));
-
-        Assert.Contains($"Multiple resources named '{resourceName}' found", exception.Message);
-        Assert.Contains("Please specify both resourceGroup and resourceType parameters", exception.Message);
-    }
-
-    [Fact]
-    public async Task ResolveResourceIdAsync_ResourceDiscovery_SingleResourceFound_ReturnsResourceId()
-    {
-        // Arrange
-        var subscription = Guid.NewGuid().ToString();
-        var resourceName = "unique-resource";
-        var expectedResourceId = $"/subscriptions/{subscription}/resourceGroups/rg1/providers/Microsoft.Storage/storageAccounts/{resourceName}";
-
-        var resource = CreateMockGenericResource(expectedResourceId, "rg1", "Microsoft.Storage/storageAccounts", resourceName);
-
-        var subscriptionResource = Substitute.For<SubscriptionResource>();
-        var resourcesAsyncPageable = CreateAsyncPageableWithItems(resource);
-
-        subscriptionResource.GetGenericResourcesAsync(cancellationToken: Arg.Any<CancellationToken>()).Returns(resourcesAsyncPageable);
-        _subscriptionService.GetSubscription(subscription, Arg.Any<string?>(), Arg.Any<RetryPolicyOptions?>())
-            .Returns(subscriptionResource);
+        _armServiceClient.ResolveResourceIdAsync(subscription, null, null, resourceName, null, Arg.Any<CancellationToken>())
+            .Returns(expectedResourceId);
 
         // Act
         var result = await _service.ResolveResourceIdAsync(subscription, null, null, resourceName);
 
         // Assert
         Assert.Equal(expectedResourceId, result.ToString());
-    }
-
-    [Fact]
-    public async Task ResolveResourceIdAsync_WithResourceGroupFilter_FiltersCorrectly()
-    {
-        // Arrange
-        var subscription = Guid.NewGuid().ToString();
-        var resourceGroup = "rg1";
-        var resourceName = "filtered-resource";
-        var expectedResourceId = $"/subscriptions/{subscription}/resourceGroups/{resourceGroup}/providers/Microsoft.Storage/storageAccounts/{resourceName}";
-
-        // Create resources in different resource groups with same name
-        var resource1 = CreateMockGenericResource(expectedResourceId, "rg1", "Microsoft.Storage/storageAccounts", resourceName);
-        var resource2 = CreateMockGenericResource($"/subscriptions/{subscription}/resourceGroups/rg2/providers/Microsoft.Storage/storageAccounts/{resourceName}", "rg2", "Microsoft.Storage/storageAccounts", resourceName);
-
-        var resourcesAsyncPageable = CreateAsyncPageableWithItems(resource1, resource2);
-
-        _subscriptionResource.GetGenericResourcesAsync(cancellationToken: Arg.Any<CancellationToken>()).Returns(resourcesAsyncPageable);
-
-        // Act
-        var result = await _service.ResolveResourceIdAsync(subscription, resourceGroup, null, resourceName);
-
-        // Assert
-        Assert.Equal(expectedResourceId, result.ToString());
-    }
-
-    [Fact]
-    public async Task ResolveResourceIdAsync_WithResourceTypeFilter_FiltersCorrectly()
-    {
-        // Arrange
-        var subscription = Guid.NewGuid().ToString();
-        var resourceType = "Microsoft.Storage/storageAccounts";
-        var resourceName = "filtered-resource";
-        var expectedResourceId = $"/subscriptions/{subscription}/resourceGroups/rg1/providers/Microsoft.Storage/storageAccounts/{resourceName}";
-
-        // Create resources of different types with same name
-        var resource1 = CreateMockGenericResource(expectedResourceId, "rg1", "Microsoft.Storage/storageAccounts", resourceName);
-        var resource2 = CreateMockGenericResource($"/subscriptions/{subscription}/resourceGroups/rg1/providers/Microsoft.Compute/virtualMachines/{resourceName}", "rg1", "Microsoft.Compute/virtualMachines", resourceName);
-
-        var resourcesAsyncPageable = CreateAsyncPageableWithItems(resource1, resource2);
-
-        _subscriptionResource.GetGenericResourcesAsync(cancellationToken: Arg.Any<CancellationToken>()).Returns(resourcesAsyncPageable);
-
-        // Act
-        var result = await _service.ResolveResourceIdAsync(subscription, null, resourceType, resourceName);
-
-        // Assert
-        Assert.Equal(expectedResourceId, result.ToString());
+        await _armServiceClient.Received(1).ResolveResourceIdAsync(subscription, null, null, resourceName, null, Arg.Any<CancellationToken>());
     }
 
     #endregion
-
-    #region Helper Methods
-
-    private static GenericResource CreateMockGenericResource(string resourceId, string resourceGroupName, string resourceType, string resourceName)
-    {
-        var result = Substitute.For<GenericResource>();
-
-        var reader = new Utf8JsonReader(Encoding.UTF8.GetBytes($@"{{
-                ""name"": ""{resourceName}"",
-                ""id"": ""{resourceId}"",
-                ""type"": ""{resourceType}""
-            }}"));
-
-        IJsonModel<GenericResourceData> data = new GenericResourceData(AzureLocation.AustraliaCentral);
-        var d = data.Create(ref reader, new ModelReaderWriterOptions("W"));
-
-        result.Data.Returns(d);
-        result.Id.Returns(new ResourceIdentifier(resourceId));
-        return result;
-    }
-
-    private static AsyncPageable<GenericResource> CreateEmptyAsyncPageable()
-    {
-        return CreateAsyncPageableWithItems();
-    }
-
-    private static AsyncPageable<GenericResource> CreateAsyncPageableWithItems(params GenericResource[] items)
-    {
-        var page = Page<GenericResource>.FromValues(items, continuationToken: null, Substitute.For<Response>());
-
-        return AsyncPageable<GenericResource>.FromPages(new[]
-        {
-            page
-        });
-    }
-
-    #endregion
-}
-
-// Helper class to create async enumerables for testing
-public static class AsyncPageableHelper
-{
-    public static async IAsyncEnumerable<T> CreateAsyncEnumerable<T>(IEnumerable<T> items)
-    {
-        foreach (var item in items)
-        {
-            yield return item;
-        }
-        await Task.CompletedTask;
-    }
 }

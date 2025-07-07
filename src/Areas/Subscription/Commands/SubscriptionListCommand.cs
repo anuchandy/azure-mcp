@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using Azure.ResourceManager.Resources;
 using AzureMcp.Areas.Subscription.Options;
 using AzureMcp.Commands;
+using AzureMcp.LocalServiceClient.Arm;
 using AzureMcp.Models.Option;
 using AzureMcp.Services.Azure.Subscription;
 using Microsoft.Extensions.Logging;

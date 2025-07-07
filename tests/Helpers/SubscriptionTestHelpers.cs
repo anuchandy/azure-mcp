@@ -1,44 +1,24 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using Azure.Core;
-using Azure.ResourceManager.Models;
-using Azure.ResourceManager.Resources;
-using Azure.ResourceManager.Resources.Models;
+using AzureMcp.LocalServiceClient.Arm;
 
 namespace AzureMcp.Tests.Helpers;
 
 /// <summary>
-/// Helper methods for creating test subscription data using the Azure SDK model factories.
-/// This follows the recommended pattern from:
-/// https://learn.microsoft.com/en-us/dotnet/azure/sdk/unit-testing-mocking
+/// Helper methods for creating test subscription data using the ARM service client model.
 /// </summary>
 public static class SubscriptionTestHelpers
 {
     public static SubscriptionData CreateSubscriptionData(string subscriptionId, string displayName)
     {
-        // Convert string ID to valid subscription ResourceIdentifier
-        var subGuid = Guid.NewGuid(); // Use random GUID for tests
-        var subPath = $"/subscriptions/{subGuid}";
-        var resourceId = new ResourceIdentifier(subPath);
-
-        // Create subscription policies using model factory
-        var policies = ResourceManagerModelFactory.SubscriptionPolicies(
-            locationPlacementId: "Public_2014-09-01",
-            quotaId: "PayAsYouGo_2014-09-01",
-            spendingLimit: SpendingLimit.Off);
-
-        // Create subscription data using the official model factory
-        return ResourceManagerModelFactory.SubscriptionData(
-            resourceId,
-            subscriptionId,
-            displayName,
-            subGuid,
-            SubscriptionState.Enabled,
-            policies,
-            authorizationSource: "RoleBased",
-            managedByTenants: Array.Empty<ManagedByTenant>(),
-            tags: new Dictionary<string, string>());
+        return new SubscriptionData
+        {
+            SubscriptionId = subscriptionId,
+            DisplayName = displayName,
+            TenantId = Guid.NewGuid().ToString(),
+            State = "Enabled"
+        };
     }
 
     /// <summary>
