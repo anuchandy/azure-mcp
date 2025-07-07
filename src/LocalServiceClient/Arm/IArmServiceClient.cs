@@ -404,6 +404,24 @@ public interface IArmServiceClient : IServiceClient
         string workspaceName,
         string? tenantId = null,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Resolves a resource identifier from provided parameters.
+    /// </summary>
+    /// <param name="subscription">The subscription ID</param>
+    /// <param name="resourceGroup">The resource group name (optional)</param>
+    /// <param name="resourceType">The resource type (optional, e.g., 'Microsoft.Storage/storageAccounts')</param>
+    /// <param name="resourceName">The resource name or full resource ID</param>
+    /// <param name="tenant">Optional tenant ID for multi-tenant scenarios</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>The resolved Azure resource ID</returns>
+    Task<string> ResolveResourceIdAsync(
+        string subscription,
+        string? resourceGroup,
+        string? resourceType,
+        string resourceName,
+        string? tenant = null,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -425,27 +443,6 @@ public class IdentityServiceStatusResult
     /// Additional details about the check.
     /// </summary>
     public string? Details { get; init; }
-}
-
-/// <summary>
-/// Result of listing subscriptions.
-/// </summary>
-public class ListSubscriptionsResult
-{
-    /// <summary>
-    /// Whether the operation was successful.
-    /// </summary>
-    public bool IsSuccess { get; init; }
-
-    /// <summary>
-    /// Error message if operation failed.
-    /// </summary>
-    public string? ErrorMessage { get; init; }
-
-    /// <summary>
-    /// List of subscription data.
-    /// </summary>
-    public IReadOnlyList<SubscriptionData> Subscriptions { get; init; } = Array.Empty<SubscriptionData>();
 }
 
 /// <summary>

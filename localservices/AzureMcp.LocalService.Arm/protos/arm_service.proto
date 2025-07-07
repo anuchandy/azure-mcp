@@ -48,6 +48,9 @@ service ArmService {
   // List role assignments for a scope
   rpc ListRoleAssignments(ListRoleAssignmentsRequest) returns (ListRoleAssignmentsResponse);
   
+  // Resolve a resource identifier from provided parameters
+  rpc ResolveResourceId(ResolveResourceIdRequest) returns (ResolveResourceIdResponse);
+  
   // Get Redis caches for a subscription
   rpc ListRedisCaches(ListRedisCachesRequest) returns (ListRedisCachesResponse);
   
@@ -505,6 +508,30 @@ message ListRoleAssignmentsResponse {
   string error_message = 2;
   // List of role assignments
   repeated RoleAssignment role_assignments = 3;
+}
+
+// Request for resolving a resource identifier
+message ResolveResourceIdRequest {
+  // The subscription ID (required)
+  string subscription = 1;
+  // The resource group name (optional)
+  string resource_group = 2;
+  // The resource type (optional, e.g., 'Microsoft.Storage/storageAccounts')
+  string resource_type = 3;
+  // The resource name or full resource ID (required)
+  string resource_name = 4;
+  // Optional tenant ID for multi-tenant scenarios
+  string tenant = 5;
+}
+
+// Response for resolving a resource identifier
+message ResolveResourceIdResponse {
+  // Whether the operation was successful
+  bool is_success = 1;
+  // Error message if operation failed
+  string error_message = 2;
+  // The resolved resource ID
+  string resource_id = 3;
 }
 
 // Role assignment data

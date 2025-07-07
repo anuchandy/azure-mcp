@@ -36,6 +36,7 @@ public class ArmGrpcService : ArmService.ArmServiceBase
     private const string ErrorParameterNameRequired = "Parameter name cannot be null or empty";
     private const string ErrorParameterValueRequired = "Parameter value cannot be null or empty";
     private const string ErrorWorkspaceNameRequired = "Workspace name cannot be null or empty";
+    private const string ErrorResourceNameRequired = "Resource name cannot be null or empty";
 
     private readonly ILogger<ArmGrpcService> _logger;
     private readonly IdentityClient _identityClient;
@@ -2399,6 +2400,175 @@ public class ArmGrpcService : ArmService.ArmServiceBase
                 ErrorMessage = ex.Message
             };
         }
+    }
+
+    /// <summary>
+    /// Resolves a resource identifier from provided parameters.
+    /// </summary>
+    /// <param name="request">The request containing resource resolution parameters.</param>
+    /// <param name="context">The gRPC server call context.</param>
+    /// <returns>A response containing the resolved resource ID or error information.</returns>
+    public override async Task<ResolveResourceIdResponse> ResolveResourceId(
+        ResolveResourceIdRequest request,
+        ServerCallContext context)
+    {
+        if (string.IsNullOrEmpty(request.Subscription))
+        {
+            return new ResolveResourceIdResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorSubscriptionIdRequired
+            };
+        }
+
+        if (string.IsNullOrEmpty(request.ResourceName))
+        {
+            return new ResolveResourceIdResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorResourceNameRequired
+            };
+        }
+
+        try
+        {
+            if (Azure.Core.ResourceIdentifier.TryParse(request.ResourceName, out Azure.Core.ResourceIdentifier? parsedResourceId))
+            {
+                // If already a valid ResourceIdentifier, return it directly
+                return new ResolveResourceIdResponse
+                {
+                    IsSuccess = true,
+                    ResourceId = parsedResourceId!.ToString()
+                };
+            }
+
+            // If both resourceGroup and resourceType are provided, build direct path
+            if (!string.IsNullOrEmpty(request.ResourceGroup) && !string.IsNullOrEmpty(request.ResourceType))
+            {
+                var directResourceId = $"/subscriptions/{request.Subscription}/resourceGroups/{request.ResourceGroup}/providers/{request.ResourceType}/{request.ResourceName}";
+                return new ResolveResourceIdResponse
+                {
+                    IsSuccess = true,
+                    ResourceId = directResourceId
+                };
+            }
+
+            // Need to discover the resource - get subscription first
+            var subscriptions = await GetSubscriptionsAsync(request.Tenant);
+            var subscription = subscriptions.FirstOrDefault(s => s.SubscriptionId == request.Subscription);
+            if (subscription == null)
+            {
+                return new ResolveResourceIdResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"Subscription '{request.Subscription}' not found"
+                };
+            }
+
+            var armClient = CreateArmClient(request.Tenant);
+            var subscriptionResource = armClient.GetSubscriptionResource(SubscriptionResource.CreateResourceIdentifier(subscription.SubscriptionId));
+
+            // Get all resources matching the name
+            var allMatchingResources = new List<Azure.ResourceManager.Resources.GenericResource>();
+            await foreach (var resource in subscriptionResource.GetGenericResourcesAsync())
+            {
+                if (string.Equals(resource.Data.Name, request.ResourceName, StringComparison.OrdinalIgnoreCase))
+                {
+                    allMatchingResources.Add(resource);
+                }
+            }
+
+            if (allMatchingResources.Count == 0)
+            {
+                return new ResolveResourceIdResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"Resource '{request.ResourceName}' not found in subscription '{request.Subscription}'"
+                };
+            }
+
+            // Apply filtering based on provided parameters
+            var filteredResources = allMatchingResources.AsEnumerable();
+
+            // Filter by resource group if provided
+            if (!string.IsNullOrEmpty(request.ResourceGroup))
+            {
+                filteredResources = filteredResources.Where(r =>
+                    string.Equals(r.Data.Id?.ResourceGroupName, request.ResourceGroup, StringComparison.OrdinalIgnoreCase));
+            }
+
+            // Filter by resource type if provided
+            if (!string.IsNullOrEmpty(request.ResourceType))
+            {
+                filteredResources = filteredResources.Where(r =>
+                    string.Equals(r.Data.ResourceType.ToString(), request.ResourceType, StringComparison.OrdinalIgnoreCase));
+            }
+
+            var finalResources = filteredResources.ToList();
+
+            if (finalResources.Count == 0)
+            {
+                var filterInfo = BuildFilterDescription(request.ResourceGroup, request.ResourceType);
+                return new ResolveResourceIdResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"No resources named '{request.ResourceName}' found in subscription '{request.Subscription}'{filterInfo}"
+                };
+            }
+
+            if (finalResources.Count > 1)
+            {
+                var resourceDetails = finalResources.Select(r =>
+                    $"- {r.Data.Id} (Resource Group: {r.Data.Id?.ResourceGroupName}, Type: {r.Data.ResourceType})")
+                    .ToList();
+
+                var filterInfo = BuildFilterDescription(request.ResourceGroup, request.ResourceType);
+                return new ResolveResourceIdResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"Multiple resources named '{request.ResourceName}' found in subscription '{request.Subscription}'{filterInfo}. " +
+                                  $"Please specify both resourceGroup and resourceType parameters to disambiguate. Found resources:\n" +
+                                  string.Join("\n", resourceDetails)
+                };
+            }
+
+            var resourceId = finalResources[0].Data.Id?.ToString();
+            if (string.IsNullOrEmpty(resourceId))
+            {
+                return new ResolveResourceIdResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"Unable to get resource ID for '{request.ResourceName}'"
+                };
+            }
+
+            return new ResolveResourceIdResponse
+            {
+                IsSuccess = true,
+                ResourceId = resourceId
+            };
+        }
+        catch (Exception ex)
+        {
+            return new ResolveResourceIdResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message
+            };
+        }
+    }
+
+    private static string BuildFilterDescription(string? resourceGroup, string? resourceType)
+    {
+        var filters = new List<string>();
+
+        if (!string.IsNullOrEmpty(resourceGroup))
+            filters.Add($"resource group '{resourceGroup}'");
+
+        if (!string.IsNullOrEmpty(resourceType))
+            filters.Add($"resource type '{resourceType}'");
+
+        return filters.Count > 0 ? $" with {string.Join(" and ", filters)}" : "";
     }
 
     #endregion

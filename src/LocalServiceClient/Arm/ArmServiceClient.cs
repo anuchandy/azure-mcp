@@ -1328,6 +1328,47 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         }
     }
 
+    public async Task<string> ResolveResourceIdAsync(
+        string subscription,
+        string? resourceGroup,
+        string? resourceType,
+        string resourceName,
+        string? tenant = null,
+        CancellationToken cancellationToken = default)
+    {
+        var endpoint = await EnsureServiceStartedAsync(cancellationToken);
+        try
+        {
+            EnsureClient(endpoint);
+
+            var request = new ResolveResourceIdRequest
+            {
+                Subscription = subscription,
+                ResourceGroup = resourceGroup ?? string.Empty,
+                ResourceType = resourceType ?? string.Empty,
+                ResourceName = resourceName,
+                Tenant = tenant ?? string.Empty
+            };
+
+            var response = await _client!.ResolveResourceIdAsync(request, cancellationToken: cancellationToken);
+
+            if (!response.IsSuccess)
+            {
+                throw new LocalServiceCallException("ResolveResourceId", GetErrorMessage(response.ErrorMessage));
+            }
+
+            return response.ResourceId;
+        }
+        catch (LocalServiceCallException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new LocalServiceCallException("ResolveResourceId", ArmLocalServiceConnectError, ex);
+        }
+    }
+
     public void Dispose()
     {
         if (!_disposed)

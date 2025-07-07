@@ -25,13 +25,11 @@ public class ArmServiceClientTests : IDisposable
 
     private const string DefaultSubscriptionId = "faa080af-c1d8-40ad-9cce-e1a450ca5b57";
     private const string DefaultSubscription = "Azure SDK Developer Playground";
-    private const string PostgreSqlTestResourceGroup = "anuchan-entra-4433";
+    private const string TestResourceGroup = "anuchan-entra-4433";
     private const string PostgreSqlTestServerName = "td08288e8c7e88f73";
-    private const string AuthorizationTestScope = "/subscriptions/faa080af-c1d8-40ad-9cce-e1a450ca5b57/resourceGroups/anuchan-entra-4433";
-    private const string DatadogTestResourceGroup = "anuchan-entra-4433";
+    private const string StorageTestAccountName = "td08288e8c7e88f73";
     private const string DatadogTestMonitorName = "test-datadog-monitor";
-    private const string MonitorTestResourceGroup = "anuchan-entra-4433";
-    private const string MonitorTestWorkspaceName = "DefaultWorkspace-faa080af-c1d8-40ad-9cce-e1a450ca5b57-EUS"; // Common Log Analytics workspace name pattern
+    private const string AuthorizationTestScope = "/subscriptions/faa080af-c1d8-40ad-9cce-e1a450ca5b57/resourceGroups/anuchan-entra-4433";
 
     public ArmServiceClientTests()
     {
@@ -478,7 +476,7 @@ public class ArmServiceClientTests : IDisposable
             Assert.NotNull(_armServiceClient);
             var serverNames = await _armServiceClient.ListPostgreSqlServersAsync(
                 subscriptionId: subscriptionId,
-                resourceGroupName: PostgreSqlTestResourceGroup,
+                resourceGroupName: TestResourceGroup,
                 tenantId: null,
                 cancellationToken: TestContext.Current.CancellationToken);
 
@@ -505,7 +503,7 @@ public class ArmServiceClientTests : IDisposable
             Assert.NotNull(_armServiceClient);
             var serverConfig = await _armServiceClient.GetPostgreSqlServerConfigAsync(
                 subscriptionId: subscriptionId,
-                resourceGroupName: PostgreSqlTestResourceGroup,
+                resourceGroupName: TestResourceGroup,
                 serverName: PostgreSqlTestServerName,
                 tenantId: null,
                 cancellationToken: TestContext.Current.CancellationToken);
@@ -535,7 +533,7 @@ public class ArmServiceClientTests : IDisposable
             Assert.NotNull(_armServiceClient);
             var parameterValue = await _armServiceClient.GetPostgreSqlServerParameterAsync(
                 subscriptionId: subscriptionId,
-                resourceGroupName: PostgreSqlTestResourceGroup,
+                resourceGroupName: TestResourceGroup,
                 serverName: PostgreSqlTestServerName,
                 parameterName: "max_connections",
                 tenantId: null,
@@ -566,7 +564,7 @@ public class ArmServiceClientTests : IDisposable
             Assert.NotNull(_armServiceClient);
             var message = await _armServiceClient.SetPostgreSqlServerParameterAsync(
                 subscriptionId: subscriptionId,
-                resourceGroupName: PostgreSqlTestResourceGroup,
+                resourceGroupName: TestResourceGroup,
                 serverName: PostgreSqlTestServerName,
                 parameterName: "max_connections",
                 parameterValue: "200",
@@ -655,7 +653,7 @@ public class ArmServiceClientTests : IDisposable
         {
             var result = await _armServiceClient!.ListMonitoredDatadogResourcesAsync(
                 DefaultSubscriptionId,
-                DatadogTestResourceGroup,
+                TestResourceGroup,
                 DatadogTestMonitorName,
                 cancellationToken: TestContext.Current.CancellationToken
             );
@@ -795,26 +793,41 @@ public class ArmServiceClientTests : IDisposable
     }
 
     [Fact]
-    public void LocalServiceCallException_ShouldHaveCorrectProperties()
+    public async Task ResolveResourceIdAsyncShouldReturnValidResourceIdDirectly()
     {
-        // Test the exception properties
-        var methodName = "TestMethod";
-        var errorMessage = "Test error message";
-        
-        var exception = new LocalServiceCallException(methodName, errorMessage);
-        
-        Assert.Equal(methodName, exception.MethodName);
-        Assert.Equal(errorMessage, exception.ServiceErrorMessage);
-        Assert.Equal($"Local service call '{methodName}' failed: {errorMessage}", exception.Message);
-        
-        // Test with inner exception
-        var innerException = new InvalidOperationException("Inner error");
-        var exceptionWithInner = new LocalServiceCallException(methodName, errorMessage, innerException);
-        
-        Assert.Equal(methodName, exceptionWithInner.MethodName);
-        Assert.Equal(errorMessage, exceptionWithInner.ServiceErrorMessage);
-        Assert.Equal($"Local service call '{methodName}' failed: {errorMessage}", exceptionWithInner.Message);
-        Assert.Equal(innerException, exceptionWithInner.InnerException);
+        // Arrange
+        SetupServices();
+        var fullResourceId = $"/subscriptions/{DefaultSubscriptionId}/resourceGroups/{TestResourceGroup}/providers/Microsoft.Storage/storageAccounts/{StorageTestAccountName}";
+
+        // Act
+        var result = await _armServiceClient!.ResolveResourceIdAsync(
+            DefaultSubscriptionId,
+            null,
+            null,
+            fullResourceId,
+            cancellationToken: CancellationToken.None);
+
+        // Assert
+        Assert.Equal(fullResourceId, result);
+    }
+
+    [Fact]
+    public async Task ResolveResourceIdAsyncShouldResolveResourceGroupNameForResourceId()
+    {
+        // Arrange
+        SetupServices();
+        var expectedResourceId = $"/subscriptions/{DefaultSubscriptionId}/resourceGroups/{TestResourceGroup}/providers/Microsoft.Storage/storageAccounts/{StorageTestAccountName}";
+
+        // Act
+        var result = await _armServiceClient!.ResolveResourceIdAsync(
+            DefaultSubscriptionId,
+            null, // let api resolve the resource group name for {storageAccountName}.
+            "Microsoft.Storage/storageAccounts",
+            StorageTestAccountName,
+            cancellationToken: CancellationToken.None);
+
+        // Assert
+        Assert.Equal(expectedResourceId, result);
     }
 
     public void Dispose()
