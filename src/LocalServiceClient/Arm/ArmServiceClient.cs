@@ -55,7 +55,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
             var identityEndpoint = await _identityService.EnsureServiceStartedAsync();
             var envVars = new Dictionary<string, string>
             {
-                ["AzureMcp__LocalService__Arm__IdentityServiceEndpoint"] = identityEndpoint
+                [LocalServiceEnvVars.Arm.IdentityServiceEndpoint] = identityEndpoint
             };
             var endpoint = await _armServiceHost.StartServiceAsync(envVars);
             if (logInit)
