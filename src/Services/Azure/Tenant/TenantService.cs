@@ -1,40 +1,32 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using Azure.ResourceManager;
-using Azure.ResourceManager.Resources;
+using AzureMcp.LocalServiceClient.Arm;
 using AzureMcp.LocalServiceClient.Identity;
 using AzureMcp.Services.Caching;
 
 namespace AzureMcp.Services.Azure.Tenant;
 
-public class TenantService(ICacheService cacheService, IIdentityServiceClient credentialService)
+public class TenantService(IArmServiceClient armServiceClient, ICacheService cacheService, IIdentityServiceClient credentialService)
     : BaseAzureService(credentialService), ITenantService
 {
+    private readonly IArmServiceClient _armServiceClient = armServiceClient ?? throw new ArgumentNullException(nameof(armServiceClient));
     private readonly ICacheService _cacheService = cacheService ?? throw new ArgumentNullException(nameof(cacheService));
     private const string CacheGroup = "tenant";
     private const string CacheKey = "tenants";
     private static readonly TimeSpan s_cacheDuration = TimeSpan.FromHours(12);
 
-    public async Task<List<TenantResource>> GetTenants()
+    public async Task<List<TenantData>> GetTenants()
     {
         // Try to get from cache first
-        var cachedResults = await _cacheService.GetAsync<List<TenantResource>>(CacheGroup, CacheKey, s_cacheDuration);
+        var cachedResults = await _cacheService.GetAsync<List<TenantData>>(CacheGroup, CacheKey, s_cacheDuration);
         if (cachedResults != null)
         {
             return cachedResults;
         }
 
-        // If not in cache, fetch from Azure
-        var results = new List<TenantResource>();
-
-        var options = AddDefaultPolicies(new ArmClientOptions());
-        var client = new ArmClient(await GetCredential(), default, options);
-
-        await foreach (var tenant in client.GetTenants())
-        {
-            results.Add(tenant);
-        }
+        // If not in cache, fetch from Azure via ARM service client
+        var results = await _armServiceClient.GetTenantsAsync();
 
         // Cache the results
         await _cacheService.SetAsync(CacheGroup, CacheKey, results, s_cacheDuration);
@@ -59,24 +51,24 @@ public class TenantService(ICacheService cacheService, IIdentityServiceClient cr
     public async Task<string?> GetTenantIdByName(string tenantName)
     {
         var tenants = await GetTenants();
-        var tenant = tenants.FirstOrDefault(t => t.Data.DisplayName?.Equals(tenantName, StringComparison.OrdinalIgnoreCase) == true) ??
+        var tenant = tenants.FirstOrDefault(t => t.DisplayName?.Equals(tenantName, StringComparison.OrdinalIgnoreCase) == true) ??
             throw new Exception($"Could not find tenant with name {tenantName}");
 
-        if (tenant.Data.TenantId == null)
+        if (tenant.TenantId == null)
             throw new InvalidOperationException($"Tenant {tenantName} has a null TenantId");
 
-        return tenant.Data.TenantId.ToString();
+        return tenant.TenantId;
     }
 
     public async Task<string?> GetTenantNameById(string tenantId)
     {
         var tenants = await GetTenants();
-        var tenant = tenants.FirstOrDefault(t => t.Data.TenantId?.ToString().Equals(tenantId, StringComparison.OrdinalIgnoreCase) == true) ??
+        var tenant = tenants.FirstOrDefault(t => t.TenantId?.Equals(tenantId, StringComparison.OrdinalIgnoreCase) == true) ??
             throw new Exception($"Could not find tenant with ID {tenantId}");
 
-        if (tenant.Data.DisplayName == null)
+        if (tenant.DisplayName == null)
             throw new InvalidOperationException($"Tenant with ID {tenantId} has a null DisplayName");
 
-        return tenant.Data.DisplayName;
+        return tenant.DisplayName;
     }
 }

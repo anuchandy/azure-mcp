@@ -42,8 +42,8 @@ public class MonitorCommandTests(LiveTestFixture fixture, ITestOutputHelper outp
         var memoryCache = new MemoryCache(Microsoft.Extensions.Options.Options.Create(new MemoryCacheOptions()));
         var cacheService = new CacheService(memoryCache);
         var credentialService = Substitute.For<IIdentityServiceClient>();
-        var tenantService = new TenantService(cacheService, credentialService);
         var armServiceClient = Substitute.For<IArmServiceClient>();
+        var tenantService = new TenantService(armServiceClient, cacheService, credentialService);
         var subscriptionService = new SubscriptionService(armServiceClient, cacheService, tenantService, credentialService);
         var resourceGroupService = new ResourceGroupService(armServiceClient, cacheService, subscriptionService, credentialService);
         return new MonitorService(armServiceClient, tenantService, credentialService);
