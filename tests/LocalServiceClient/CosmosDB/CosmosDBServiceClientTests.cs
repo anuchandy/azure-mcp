@@ -173,6 +173,68 @@ public class CosmosDBServiceClientTests : IDisposable
         }
     }
 
+    [Fact]
+    public async Task CanAttemptToQueryItemsThroughGrpcCall()
+    {
+        SetupServices();
+
+        try
+        {
+            var accounts = await _armServiceClient!.GetCosmosAccountsAsync(
+                DefaultSubscriptionId,
+                cancellationToken: TestContext.Current.CancellationToken);
+
+            if (!accounts.Any(a => a == TestCosmosAccountName))
+            {
+                Assert.Fail($"Cosmos DB account '{TestCosmosAccountName}' not found in subscription {DefaultSubscriptionId}. Available accounts: {string.Join(", ", accounts)}");
+            }
+
+            var account = TestCosmosAccountName;
+            var databases = await _cosmosDBServiceClient!.ListDatabasesAsync(
+                TestCosmosAccountName,
+                DefaultSubscriptionId,
+                "Credential",
+                cancellationToken: TestContext.Current.CancellationToken);
+
+            if (!databases.Any())
+            {
+                _logger.LogWarning("No databases found in Cosmos DB account {AccountName}. Skipping query items test.", account);
+                return;
+            }
+
+            var database = databases.First();
+            var containers = await _cosmosDBServiceClient!.ListContainersAsync(
+                TestCosmosAccountName,
+                database,
+                DefaultSubscriptionId,
+                "Credential",
+                cancellationToken: TestContext.Current.CancellationToken);
+
+            if (!containers.Any())
+            {
+                _logger.LogWarning("No containers found in database {DatabaseName} of Cosmos DB account {AccountName}. Skipping query items test.", database, account);
+                return;
+            }
+
+            var container = containers.First();
+            var query = "SELECT TOP 5 * FROM c";
+            var items = await _cosmosDBServiceClient!.QueryItemsAsync(
+                TestCosmosAccountName,
+                database,
+                container,
+                query,
+                DefaultSubscriptionId,
+                "Credential",
+                cancellationToken: TestContext.Current.CancellationToken);
+
+            Assert.NotNull(items);
+        }
+        catch (Exception ex)
+        {
+            FailOnException(ex);
+        }
+    }
+
     public void Dispose()
     {
         _cosmosDBServiceClient?.Dispose();

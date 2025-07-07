@@ -153,6 +153,72 @@ public sealed class CosmosDBServiceClient : ICosmosDBServiceClient, IDisposable
         }
     }
 
+    public async Task<List<string>> QueryItemsAsync(
+        string accountName,
+        string databaseName,
+        string containerName,
+        string query,
+        string subscriptionId,
+        string? authMethod = null,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateStringArgument(accountName, nameof(accountName));
+        ValidateStringArgument(databaseName, nameof(databaseName));
+        ValidateStringArgument(containerName, nameof(containerName));
+        ValidateStringArgument(query, nameof(query));
+        ValidateStringArgument(subscriptionId, nameof(subscriptionId));
+
+        var endpoint = await EnsureServiceStartedAsync(cancellationToken);
+        try
+        {
+            EnsureClient(endpoint);
+            var request = new QueryItemsRequest
+            {
+                AccountName = accountName,
+                DatabaseName = databaseName,
+                ContainerName = containerName,
+                Query = query,
+                SubscriptionId = subscriptionId,
+                AuthMethod = authMethod ?? string.Empty,
+                TenantId = tenantId ?? string.Empty
+            };
+            
+            var results = new List<string>();
+            var call = _client!.QueryItems(request, cancellationToken: cancellationToken);
+            
+            while (await call.ResponseStream.MoveNext(cancellationToken))
+            {
+                var response = call.ResponseStream.Current;
+                
+                if (!response.IsSuccess)
+                {
+                    throw new LocalServiceCallException("QueryItems", GetErrorMessage(response.ErrorMessage));
+                }
+                
+                if (response.IsLast)
+                {
+                    break;
+                }
+                
+                if (!string.IsNullOrEmpty(response.ItemJson))
+                {
+                    results.Add(response.ItemJson);
+                }
+            }
+            
+            return results;
+        }
+        catch (LocalServiceCallException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new LocalServiceCallException("QueryItems", CosmosDBLocalServiceConnectError, ex);
+        }
+    }
+
     private void EnsureClient(string endpoint)
     {
         if (_client != null)

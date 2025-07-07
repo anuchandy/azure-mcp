@@ -16,6 +16,8 @@ public class CosmosDBGrpcService : CosmosDBService.CosmosDBServiceBase
 {
     private const string ErrorAccountNameRequired = "Account name cannot be null or empty";
     private const string ErrorDatabaseNameRequired = "Database name cannot be null or empty";
+    private const string ErrorContainerNameRequired = "Container name cannot be null or empty";
+    private const string ErrorQueryRequired = "Query cannot be null or empty";
     private const string ErrorSubscriptionIdRequired = "Subscription ID cannot be null or empty";
     private const string ErrorInvalidAuthMethod = "Authentication method must be 'Key', 'Credential', or 'ConnectionString'";
     private const string CosmosBaseUri = "https://{0}.documents.azure.com:443/";
@@ -197,6 +199,138 @@ public class CosmosDBGrpcService : CosmosDBService.CosmosDBServiceBase
                 IsSuccess = false,
                 ErrorMessage = ex.Message
             };
+        }
+    }
+
+    /// <summary>
+    /// Queries items in a Cosmos DB container and streams the results.
+    /// </summary>
+    /// <param name="request">The request containing account name, database name, container name, query, subscription ID, and authentication options.</param>
+    /// <param name="responseStream">The response stream to write query results to.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>Task representing the streaming operation.</returns>
+    public override async Task QueryItems(
+        QueryItemsRequest request,
+        IServerStreamWriter<QueryItemsResponse> responseStream,
+        ServerCallContext context)
+    {
+        if (string.IsNullOrWhiteSpace(request.AccountName))
+        {
+            await responseStream.WriteAsync(new QueryItemsResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorAccountNameRequired,
+                IsLast = true
+            });
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(request.DatabaseName))
+        {
+            await responseStream.WriteAsync(new QueryItemsResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorDatabaseNameRequired,
+                IsLast = true
+            });
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(request.ContainerName))
+        {
+            await responseStream.WriteAsync(new QueryItemsResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorContainerNameRequired,
+                IsLast = true
+            });
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Query))
+        {
+            await responseStream.WriteAsync(new QueryItemsResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorQueryRequired,
+                IsLast = true
+            });
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(request.SubscriptionId))
+        {
+            await responseStream.WriteAsync(new QueryItemsResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorSubscriptionIdRequired,
+                IsLast = true
+            });
+            return;
+        }
+
+        var authMethod = NormalizeAuthMethod(request.AuthMethod);
+        if (!ValidAuthMethods.Contains(authMethod))
+        {
+            await responseStream.WriteAsync(new QueryItemsResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorInvalidAuthMethod,
+                IsLast = true
+            });
+            return;
+        }
+
+        try
+        {
+            var cosmosClient = await GetCosmosClientAsync(
+                request.AccountName,
+                request.SubscriptionId,
+                authMethod,
+                request.TenantId,
+                context.CancellationToken);
+
+            var database = cosmosClient.GetDatabase(request.DatabaseName);
+            var container = database.GetContainer(request.ContainerName);
+
+            var queryDefinition = new QueryDefinition(request.Query);
+            var iterator = container.GetItemQueryIterator<dynamic>(queryDefinition);
+
+            var itemCount = 0;
+            while (iterator.HasMoreResults)
+            {
+                var results = await iterator.ReadNextAsync(context.CancellationToken);
+                
+                foreach (var item in results)
+                {
+                    itemCount++;
+                    
+                    await responseStream.WriteAsync(new QueryItemsResponse
+                    {
+                        // Stream each item as JSON
+                        IsSuccess = true,
+                        ItemJson = item.ToString(),
+                        IsLast = false
+                    });
+                }
+            }
+
+            await responseStream.WriteAsync(new QueryItemsResponse
+            {
+                // final message indicating completion
+                IsSuccess = true,
+                ItemJson = "",
+                IsLast = true
+            });
+        }
+        catch (Exception ex)
+        {
+            await responseStream.WriteAsync(new QueryItemsResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message,
+                IsLast = true
+            });
         }
     }
 

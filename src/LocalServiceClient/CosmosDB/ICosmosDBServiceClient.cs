@@ -41,4 +41,26 @@ public interface ICosmosDBServiceClient : IServiceClient
         string? authMethod = null,
         string? tenantId = null,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Queries items in a Cosmos DB container.
+    /// </summary>
+    /// <param name="accountName">The Cosmos DB account name.</param>
+    /// <param name="databaseName">The database name.</param>
+    /// <param name="containerName">The container name.</param>
+    /// <param name="query">The SQL query to execute.</param>
+    /// <param name="subscriptionId">The Azure subscription ID.</param>
+    /// <param name="authMethod">Authentication method to use ("Key", "Credential", or "ConnectionString").</param>
+    /// <param name="tenantId">Optional tenant ID.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A list of query result items as JSON strings.</returns>
+    Task<List<string>> QueryItemsAsync(
+        string accountName,
+        string databaseName,
+        string containerName,
+        string query,
+        string subscriptionId,
+        string? authMethod = null,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default);
 }

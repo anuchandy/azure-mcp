@@ -11,6 +11,9 @@ service CosmosDBService {
   
   // List containers in a Cosmos DB database
   rpc ListContainers(ListContainersRequest) returns (ListContainersResponse);
+  
+  // Query items in a Cosmos DB container (streaming response)
+  rpc QueryItems(QueryItemsRequest) returns (stream QueryItemsResponse);
 }
 
 // Request to list databases
@@ -42,4 +45,23 @@ message ListContainersResponse {
   bool is_success = 1;
   string error_message = 2;
   repeated string container_names = 3;
+}
+
+// Request to query items
+message QueryItemsRequest {
+  string account_name = 1;
+  string database_name = 2;
+  string container_name = 3;
+  string query = 4;
+  string subscription_id = 5;
+  string auth_method = 6; // "Key", "Credential", or "ConnectionString"
+  string tenant_id = 7;
+}
+
+// Response for querying items (streamed)
+message QueryItemsResponse {
+  bool is_success = 1;
+  string error_message = 2;
+  string item_json = 3; // JSON representation of the item
+  bool is_last = 4; // Indicates if this is the last item in the stream
 }
