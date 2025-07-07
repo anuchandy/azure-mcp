@@ -43,6 +43,9 @@ public class ArmGrpcService : ArmService.ArmServiceBase
     private readonly IServiceProvider _serviceProvider;
     private readonly IMemoryCache _cache;
 
+    private ArmClient? _cachedArmClient;
+    private string? _lastCachedTenantId;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="ArmGrpcService"/> class.
     /// </summary>
@@ -2681,18 +2684,25 @@ public class ArmGrpcService : ArmService.ArmServiceBase
 
     #endregion
 
-    /// <summary>
-    /// Creates an ArmClient with the Identity credential for the specified tenant.
-    /// </summary>
-    /// <param name="tenantId">Optional tenant ID for the ARM client.</param>
-    /// <returns>An ArmClient instance configured with Identity authentication.</returns>
-    private ArmClient CreateArmClient(string? tenantId = null)
+     private ArmClient CreateArmClient(string? tenantId = null)
     {
+        if (_cachedArmClient != null && _lastCachedTenantId == tenantId)
+        {
+            // Return cached client if tenant hasn't changed
+            _logger.LogDebug("Reusing cached ArmClient for tenant: {TenantId}", tenantId ?? "default");
+            return _cachedArmClient;
+        }
+
+        // Create new ArmClient only when tenant changes
         var credential = new IdentityCredential(
             _identityClient,
             _serviceProvider.GetRequiredService<ILogger<IdentityCredential>>(),
             tenantId);
-        _logger.LogDebug("Created ArmClient for tenant: {TenantId}", tenantId ?? "default");
-        return new ArmClient(credential);
+        
+        _cachedArmClient = new ArmClient(credential);
+        _lastCachedTenantId = tenantId;
+        
+        _logger.LogDebug("Created new ArmClient for tenant: {TenantId}", tenantId ?? "default");
+        return _cachedArmClient;
     }
 }
