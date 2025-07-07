@@ -5,148 +5,21 @@ using System.Text.Json.Nodes;
 using AzureMcp.Areas.Cosmos.Exceptions;
 using AzureMcp.LocalServiceClient.Identity;
 using AzureMcp.LocalServiceClient.Arm;
+using AzureMcp.LocalServiceClient.CosmosDB;
 using AzureMcp.Options;
 using AzureMcp.Services.Azure;
 using AzureMcp.Services.Azure.Tenant;
 using AzureMcp.Services.Caching;
-using Microsoft.Azure.Cosmos;
 
 namespace AzureMcp.Areas.Cosmos.Services;
 
-public class CosmosService(IArmServiceClient armService, ITenantService tenantService, ICacheService cacheService, IIdentityServiceClient credentialService)
+public class CosmosService(IArmServiceClient armService, ITenantService tenantService, ICacheService cacheService, IIdentityServiceClient credentialService, ICosmosDBServiceClient cosmosDBService)
     : BaseAzureService(credentialService, tenantService), ICosmosService, IDisposable
 {
     private readonly IArmServiceClient _armService = armService ?? throw new ArgumentNullException(nameof(armService));
     private readonly ICacheService _cacheService = cacheService ?? throw new ArgumentNullException(nameof(cacheService));
-    private const string CosmosBaseUri = "https://{0}.documents.azure.com:443/";
-    private const string CacheGroup = "cosmos";
-    private const string CosmosClientsCacheKeyPrefix = "clients_";
-    private static readonly TimeSpan s_cacheDurationClients = TimeSpan.FromMinutes(15);
+    private readonly ICosmosDBServiceClient _cosmosDBService = cosmosDBService ?? throw new ArgumentNullException(nameof(cosmosDBService));
     private bool _disposed;
-
-    private async Task<CosmosAccountData> GetCosmosAccountAsync(
-        string subscriptionId,
-        string accountName,
-        string? tenant = null,
-        RetryPolicyOptions? retryPolicy = null)
-    {
-        ValidateRequiredParameters(subscriptionId, accountName);
-
-        try
-        {
-            return await _armService.GetCosmosAccountAsync(accountName, subscriptionId, tenant);
-        }
-        catch (Exception ex)
-        {
-            throw new Exception($"Cosmos DB account '{accountName}' not found in subscription '{subscriptionId}': {ex.Message}", ex);
-        }
-    }
-
-    private async Task<CosmosClient> CreateCosmosClientWithAuth(
-        string accountName,
-        string subscriptionId,
-        AuthMethod authMethod,
-        string? tenant = null,
-        RetryPolicyOptions? retryPolicy = null)
-    {
-        var clientOptions = new CosmosClientOptions { AllowBulkExecution = true };
-        clientOptions.CosmosClientTelemetryOptions.DisableDistributedTracing = false;
-        clientOptions.CustomHandlers.Add(new UserPolicyRequestHandler(UserAgent));
-
-        if (retryPolicy != null)
-        {
-            clientOptions.MaxRetryAttemptsOnRateLimitedRequests = retryPolicy.MaxRetries;
-            clientOptions.MaxRetryWaitTimeOnRateLimitedRequests = TimeSpan.FromSeconds(retryPolicy.MaxDelaySeconds);
-        }
-
-        CosmosClient cosmosClient;
-        switch (authMethod)
-        {
-            case AuthMethod.Key:
-                var cosmosAccount = await GetCosmosAccountAsync(subscriptionId, accountName, tenant);
-                cosmosClient = new CosmosClient(
-                    string.Format(CosmosBaseUri, accountName),
-                    cosmosAccount.PrimaryMasterKey,
-                    clientOptions);
-                break;
-
-            case AuthMethod.Credential:
-            default:
-                cosmosClient = new CosmosClient(
-                    string.Format(CosmosBaseUri, accountName),
-                    await GetCredential(tenant),
-                    clientOptions);
-                break;
-        }
-
-        // Validate the client by performing a lightweight operation
-        await ValidateCosmosClientAsync(cosmosClient);
-
-        return cosmosClient;
-    }
-
-    private async Task ValidateCosmosClientAsync(CosmosClient client)
-    {
-        try
-        {
-            // Perform a lightweight operation to validate the client
-            await client.ReadAccountAsync();
-        }
-        catch (CosmosException ex)
-        {
-            throw WrapCosmosException(ex, "Failed to validate CosmosClient");
-        }
-        catch (Exception ex)
-        {
-            throw new Exception($"Unexpected error while validating CosmosClient: {ex.Message}", ex);
-        }
-    }
-
-    private async Task<CosmosClient> GetCosmosClientAsync(
-        string accountName,
-        string subscriptionId,
-        AuthMethod authMethod = AuthMethod.Credential,
-        string? tenant = null,
-        RetryPolicyOptions? retryPolicy = null)
-    {
-        ValidateRequiredParameters(accountName, subscriptionId);
-
-        var key = CosmosClientsCacheKeyPrefix + accountName;
-        var cosmosClient = await _cacheService.GetAsync<CosmosClient>(CacheGroup, key, s_cacheDurationClients);
-        if (cosmosClient != null)
-            return cosmosClient;
-
-        try
-        {
-            // First attempt with requested auth method
-            cosmosClient = await CreateCosmosClientWithAuth(
-                accountName,
-                subscriptionId,
-                authMethod,
-                tenant,
-                retryPolicy);
-
-            await _cacheService.SetAsync(CacheGroup, key, cosmosClient, s_cacheDurationClients);
-            return cosmosClient;
-        }
-        catch (Exception ex) when (
-            authMethod == AuthMethod.Credential &&
-            (ex.Message.Contains("401") || ex.Message.Contains("403")))
-        {
-            // If credential auth fails with 401/403, try key auth
-            cosmosClient = await CreateCosmosClientWithAuth(
-                accountName,
-                subscriptionId,
-                AuthMethod.Key,
-                tenant,
-                retryPolicy);
-
-            await _cacheService.SetAsync(CacheGroup, key, cosmosClient, s_cacheDurationClients);
-            return cosmosClient;
-        }
-
-        throw new Exception($"Failed to create Cosmos client for account '{accountName}' with any authentication method");
-    }
 
     public async Task<List<string>> GetCosmosAccounts(string subscriptionId, string? tenant = null, RetryPolicyOptions? retryPolicy = null)
     {
@@ -171,24 +44,18 @@ public class CosmosService(IArmServiceClient armService, ITenantService tenantSe
     {
         ValidateRequiredParameters(accountName, subscriptionId);
 
-        var client = await GetCosmosClientAsync(accountName, subscriptionId, authMethod, tenant, retryPolicy);
-        var databases = new List<string>();
-
         try
         {
-            var iterator = client.GetDatabaseQueryIterator<DatabaseProperties>();
-            while (iterator.HasMoreResults)
-            {
-                var results = await iterator.ReadNextAsync();
-                databases.AddRange(results.Select(r => r.Id));
-            }
+            return await _cosmosDBService.ListDatabasesAsync(
+                accountName,
+                subscriptionId,
+                ConvertAuthMethodToString(authMethod),
+                tenant);
         }
         catch (Exception ex)
         {
             throw new Exception($"Error listing databases: {ex.Message}", ex);
         }
-
-        return databases;
     }
 
     public async Task<List<string>> ListContainers(
@@ -201,25 +68,19 @@ public class CosmosService(IArmServiceClient armService, ITenantService tenantSe
     {
         ValidateRequiredParameters(accountName, databaseName, subscriptionId);
 
-        var client = await GetCosmosClientAsync(accountName, subscriptionId, authMethod, tenant, retryPolicy);
-        var containers = new List<string>();
-
         try
         {
-            var database = client.GetDatabase(databaseName);
-            var iterator = database.GetContainerQueryIterator<ContainerProperties>();
-            while (iterator.HasMoreResults)
-            {
-                var results = await iterator.ReadNextAsync();
-                containers.AddRange(results.Select(r => r.Id));
-            }
+            return await _cosmosDBService.ListContainersAsync(
+                accountName,
+                databaseName,
+                subscriptionId,
+                ConvertAuthMethodToString(authMethod),
+                tenant);
         }
         catch (Exception ex)
         {
             throw new Exception($"Error listing containers: {ex.Message}", ex);
         }
-
-        return containers;
     }
 
     public async Task<List<JsonNode>> QueryItems(
@@ -234,31 +95,33 @@ public class CosmosService(IArmServiceClient armService, ITenantService tenantSe
     {
         ValidateRequiredParameters(accountName, databaseName, containerName, subscriptionId);
 
-        var client = await GetCosmosClientAsync(accountName, subscriptionId, authMethod, tenant, retryPolicy);
-
         try
         {
-            var container = client.GetContainer(databaseName, containerName);
             var baseQuery = string.IsNullOrEmpty(query) ? "SELECT * FROM c" : query;
-            var queryDef = new QueryDefinition(baseQuery);
+
+            var jsonItems = await _cosmosDBService.QueryItemsAsync(
+                accountName,
+                databaseName,
+                containerName,
+                baseQuery,
+                subscriptionId,
+                ConvertAuthMethodToString(authMethod),
+                tenant);
 
             var items = new List<JsonNode>();
-            var queryIterator = container.GetItemQueryStreamIterator(
-                queryDef,
-                requestOptions: new QueryRequestOptions { MaxItemCount = -1 }
-            );
-
-            while (queryIterator.HasMoreResults)
+            foreach (var json in jsonItems)
             {
-                var response = await queryIterator.ReadNextAsync();
-                items.Add(JsonNode.Parse(response.Content)!);
+                if (!string.IsNullOrEmpty(json))
+                {
+                    var jsonNode = JsonNode.Parse(json);
+                    if (jsonNode != null)
+                    {
+                        items.Add(jsonNode);
+                    }
+                }
             }
 
             return items;
-        }
-        catch (CosmosException ex)
-        {
-            throw WrapCosmosException(ex, "Cosmos DB error occurred while querying items");
         }
         catch (Exception ex)
         {
@@ -266,56 +129,22 @@ public class CosmosService(IArmServiceClient armService, ITenantService tenantSe
         }
     }
 
-    private static CosmosOperationException WrapCosmosException(CosmosException cosmosEx, string operation)
-    {
-        return new CosmosOperationException(
-            message: $"{operation}: {cosmosEx.Message}",
-            statusCode: cosmosEx.StatusCode,
-            requestCharge: cosmosEx.RequestCharge,
-            activityId: cosmosEx.ActivityId,
-            retryAfter: cosmosEx.RetryAfter,
-            innerException: cosmosEx);
-    }
-
-    protected virtual async void Dispose(bool disposing)
+    public void Dispose()
     {
         if (!_disposed)
         {
-            if (disposing)
-            {
-                // Get all cached client keys
-                var keys = await _cacheService.GetGroupKeysAsync(CacheGroup);
-
-                // Filter for client keys only (those that start with the client prefix)
-                var clientKeys = keys.Where(k => k.StartsWith(CosmosClientsCacheKeyPrefix));
-
-                // Retrieve and dispose each client
-                foreach (var key in clientKeys)
-                {
-                    var client = await _cacheService.GetAsync<CosmosClient>(CacheGroup, key);
-                    client?.Dispose();
-                }
-                _disposed = true;
-            }
+            _disposed = true;
         }
-    }
-
-    public void Dispose()
-    {
-        Dispose(disposing: true);
         GC.SuppressFinalize(this);
     }
-
-    internal class UserPolicyRequestHandler : RequestHandler
+    
+    private static string ConvertAuthMethodToString(AuthMethod authMethod)
     {
-        private readonly string userAgent;
-
-        internal UserPolicyRequestHandler(string userAgent) => this.userAgent = userAgent;
-
-        public override Task<ResponseMessage> SendAsync(RequestMessage request, CancellationToken cancellationToken)
+        return authMethod switch
         {
-            request.Headers.Set(UserAgentPolicy.UserAgentHeader, userAgent);
-            return base.SendAsync(request, cancellationToken);
-        }
+            AuthMethod.Key => "Key",
+            AuthMethod.Credential => "Credential",
+            _ => "Credential"
+        };
     }
 }
