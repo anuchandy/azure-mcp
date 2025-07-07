@@ -84,7 +84,7 @@ public sealed class IdentityCredential : TokenCredential, IDisposable
     {
         if (!_disposed)
         {
-            _identityClient?.Dispose();
+            // _identityClient is singleton and lifetime is managed by DI, so don't dispose here.
             _disposed = true;
         }
     }
