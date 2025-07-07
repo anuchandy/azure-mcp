@@ -1,0 +1,1091 @@
+syntax = "proto3";
+
+option csharp_namespace = "AzureMcp.LocalService.Arm.Grpc";
+
+package arm;
+
+// The ARM service provides Azure Resource Manager operations
+service ArmService {
+  // Get the status of the Identity service connectivity
+  rpc GetIdentityServiceStatus(IdentityServiceStatusRequest) returns (IdentityServiceStatusResponse);
+  
+  // List all accessible tenants
+  rpc GetTenants(GetTenantsRequest) returns (GetTenantsResponse);
+  
+  // List all accessible subscriptions for the specified tenant
+  rpc ListSubscriptions(ListSubscriptionsRequest) returns (ListSubscriptionsResponse);
+  
+  // Get storage accounts for a subscription
+  rpc GetStorageAccounts(GetStorageAccountsRequest) returns (GetStorageAccountsResponse);
+  
+  // Get storage account keys for a specific storage account
+  rpc GetStorageAccountKeys(GetStorageAccountKeysRequest) returns (GetStorageAccountKeysResponse);
+  
+  // Get storage account connection string for a specific storage account
+  rpc GetStorageAccountConnectionString(GetStorageAccountConnectionStringRequest) returns (GetStorageAccountConnectionStringResponse);
+  
+  // Get Cosmos DB accounts for a subscription
+  rpc GetCosmosAccounts(GetCosmosAccountsRequest) returns (GetCosmosAccountsResponse);
+  
+  // Get a specific Cosmos DB account details
+  rpc GetCosmosAccount(GetCosmosAccountRequest) returns (GetCosmosAccountResponse);
+  
+  // Get App Configuration accounts for a subscription
+  rpc GetAppConfigAccounts(GetAppConfigAccountsRequest) returns (GetAppConfigAccountsResponse);
+  
+  // Get App Configuration account endpoint for creating configuration client
+  rpc GetAppConfigAccountEndpoint(GetAppConfigAccountEndpointRequest) returns (GetAppConfigAccountEndpointResponse);
+  
+  // Get Kusto clusters for a subscription
+  rpc GetKustoClusters(GetKustoClustersRequest) returns (GetKustoClustersResponse);
+  
+  // Get a specific Kusto cluster details
+  rpc GetKustoCluster(GetKustoClusterRequest) returns (GetKustoClusterResponse);
+  
+  // Get resource groups for a subscription
+  rpc GetResourceGroups(GetResourceGroupsRequest) returns (GetResourceGroupsResponse);
+  
+  // Get a specific resource group details
+  rpc GetResourceGroup(GetResourceGroupRequest) returns (GetResourceGroupResponse);
+  
+  // List role assignments for a scope
+  rpc ListRoleAssignments(ListRoleAssignmentsRequest) returns (ListRoleAssignmentsResponse);
+  
+  // Resolve a resource identifier from provided parameters
+  rpc ResolveResourceId(ResolveResourceIdRequest) returns (ResolveResourceIdResponse);
+  
+  // Get Redis caches for a subscription
+  rpc ListRedisCaches(ListRedisCachesRequest) returns (ListRedisCachesResponse);
+  
+  // Get Redis access policy assignments for a cache
+  rpc ListRedisAccessPolicyAssignments(ListRedisAccessPolicyAssignmentsRequest) returns (ListRedisAccessPolicyAssignmentsResponse);
+  
+  // Get Redis clusters for a subscription
+  rpc ListRedisClusters(ListRedisClustersRequest) returns (ListRedisClustersResponse);
+  
+  // Get Redis databases for a cluster
+  rpc ListRedisDatabases(ListRedisDatabasesRequest) returns (ListRedisDatabasesResponse);
+  
+  // List PostgreSQL flexible servers in a resource group
+  rpc ListPostgreSqlServers(ListPostgreSqlServersRequest) returns (ListPostgreSqlServersResponse);
+  
+  // Get PostgreSQL server configuration details
+  rpc GetPostgreSqlServerConfig(GetPostgreSqlServerConfigRequest) returns (GetPostgreSqlServerConfigResponse);
+  
+  // Get a specific PostgreSQL server configuration parameter
+  rpc GetPostgreSqlServerParameter(GetPostgreSqlServerParameterRequest) returns (GetPostgreSqlServerParameterResponse);
+  
+  // Set a specific PostgreSQL server configuration parameter
+  rpc SetPostgreSqlServerParameter(SetPostgreSqlServerParameterRequest) returns (SetPostgreSqlServerParameterResponse);
+
+  // List Azure Search services in a subscription
+  rpc ListSearchServices(ListSearchServicesRequest) returns (ListSearchServicesResponse);
+
+  // List monitored resources for a Datadog monitor
+  rpc ListMonitoredDatadogResources(ListMonitoredDatadogResourcesRequest) returns (ListMonitoredDatadogResourcesResponse);
+  
+  // List Monitor workspaces for a subscription
+  rpc ListMonitorWorkspaces(ListMonitorWorkspacesRequest) returns (ListMonitorWorkspacesResponse);
+  
+  // List Monitor tables for a workspace
+  rpc ListMonitorTables(ListMonitorTablesRequest) returns (ListMonitorTablesResponse);
+  
+  // List Monitor table types for a workspace
+  rpc ListMonitorTableTypes(ListMonitorTableTypesRequest) returns (ListMonitorTableTypesResponse);
+}
+
+// Request for checking Identity service status
+message IdentityServiceStatusRequest {
+  // Optional tenant ID to test with specific tenant
+  string tenant_id = 1;
+  // Optional scopes to request for the test (defaults to ARM scope)
+  repeated string scopes = 2;
+}
+
+// Response for Identity service status check
+message IdentityServiceStatusResponse {
+  // Whether the Identity service check was successful
+  bool is_success = 1;
+  // Error message if check failed
+  string error_message = 2;
+  // Additional details about the check
+  string details = 3;
+}
+
+// Request for getting tenants
+message GetTenantsRequest {
+  // Currently no parameters needed for getting tenants
+}
+
+// Response containing list of tenants
+message GetTenantsResponse {
+  // List of tenant information
+  repeated TenantInfo tenants = 1;
+  // Whether the operation was successful
+  bool is_success = 2;
+  // Error message if operation failed
+  string error_message = 3;
+}
+
+// Tenant information message
+message TenantInfo {
+  // The fully qualified ID of the tenant (e.g., /tenants/8d65815f-a5b6-402f-9298-045155da7d74)
+  string id = 1;
+  // The tenant ID (GUID)
+  string tenant_id = 2;
+  // Category of the tenant (as string value)
+  string tenant_category = 3;
+  // Country/region name of the address for the tenant
+  string country = 4;
+  // Country/region abbreviation for the tenant
+  string country_code = 5;
+  // The display name of the tenant
+  string display_name = 6;
+  // The list of domains for the tenant
+  repeated string domains = 7;
+  // The default domain for the tenant
+  string default_domain = 8;
+  // The tenant type (only available for 'Home' tenant category)
+  string tenant_type = 9;
+  // The tenant's branding logo URL (only available for 'Home' tenant category)
+  string tenant_branding_logo_uri = 10;
+}
+
+// Request for listing subscriptions
+message ListSubscriptionsRequest {
+  // Optional tenant ID to list subscriptions for specific tenant
+  string tenant_id = 1;
+}
+
+// Response containing list of subscriptions
+message ListSubscriptionsResponse {
+  // List of subscription data
+  repeated SubscriptionData subscriptions = 1;
+  // Whether the operation was successful
+  bool is_success = 2;
+  // Error message if operation failed
+  string error_message = 3;
+}
+
+// Subscription data message
+message SubscriptionData {
+  // The subscription ID (GUID)
+  string subscription_id = 1;
+  // The display name of the subscription
+  string display_name = 2;
+  // The tenant ID this subscription belongs to
+  string tenant_id = 3;
+  // The subscription state (e.g., "Enabled", "Disabled")
+  string state = 4;
+}
+
+// Request for getting storage accounts
+message GetStorageAccountsRequest {
+  // Subscription ID to get storage accounts for
+  string subscription_id = 1;
+  // Optional tenant ID
+  string tenant_id = 2;
+}
+
+// Response containing list of storage accounts
+message GetStorageAccountsResponse {
+  // List of storage account names
+  repeated string storage_accounts = 1;
+  // Whether the operation was successful
+  bool is_success = 2;
+  // Error message if operation failed
+  string error_message = 3;
+}
+
+// Request for getting storage account keys
+message GetStorageAccountKeysRequest {
+  // Storage account name
+  string account_name = 1;
+  // Subscription ID where the storage account exists
+  string subscription_id = 2;
+  // Optional tenant ID
+  string tenant_id = 3;
+}
+
+// Response containing storage account keys
+message GetStorageAccountKeysResponse {
+  // List of storage account keys
+  repeated StorageAccountKey keys = 1;
+  // Whether the operation was successful
+  bool is_success = 2;
+  // Error message if operation failed
+  string error_message = 3;
+}
+
+// Request for getting storage account connection string
+message GetStorageAccountConnectionStringRequest {
+  // Storage account name
+  string account_name = 1;
+  // Subscription ID where the storage account exists
+  string subscription_id = 2;
+  // Optional tenant ID
+  string tenant_id = 3;
+}
+
+// Response containing storage account connection string
+message GetStorageAccountConnectionStringResponse {
+  // The connection string
+  string connection_string = 1;
+  // Whether the operation was successful
+  bool is_success = 2;
+  // Error message if operation failed
+  string error_message = 3;
+}
+
+// Storage account key data
+message StorageAccountKey {
+  // The key name (e.g., "key1", "key2")
+  string key_name = 1;
+  // The key value
+  string key_value = 2;
+  // The permissions for this key
+  string permissions = 3;
+}
+
+// Request for getting Cosmos DB accounts
+message GetCosmosAccountsRequest {
+  // Subscription ID to get Cosmos DB accounts for
+  string subscription_id = 1;
+  // Optional tenant ID
+  string tenant_id = 2;
+}
+
+// Response containing list of Cosmos DB accounts
+message GetCosmosAccountsResponse {
+  // List of Cosmos DB account names
+  repeated string cosmos_accounts = 1;
+  // Whether the operation was successful
+  bool is_success = 2;
+  // Error message if operation failed
+  string error_message = 3;
+}
+
+// Request for getting a specific Cosmos DB account
+message GetCosmosAccountRequest {
+  // Cosmos DB account name
+  string account_name = 1;
+  // Subscription ID where the Cosmos DB account exists
+  string subscription_id = 2;
+  // Optional tenant ID
+  string tenant_id = 3;
+}
+
+// Response containing Cosmos DB account details
+message GetCosmosAccountResponse {
+  // The Cosmos DB account data
+  CosmosAccountData account = 1;
+  // Whether the operation was successful
+  bool is_success = 2;
+  // Error message if operation failed
+  string error_message = 3;
+}
+
+// Cosmos DB account data
+message CosmosAccountData {
+  // The account name
+  string name = 1;
+  // The account ID (resource ID)
+  string id = 2;
+  // The account location
+  string location = 3;
+  // The account type (e.g., "DocumentDB")
+  string account_type = 4;
+  // The resource group name
+  string resource_group = 5;
+  // The provisioning state
+  string provisioning_state = 6;
+  // The document endpoint URL
+  string document_endpoint = 7;
+  // The primary master key for the account
+  string primary_master_key = 8;
+}
+
+// Request for getting App Configuration accounts
+message GetAppConfigAccountsRequest {
+  // Subscription ID to get App Configuration accounts for
+  string subscription_id = 1;
+  // Optional tenant ID
+  string tenant_id = 2;
+}
+
+// Response containing list of App Configuration accounts
+message GetAppConfigAccountsResponse {
+  // List of App Configuration account data
+  repeated AppConfigAccountData app_config_accounts = 1;
+  // Whether the operation was successful
+  bool is_success = 2;
+  // Error message if operation failed
+  string error_message = 3;
+}
+
+// Request for getting a specific App Configuration account
+// Request for getting App Configuration account endpoint
+message GetAppConfigAccountEndpointRequest {
+  // App Configuration account name
+  string account_name = 1;
+  // Subscription ID where the App Configuration account exists
+  string subscription_id = 2;
+  // Optional tenant ID
+  string tenant_id = 3;
+}
+
+// Response containing App Configuration account endpoint
+message GetAppConfigAccountEndpointResponse {
+  // The App Configuration account endpoint URL
+  string endpoint = 1;
+  // Whether the operation was successful
+  bool is_success = 2;
+  // Error message if operation failed
+  string error_message = 3;
+}
+
+// App Configuration account data
+message AppConfigAccountData {
+  // The account name
+  string name = 1;
+  // The account location
+  string location = 2;
+  // The endpoint URL
+  string endpoint = 3;
+  // The creation date (Unix timestamp)
+  int64 creation_date = 4;
+  // Whether public network access is enabled
+  bool public_network_access = 5;
+  // The SKU name
+  string sku = 6;
+  // Resource tags (key-value pairs)
+  map<string, string> tags = 7;
+  // Whether local auth is disabled
+  bool disable_local_auth = 8;
+  // Soft delete retention in days
+  int32 soft_delete_retention_in_days = 9;
+  // Whether purge protection is enabled
+  bool enable_purge_protection = 10;
+  // The create mode
+  string create_mode = 11;
+  // Managed identity information
+  ManagedIdentityInfo managed_identity = 12;
+  // Encryption properties
+  EncryptionProperties encryption = 13;
+}
+
+// Managed identity information
+message ManagedIdentityInfo {
+  // System assigned identity
+  SystemAssignedIdentityInfo system_assigned_identity = 1;
+  // User assigned identities
+  repeated UserAssignedIdentityInfo user_assigned_identities = 2;
+}
+
+// System assigned identity information
+message SystemAssignedIdentityInfo {
+  // Whether system assigned identity is enabled
+  bool enabled = 1;
+  // Tenant ID
+  string tenant_id = 2;
+  // Principal ID
+  string principal_id = 3;
+}
+
+// User assigned identity information
+message UserAssignedIdentityInfo {
+  // Client ID
+  string client_id = 1;
+  // Principal ID
+  string principal_id = 2;
+}
+
+// Encryption properties
+message EncryptionProperties {
+  // Key identifier
+  string key_identifier = 1;
+  // Identity client ID
+  string identity_client_id = 2;
+  // Whether key vault key identifier is valid
+  bool is_key_vault_key_identifier_valid = 3;
+  // Whether identity client ID is valid
+  bool is_identity_client_id_valid = 4;
+}
+
+// Request for getting Kusto clusters
+message GetKustoClustersRequest {
+  // Subscription ID to get Kusto clusters for
+  string subscription_id = 1;
+  // Optional tenant ID
+  string tenant_id = 2;
+}
+
+// Response containing list of Kusto clusters
+message GetKustoClustersResponse {
+  // List of Kusto cluster names
+  repeated string kusto_clusters = 1;
+  // Whether the operation was successful
+  bool is_success = 2;
+  // Error message if operation failed
+  string error_message = 3;
+}
+
+// Request for getting a specific Kusto cluster
+message GetKustoClusterRequest {
+  // Kusto cluster name
+  string cluster_name = 1;
+  // Subscription ID where the Kusto cluster exists
+  string subscription_id = 2;
+  // Optional tenant ID
+  string tenant_id = 3;
+}
+
+// Response containing Kusto cluster details
+message GetKustoClusterResponse {
+  // The Kusto cluster data
+  KustoClusterData cluster = 1;
+  // Whether the operation was successful
+  bool is_success = 2;
+  // Error message if operation failed
+  string error_message = 3;
+}
+
+// Kusto cluster data
+message KustoClusterData {
+  // The cluster name
+  string cluster_name = 1;
+  // The cluster URI
+  string cluster_uri = 2;
+  // The cluster location
+  string location = 3;
+  // The resource group name
+  string resource_group_name = 4;
+  // The subscription ID
+  string subscription_id = 5;
+  // The SKU information
+  string sku = 6;
+  // The availability zones
+  string zones = 7;
+  // The identity information
+  string identity = 8;
+  // The ETag
+  string etag = 9;
+  // The cluster state
+  string state = 10;
+  // The provisioning state
+  string provisioning_state = 11;
+  // The data ingestion URI
+  string data_ingestion_uri = 12;
+  // The state reason
+  string state_reason = 13;
+  // Whether streaming ingest is enabled
+  bool is_streaming_ingest_enabled = 14;
+  // The engine type
+  string engine_type = 15;
+  // Whether auto stop is enabled
+  bool is_auto_stop_enabled = 16;
+}
+
+// Request for getting resource groups
+message GetResourceGroupsRequest {
+  // Subscription ID to get resource groups for
+  string subscription_id = 1;
+  // Optional tenant ID
+  string tenant_id = 2;
+}
+
+// Response containing list of resource groups
+message GetResourceGroupsResponse {
+  // List of resource group info
+  repeated ResourceGroupData resource_groups = 1;
+  // Whether the operation was successful
+  bool is_success = 2;
+  // Error message if operation failed
+  string error_message = 3;
+}
+
+// Request for getting a specific resource group
+message GetResourceGroupRequest {
+  // Resource group name
+  string resource_group_name = 1;
+  // Subscription ID where the resource group exists
+  string subscription_id = 2;
+  // Optional tenant ID
+  string tenant_id = 3;
+}
+
+// Response containing resource group details
+message GetResourceGroupResponse {
+  // The resource group data
+  ResourceGroupData resource_group = 1;
+  // Whether the operation was successful
+  bool is_success = 2;
+  // Error message if operation failed
+  string error_message = 3;
+}
+
+// Resource group data
+message ResourceGroupData {
+  // The resource group name
+  string name = 1;
+  // The resource group ID
+  string id = 2;
+  // The resource group location
+  string location = 3;
+}
+
+// Request for listing role assignments
+message ListRoleAssignmentsRequest {
+  // The scope that the role assignments apply to
+  string scope = 1;
+  // Optional tenant ID for cross-tenant operations
+  string tenant_id = 2;
+}
+
+// Response for listing role assignments
+message ListRoleAssignmentsResponse {
+  // Whether the operation was successful
+  bool is_success = 1;
+  // Error message if operation failed
+  string error_message = 2;
+  // List of role assignments
+  repeated RoleAssignment role_assignments = 3;
+}
+
+// Request for resolving a resource identifier
+message ResolveResourceIdRequest {
+  // The subscription ID (required)
+  string subscription = 1;
+  // The resource group name (optional)
+  string resource_group = 2;
+  // The resource type (optional, e.g., 'Microsoft.Storage/storageAccounts')
+  string resource_type = 3;
+  // The resource name or full resource ID (required)
+  string resource_name = 4;
+  // Optional tenant ID for multi-tenant scenarios
+  string tenant = 5;
+}
+
+// Response for resolving a resource identifier
+message ResolveResourceIdResponse {
+  // Whether the operation was successful
+  bool is_success = 1;
+  // Error message if operation failed
+  string error_message = 2;
+  // The resolved resource ID
+  string resource_id = 3;
+}
+
+// Role assignment data
+message RoleAssignment {
+  // Fully qualified resource ID for the resource
+  string id = 1;
+  // The name of the resource
+  string name = 2;
+  // The role definition ID
+  string role_definition_id = 3;
+  // The role assignment scope
+  string scope = 4;
+  // The principal ID
+  string principal_id = 5;
+  // The principal type of the assigned principal ID
+  string principal_type = 6;
+  // Description of role assignment
+  string description = 7;
+  // Id of the delegated managed identity resource
+  string delegated_managed_identity_resource_id = 8;
+  // The conditions on the role assignment
+  string condition = 9;
+}
+
+// Request for listing Redis caches
+message ListRedisCachesRequest {
+  // Subscription ID to get Redis caches for
+  string subscription_id = 1;
+  // Optional tenant ID
+  string tenant_id = 2;
+}
+
+// Response containing list of Redis caches
+message ListRedisCachesResponse {
+  // List of Redis cache data
+  repeated RedisCache redis_caches = 1;
+  // Whether the operation was successful
+  bool is_success = 2;
+  // Error message if operation failed
+  string error_message = 3;
+}
+
+// Request for listing Redis access policy assignments
+message ListRedisAccessPolicyAssignmentsRequest {
+  // Redis cache name
+  string cache_name = 1;
+  // Resource group name containing the cache
+  string resource_group_name = 2;
+  // Subscription ID where the cache exists
+  string subscription_id = 3;
+  // Optional tenant ID
+  string tenant_id = 4;
+}
+
+// Response containing list of Redis access policy assignments
+message ListRedisAccessPolicyAssignmentsResponse {
+  // List of Redis access policy assignment data
+  repeated RedisAccessPolicyAssignment redis_access_policy_assignments = 1;
+  // Whether the operation was successful
+  bool is_success = 2;
+  // Error message if operation failed
+  string error_message = 3;
+}
+
+// Request for listing Redis clusters
+message ListRedisClustersRequest {
+  // Subscription ID to get Redis clusters for
+  string subscription_id = 1;
+  // Optional tenant ID
+  string tenant_id = 2;
+}
+
+// Response containing list of Redis clusters
+message ListRedisClustersResponse {
+  // List of Redis cluster data
+  repeated RedisCluster redis_clusters = 1;
+  // Whether the operation was successful
+  bool is_success = 2;
+  // Error message if operation failed
+  string error_message = 3;
+}
+
+// Request for listing Redis databases
+message ListRedisDatabasesRequest {
+  // Redis cluster name
+  string cluster_name = 1;
+  // Resource group name containing the cluster
+  string resource_group_name = 2;
+  // Subscription ID where the cluster exists
+  string subscription_id = 3;
+  // Optional tenant ID
+  string tenant_id = 4;
+}
+
+// Response containing list of Redis databases
+message ListRedisDatabasesResponse {
+  // List of Redis database data
+  repeated RedisDatabase redis_databases = 1;
+  // Whether the operation was successful
+  bool is_success = 2;
+  // Error message if operation failed
+  string error_message = 3;
+}
+
+// PostgreSQL Services
+
+// Request to list PostgreSQL servers in a resource group
+message ListPostgreSqlServersRequest {
+  // The subscription ID
+  string subscription_id = 1;
+  // The resource group name
+  string resource_group_name = 2;
+  // Optional tenant ID for multi-tenant scenarios
+  string tenant_id = 3;
+}
+
+// Response containing list of PostgreSQL servers
+message ListPostgreSqlServersResponse {
+  // Indicates if the operation was successful
+  bool is_success = 1;
+  // Error message if operation failed
+  string error_message = 2;
+  // List of PostgreSQL server names
+  repeated string server_names = 3;
+}
+
+// Request to get PostgreSQL server configuration
+message GetPostgreSqlServerConfigRequest {
+  // The subscription ID
+  string subscription_id = 1;
+  // The resource group name
+  string resource_group_name = 2;
+  // The PostgreSQL server name
+  string server_name = 3;
+  // Optional tenant ID for multi-tenant scenarios
+  string tenant_id = 4;
+}
+
+// Response containing PostgreSQL server configuration
+message GetPostgreSqlServerConfigResponse {
+  // Indicates if the operation was successful
+  bool is_success = 1;
+  // Error message if operation failed
+  string error_message = 2;
+  // PostgreSQL server configuration details
+  PostgreSqlServerConfig server_config = 3;
+}
+
+// PostgreSQL server configuration data
+message PostgreSqlServerConfig {
+  // Server name
+  string name = 1;
+  // Server location
+  string location = 2;
+  // PostgreSQL version
+  string version = 3;
+  // SKU information
+  string sku_name = 4;
+  // Storage size in GB
+  int32 storage_size_gb = 5;
+  // Backup retention days
+  int32 backup_retention_days = 6;
+  // Geo-redundant backup enabled
+  string geo_redundant_backup = 7;
+}
+
+// Request to get a PostgreSQL server parameter
+message GetPostgreSqlServerParameterRequest {
+  // The subscription ID
+  string subscription_id = 1;
+  // The resource group name
+  string resource_group_name = 2;
+  // The PostgreSQL server name
+  string server_name = 3;
+  // The parameter name
+  string parameter_name = 4;
+  // Optional tenant ID for multi-tenant scenarios
+  string tenant_id = 5;
+}
+
+// Response containing PostgreSQL server parameter value
+message GetPostgreSqlServerParameterResponse {
+  // Indicates if the operation was successful
+  bool is_success = 1;
+  // Error message if operation failed
+  string error_message = 2;
+  // Parameter value
+  string parameter_value = 3;
+}
+
+// Request to set a PostgreSQL server parameter
+message SetPostgreSqlServerParameterRequest {
+  // The subscription ID
+  string subscription_id = 1;
+  // The resource group name
+  string resource_group_name = 2;
+  // The PostgreSQL server name
+  string server_name = 3;
+  // The parameter name
+  string parameter_name = 4;
+  // The parameter value to set
+  string parameter_value = 5;
+  // Optional tenant ID for multi-tenant scenarios
+  string tenant_id = 6;
+}
+
+// Response for setting PostgreSQL server parameter
+message SetPostgreSqlServerParameterResponse {
+  // Indicates if the operation was successful
+  bool is_success = 1;
+  // Error message if operation failed
+  string error_message = 2;
+  // Success message with details
+  string message = 3;
+}
+
+// Search Services
+
+// Request to list Azure Search services in a subscription
+message ListSearchServicesRequest {
+  // The subscription ID
+  string subscription_id = 1;
+  // Optional tenant ID for multi-tenant scenarios
+  string tenant_id = 2;
+}
+
+// Response containing list of Azure Search services
+message ListSearchServicesResponse {
+  // Indicates if the operation was successful
+  bool is_success = 1;
+  // Error message if operation failed
+  string error_message = 2;
+  // List of Search service names
+  repeated string service_names = 3;
+}
+
+// Redis Services Messages
+
+// Redis cache data
+message RedisCache {
+  // Cache name
+  string name = 1;
+  // Resource group name
+  string resource_group_name = 2;
+  // Subscription ID
+  string subscription_id = 3;
+  // Cache location
+  string location = 4;
+  // SKU information
+  string sku = 5;
+  // Provisioning state
+  string provisioning_state = 6;
+  // Redis version
+  string redis_version = 7;
+  // Host name
+  string host_name = 8;
+  // SSL port
+  int32 ssl_port = 9;
+  // Non-SSL port
+  int32 port = 10;
+  // Shard count
+  int32 shard_count = 11;
+  // Subnet ID
+  string subnet_id = 12;
+  // Public network access enabled
+  bool public_network_access = 13;
+  // Non-SSL port enabled
+  bool enable_non_ssl_port = 14;
+  // Access key authentication disabled
+  bool is_access_key_authentication_disabled = 15;
+  // Minimum TLS version
+  string minimum_tls_version = 16;
+  // Replicas per primary
+  int32 replicas_per_primary = 17;
+  // Update channel
+  string update_channel = 18;
+  // Zonal allocation policy
+  string zonal_allocation_policy = 19;
+  // Linked servers
+  repeated string linked_servers = 20;
+  // Private endpoint connections
+  repeated string private_endpoint_connections = 21;
+  // Availability zones
+  repeated string zones = 22;
+  // Redis configuration
+  RedisCacheConfiguration configuration = 23;
+  // Managed identity information
+  ManagedIdentityInfo identity = 24;
+  // Resource tags
+  map<string, string> tags = 25;
+}
+
+// Redis cache configuration
+message RedisCacheConfiguration {
+  // Indicates whether RDB (Redis Database Backup) is enabled for the Redis cache
+  bool is_rdb_backup_enabled = 1;
+  // Number of minutes between RDB backups
+  string rdb_backup_frequency = 2;
+  // Indicates the maximum number of snapshots for RDB backup
+  int32 rdb_backup_max_snapshot_count = 3;
+  // Indicates whether AOF (Append Only File) backup is enabled for the Redis cache
+  bool is_aof_backup_enabled = 4;
+  // Number of megabytes of memory reserved for fragmentation per shard
+  string max_fragmentation_memory_reserved = 5;
+  // The eviction strategy used when your data won't fit within the cache memory limit
+  string max_memory_policy = 6;
+  // Number of megabytes of memory reserved for non-cache usage per shard e.g. failover
+  string max_memory_reserved = 7;
+  // Number of megabytes of memory reserved for non-cache usage per shard e.g. failover
+  string max_memory_delta = 8;
+  // Maximum number of client connections
+  int32 max_clients = 9;
+  // The keyspace events which should be monitored
+  string notify_keyspace_events = 10;
+  // Preferred authentication method to communicate to storage account used for data archive
+  string preferred_data_archive_auth_method = 11;
+  // Preferred authentication method to communicate to storage account used for data persistence
+  string preferred_data_persistence_auth_method = 12;
+  // Zonal Configuration
+  string zonal_configuration = 13;
+  // Indicates whether client connection authentication is disabled
+  string auth_not_required = 14;
+  // SubscriptionId of the storage account for persistence (AOF/RDB) using ManagedIdentity
+  string storage_subscription_id = 15;
+  // Indicates whether Microsoft Entra ID authentication has been enabled for client connections to the cache
+  bool is_entra_id_auth_enabled = 16;
+}
+
+// Redis access policy assignment data
+message RedisAccessPolicyAssignment {
+  // Name of the access policy
+  string access_policy_name = 1;
+  // Name of the identity assigned to an access policy
+  string identity_name = 2;
+  // Provisioning status of the access policy assignment
+  string provisioning_state = 3;
+}
+
+// Redis cluster data
+message RedisCluster {
+  // Cluster name
+  string name = 1;
+  // Subscription ID
+  string subscription_id = 2;
+  // Resource group name
+  string resource_group_name = 3;
+  // Cluster location
+  string location = 4;
+  // SKU information
+  string sku = 5;
+  // Provisioning state
+  string provisioning_state = 6;
+  // Resource state
+  string resource_state = 7;
+  // Redis version
+  string redis_version = 8;
+  // Host name
+  string host_name = 9;
+  // Minimum TLS version
+  string minimum_tls_version = 10;
+  // Private endpoint connections
+  repeated string private_endpoint_connections = 11;
+  // Availability zones
+  repeated string zones = 12;
+  // Managed identity information
+  ManagedIdentityInfo identity = 13;
+  // Resource tags
+  map<string, string> tags = 14;
+}
+
+// Redis database data
+message RedisDatabase {
+  // Database name
+  string name = 1;
+  // Cluster name
+  string cluster_name = 2;
+  // Resource group name
+  string resource_group_name = 3;
+  // Subscription ID
+  string subscription_id = 4;
+  // Client protocol
+  string client_protocol = 5;
+  // Port number
+  int32 port = 6;
+  // Provisioning state
+  string provisioning_state = 7;
+  // Resource state
+  string resource_state = 8;
+  // Clustering policy
+  string clustering_policy = 9;
+  // Eviction policy
+  string eviction_policy = 10;
+  // Whether AOF (Append Only File) is enabled
+  bool is_aof_enabled = 11;
+  // Whether RDB (Redis Database) backup is enabled
+  bool is_rdb_enabled = 12;
+  // Sets the frequency at which data is written to disk
+  string aof_frequency = 13;
+  // Sets the frequency at which a snapshot of the database is created
+  string rdb_frequency = 14;
+  // Optional set of redis modules to enable in this database
+  repeated RedisModule modules = 15;
+  // Name for the group of geo-linked database resources
+  string geo_replication_group_nickname = 16;
+  // List of databases linked with this database for geo-replication
+  repeated string geo_replication_linked_databases = 17;
+}
+
+// Redis module data
+message RedisModule {
+  // The name of the module, e.g. 'RedisBloom', 'RediSearch', 'RedisTimeSeries'
+  string name = 1;
+  // Configuration options for the module, e.g. 'ERROR_RATE 0.01 INITIAL_SIZE 400'
+  string args = 2;
+  // The version of the module, e.g. '1.0'
+  string version = 3;
+}
+
+// Datadog Services Messages
+
+// Request to list monitored resources for a Datadog monitor
+message ListMonitoredDatadogResourcesRequest {
+  // The subscription ID
+  string subscription_id = 1;
+  // The resource group name
+  string resource_group_name = 2;
+  // The Datadog resource name
+  string datadog_resource_name = 3;
+  // Optional tenant ID for multi-tenant scenarios
+  string tenant_id = 4;
+}
+
+// Response containing list of monitored resources
+message ListMonitoredDatadogResourcesResponse {
+  // Indicates if the operation was successful
+  bool is_success = 1;
+  // Error message if operation failed
+  string error_message = 2;
+  // List of monitored resource names
+  repeated string monitored_resource_names = 3;
+}
+
+// Request to list Monitor workspaces for a subscription
+message ListMonitorWorkspacesRequest {
+  // The subscription ID or name
+  string subscription_id = 1;
+  // Optional tenant ID
+  string tenant_id = 2;
+}
+
+// Response containing list of Monitor workspaces
+message ListMonitorWorkspacesResponse {
+  // Indicates if the operation was successful
+  bool is_success = 1;
+  // Error message if operation failed
+  string error_message = 2;
+  // List of Monitor workspaces
+  repeated MonitorWorkspace workspaces = 3;
+}
+
+// Monitor workspace information
+message MonitorWorkspace {
+  // Workspace name
+  string name = 1;
+  // Workspace customer ID (GUID)
+  string customer_id = 2;
+  // Workspace ARM resource ID
+  string arm_id = 3;
+}
+
+// Request to list Monitor tables for a workspace
+message ListMonitorTablesRequest {
+  // The subscription ID or name
+  string subscription_id = 1;
+  // The resource group name
+  string resource_group_name = 2;
+  // The workspace name or ID
+  string workspace_name = 3;
+  // Optional table type filter (defaults to "CustomLog")
+  string table_type = 4;
+  // Optional tenant ID
+  string tenant_id = 5;
+}
+
+// Response containing list of Monitor tables
+message ListMonitorTablesResponse {
+  // Indicates if the operation was successful
+  bool is_success = 1;
+  // Error message if operation failed
+  string error_message = 2;
+  // List of table names
+  repeated string table_names = 3;
+}
+
+// Request to list Monitor table types for a workspace
+message ListMonitorTableTypesRequest {
+  // The subscription ID or name
+  string subscription_id = 1;
+  // The resource group name
+  string resource_group_name = 2;
+  // The workspace name or ID
+  string workspace_name = 3;
+  // Optional tenant ID
+  string tenant_id = 4;
+}
+
+// Response containing list of Monitor table types
+message ListMonitorTableTypesResponse {
+  // Indicates if the operation was successful
+  bool is_success = 1;
+  // Error message if operation failed
+  string error_message = 2;
+  // List of distinct table types
+  repeated string table_types = 3;
+}
