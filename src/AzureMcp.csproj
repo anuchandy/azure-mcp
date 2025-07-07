@@ -61,13 +61,11 @@
     <PackageReference Include="Azure.Security.KeyVault.Keys" />
     <PackageReference Include="Azure.Security.KeyVault.Secrets" />
     <PackageReference Include="Azure.Storage.Blobs" />
-    <PackageReference Include="Microsoft.Identity.Client.Broker" />
+
     <PackageReference Include="ModelContextProtocol" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
-    <PackageReference Include="Microsoft.Azure.Cosmos" GeneratePathProperty="true" ExcludeAssets="native" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
-    <PackageReference Include="Newtonsoft.Json" />
     <PackageReference Include="Npgsql" />
     <PackageReference Include="System.CommandLine" />
     <PackageReference Include="System.Formats.Asn1" />
