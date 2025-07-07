@@ -90,7 +90,7 @@ public sealed class IdentityServiceClient : IIdentityServiceClient, IDisposable
         var config = new GrpcServiceConfig
         {
             ServiceName = "Identity",
-            ExtensionPath = Path.Combine("localservices", LocalServiceName),
+            ExtensionPath = "/Users/anuchandy/code/azure-mcp/localservices/AzureMcp.LocalService.Identity/bin/Debug/net9.0/", // Path.Combine("localservices", LocalServiceName),
             ExecutableNames = new[]
             {
                 $"{LocalServiceName}.exe",

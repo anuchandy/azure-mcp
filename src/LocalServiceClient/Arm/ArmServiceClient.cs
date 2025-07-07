@@ -1441,7 +1441,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         var config = new GrpcServiceConfig
         {
             ServiceName = "Arm",
-            ExtensionPath = Path.Combine("localservices", LocalServiceName),
+            ExtensionPath = "/Users/anuchandy/code/azure-mcp/localservices/AzureMcp.LocalService.Arm/bin/Debug/net9.0/", // Path.Combine("localservices", LocalServiceName),
             ExecutableNames = new[]
             {
                 $"{LocalServiceName}.exe",

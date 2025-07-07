@@ -130,11 +130,9 @@ public sealed class GrpcServiceHost : IDisposable
 
     private string GetServiceExecutablePath()
     {
-        // Get the directory of the current executable
-        var currentDirectory = AppContext.BaseDirectory;
-        
-        // The service extension should be in the specified path
-        var servicePath = Path.Combine(currentDirectory, _config.ExtensionPath);
+        var servicePath = Path.IsPathRooted(_config.ExtensionPath)
+            ? _config.ExtensionPath
+            : Path.Combine(AppContext.BaseDirectory, _config.ExtensionPath);
         
         // Get executable names to search for
         var executableNames = _config.ExecutableNames ?? GetDefaultExecutableNames();
