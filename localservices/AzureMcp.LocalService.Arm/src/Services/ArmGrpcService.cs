@@ -43,9 +43,6 @@ public class ArmGrpcService : ArmService.ArmServiceBase
     private readonly IServiceProvider _serviceProvider;
     private readonly IMemoryCache _cache;
 
-    private ArmClient? _cachedArmClient;
-    private string? _lastCachedTenantId;
-
     /// <summary>
     /// Initializes a new instance of the <see cref="ArmGrpcService"/> class.
     /// </summary>
@@ -2742,23 +2739,29 @@ public class ArmGrpcService : ArmService.ArmServiceBase
 
      private ArmClient CreateArmClient(string? tenantId = null)
     {
-        if (_cachedArmClient != null && _lastCachedTenantId == tenantId)
+        var cacheKey = $"armclient_{tenantId ?? "default"}";
+        
+        if (_cache.TryGetValue(cacheKey, out ArmClient? cachedClient) && cachedClient != null)
         {
-            // Return cached client if tenant hasn't changed
             _logger.LogDebug("Reusing cached ArmClient for tenant: {TenantId}", tenantId ?? "default");
-            return _cachedArmClient;
+            return cachedClient;
         }
 
-        // Create new ArmClient only when tenant changes
         var credential = new IdentityCredential(
             _identityClient,
             _serviceProvider.GetRequiredService<ILogger<IdentityCredential>>(),
             tenantId);
         
-        _cachedArmClient = new ArmClient(credential);
-        _lastCachedTenantId = tenantId;
+        var armClient = new ArmClient(credential);
         
-        _logger.LogDebug("Created new ArmClient for tenant: {TenantId}", tenantId ?? "default");
-        return _cachedArmClient;
+        _cache.Set(cacheKey, armClient, new MemoryCacheEntryOptions
+        {
+            // Cache for 1 hour.
+            SlidingExpiration = TimeSpan.FromHours(1),
+            Priority = CacheItemPriority.High
+        });
+        
+        _logger.LogDebug("Created and cached new ArmClient for tenant: {TenantId}", tenantId ?? "default");
+        return armClient;
     }
 }
