@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace AzureMcp.LocalServiceClient.Arm;
+namespace AzureMcp.LocalServiceClient;
 
 /// <summary>
 /// Exception thrown when a local service call fails.
