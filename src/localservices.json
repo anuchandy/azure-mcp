@@ -1,7 +1,7 @@
 {
   "ServicePaths": {
-    "AzureMcp.LocalService.Arm": "/Users/anuchandy/code/azure-mcp/localservices/AzureMcp.LocalService.Arm/bin/Debug/net9.0/",
-    "AzureMcp.LocalService.Identity": "/Users/anuchandy/code/azure-mcp/localservices/AzureMcp.LocalService.Identity/bin/Debug/net9.0/",
-    "AzureMcp.LocalService.CosmosDB": "/Users/anuchandy/code/azure-mcp/localservices/AzureMcp.LocalService.CosmosDB/bin/Debug/net9.0/"
+    "AzureMcp.LocalService.Arm": "../../../../localservices/AzureMcp.LocalService.Arm/bin/Debug/net9.0",
+    "AzureMcp.LocalService.Identity": "../../../../localservices/AzureMcp.LocalService.Identity/bin/Debug/net9.0",
+    "AzureMcp.LocalService.CosmosDB": "../../../../localservices/AzureMcp.LocalService.CosmosDB/bin/Debug/net9.0"
   }
 }

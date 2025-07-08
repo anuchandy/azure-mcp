@@ -6,7 +6,6 @@ using System.Text.Json.Serialization;
 
 namespace AzureMcp.LocalServiceClient;
 
-[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 [JsonSerializable(typeof(LocalServiceConfig))]
 [JsonSerializable(typeof(Dictionary<string, string>))]
 internal partial class LocalServiceConfigJsonContext : JsonSerializerContext
@@ -24,6 +23,7 @@ internal static class LocalServicesConfig
         try
         {
             var configPath = Path.Combine(AppContext.BaseDirectory, "localservices.json");
+
             if (File.Exists(configPath))
             {
                 var json = File.ReadAllText(configPath);
@@ -37,6 +37,7 @@ internal static class LocalServicesConfig
         catch (Exception)
         {
         }
+
         return new LocalServiceConfig();
     }
 
@@ -46,6 +47,8 @@ internal static class LocalServicesConfig
         {
             return path;
         }
+
+        // Fallback to default path if not configured
         return Path.Combine("localservices", localServiceName);
     }
 }

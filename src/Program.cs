@@ -139,6 +139,13 @@ internal class Program
             return new IdentityServiceClient(loggerFactory);
         });
 
+        services.AddSingleton<IArmServiceClient>(provider =>
+        {
+            var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
+            var identityServiceClient = provider.GetRequiredService<IIdentityServiceClient>();
+            return new ArmServiceClient(loggerFactory, identityServiceClient);
+        });
+
         foreach (var area in Areas)
         {
             services.AddSingleton(area);
