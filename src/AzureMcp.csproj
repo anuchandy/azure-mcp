@@ -50,8 +50,6 @@
 
   <ItemGroup>
     <PackageReference Include="Azure.AI.Projects" />
-    <PackageReference Include="Azure.Bicep.Types" />
-    <PackageReference Include="Azure.Bicep.Types.Az" />
     <PackageReference Include="Azure.Core" />
     <PackageReference Include="Azure.Data.AppConfiguration" />
     <PackageReference Include="Azure.Data.Tables" />
@@ -78,6 +76,19 @@
     <PackageReference Include="Grpc.Net.Client" />
     <PackageReference Include="Google.Protobuf" />
     <PackageReference Include="Grpc.Tools" PrivateAssets="All" />
+  </ItemGroup>
+
+  <!-- Bicep packages brings 24MB of static resource files, disabling for Release mode for AOT explorations -->
+  <ItemGroup Condition="'$(Configuration)'=='Debug'">
+    <PackageReference Include="Azure.Bicep.Types" />
+    <PackageReference Include="Azure.Bicep.Types.Az" />
+  </ItemGroup>
+
+  <!-- Exclude Bicep-related source files from Release builds -->
+  <ItemGroup Condition="'$(Configuration)'=='Release'">
+    <Compile Remove="Areas\BicepSchema\**\*.cs" />
+    <EmbeddedResource Remove="Areas\BicepSchema\**\*" />
+    <None Remove="Areas\BicepSchema\**\*" />
   </ItemGroup>
 
   <ItemGroup>

@@ -45,4 +45,11 @@
     </None>
   </ItemGroup>
 
+  <!-- Exclude Bicep-related test files from Release builds -->
+  <ItemGroup Condition="'$(Configuration)'=='Release'">
+    <Compile Remove="Areas\BicepSchema\**\*.cs" />
+    <EmbeddedResource Remove="Areas\BicepSchema\**\*" />
+    <None Remove="Areas\BicepSchema\**\*" />
+  </ItemGroup>
+
 </Project>
