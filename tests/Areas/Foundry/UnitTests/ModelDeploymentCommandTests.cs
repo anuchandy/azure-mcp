@@ -39,7 +39,7 @@ public class ModelDeploymentCommandTests
         var resourceGroup = "test-resource-group";
         var subscriptionId = "test-subscription-id";
 
-        var expectedResponse = new Dictionary<string, object>
+        var expectedResponse = new Dictionary<string, object?>
         {
             { "has_data", true },
         };
@@ -85,7 +85,7 @@ public class ModelDeploymentCommandTests
         var scaleType = "Standard";
         var scaleCapacity = 2;
 
-        var expectedResponse = new Dictionary<string, object>
+        var expectedResponse = new Dictionary<string, object?>
         {
             { "has_data", true },
         };

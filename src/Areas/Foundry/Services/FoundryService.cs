@@ -2,21 +2,22 @@
 // Licensed under the MIT License.
 
 using System.Text;
-using Azure;
 using Azure.AI.Projects;
-using Azure.ResourceManager;
-using Azure.ResourceManager.CognitiveServices;
-using Azure.ResourceManager.CognitiveServices.Models;
-using Azure.ResourceManager.Resources;
 using AzureMcp.Areas.Foundry.Commands;
 using AzureMcp.Areas.Foundry.Models;
+using AzureMcp.LocalServiceClient.Arm;
+using AzureMcp.LocalServiceClient.Identity;
 using AzureMcp.Options;
 using AzureMcp.Services.Azure;
+using AzureMcp.Services.Azure.Tenant;
 
 namespace AzureMcp.Areas.Foundry.Services;
 
-public class FoundryService : BaseAzureService, IFoundryService
+public class FoundryService(IArmServiceClient armServiceClient, IIdentityServiceClient credentialService, ITenantService tenantService) 
+    : BaseAzureService(credentialService, tenantService), IFoundryService
 {
+    private readonly IArmServiceClient _armServiceClient = armServiceClient;
+
     public async Task<List<ModelInformation>> ListModels(
         bool searchForFreePlayground = false,
         string publisherName = "",
@@ -153,7 +154,7 @@ public class FoundryService : BaseAzureService, IFoundryService
         }
     }
 
-    public async Task<Dictionary<string, object>> DeployModel(string deploymentName, string modelName, string modelFormat,
+    public async Task<Dictionary<string, object?>> DeployModel(string deploymentName, string modelName, string modelFormat,
         string azureAiServicesName, string resourceGroup, string subscriptionId, string? modelVersion = null, string? modelSource = null,
         string? skuName = null, int? skuCapacity = null, string? scaleType = null, int? scaleCapacity = null, RetryPolicyOptions? retryPolicy = null)
     {
@@ -161,75 +162,23 @@ public class FoundryService : BaseAzureService, IFoundryService
 
         try
         {
-            ArmClient armClient = await CreateArmClientAsync(null, retryPolicy);
+            var responseDataJson = await _armServiceClient.DeployModelAsync(
+                deploymentName: deploymentName,
+                modelName: modelName,
+                modelFormat: modelFormat,
+                azureAiServicesName: azureAiServicesName,
+                resourceGroup: resourceGroup,
+                subscriptionId: subscriptionId,
+                modelVersion: modelVersion,
+                modelSource: modelSource,
+                skuName: skuName,
+                skuCapacity: skuCapacity,
+                scaleType: scaleType,
+                scaleCapacity: scaleCapacity
+            );
 
-            var subscription =
-                armClient.GetSubscriptionResource(SubscriptionResource.CreateResourceIdentifier(subscriptionId));
-            var resourceGroupResource = await subscription.GetResourceGroupAsync(resourceGroup);
-
-            var cognitiveServicesAccounts = resourceGroupResource.Value.GetCognitiveServicesAccounts();
-            var cognitiveServicesAccount = await cognitiveServicesAccounts.GetAsync(azureAiServicesName);
-
-            var deploymentData = new CognitiveServicesAccountDeploymentData
-            {
-                Properties = new CognitiveServicesAccountDeploymentProperties
-                {
-                    Model = new CognitiveServicesAccountDeploymentModel
-                    {
-                        Format = modelFormat,
-                        Name = modelName,
-                        Version = modelVersion
-                    }
-                }
-            };
-
-            if (!string.IsNullOrEmpty(modelSource))
-            {
-                deploymentData.Properties.Model.Source = modelSource;
-            }
-
-            if (!string.IsNullOrEmpty(skuName))
-            {
-                deploymentData.Sku = new CognitiveServicesSku(skuName);
-                if (skuCapacity.HasValue)
-                {
-                    deploymentData.Sku.Capacity = skuCapacity;
-                }
-            }
-
-            if (!string.IsNullOrEmpty(scaleType))
-            {
-                deploymentData.Properties.ScaleSettings = new CognitiveServicesAccountDeploymentScaleSettings
-                {
-                    ScaleType = scaleType,
-                    Capacity = scaleCapacity
-                };
-            }
-
-            var deploymentOperation = await cognitiveServicesAccount.Value.GetCognitiveServicesAccountDeployments()
-                .CreateOrUpdateAsync(waitUntil: WaitUntil.Completed, deploymentName, deploymentData);
-
-            CognitiveServicesAccountDeploymentResource deployment = deploymentOperation.Value;
-
-            if (!deployment.HasData)
-            {
-                return new Dictionary<string, object>
-                {
-                    { "has_data", false },
-                };
-            }
-
-            // Manually converting system data to a dictionary due to lack of available JsonSerializer support
-            return new Dictionary<string, object>
-            {
-                { "has_data", true },
-                { "id", deployment.Data.Id.ToString() },
-                { "name", deployment.Data.Name },
-                { "type", deployment.Data.ResourceType.ToString() },
-                { "sku", deployment.Data.Sku },
-                { "tags", deployment.Data.Tags },
-                { "properties", deployment.Data.Properties },
-            };
+            var responseData = JsonSerializer.Deserialize(responseDataJson, FoundryJsonContext.Default.DictionaryStringObject);
+            return responseData ?? new Dictionary<string, object?> { { "has_data", false } };
         }
         catch (Exception ex)
         {

@@ -1,19 +1,16 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using Azure.ResourceManager.Sql;
 using AzureMcp.Areas.Sql.Models;
+using AzureMcp.LocalServiceClient.Arm;
 using AzureMcp.Options;
-using AzureMcp.Services.Azure;
-using AzureMcp.Services.Azure.Subscription;
-using AzureMcp.Services.Azure.Tenant;
 using Microsoft.Extensions.Logging;
 
 namespace AzureMcp.Areas.Sql.Services;
 
-public class SqlService(ISubscriptionService subscriptionService, ITenantService tenantService, ILogger<SqlService> logger) : BaseAzureService(tenantService), ISqlService
+public class SqlService(IArmServiceClient armServiceClient, ILogger<SqlService> logger) : ISqlService
 {
-    private readonly ISubscriptionService _subscriptionService = subscriptionService ?? throw new ArgumentNullException(nameof(subscriptionService));
+    private readonly IArmServiceClient _armServiceClient = armServiceClient ?? throw new ArgumentNullException(nameof(armServiceClient));
     private readonly ILogger<SqlService> _logger = logger;
 
     public async Task<SqlDatabase?> GetDatabaseAsync(
@@ -26,44 +23,14 @@ public class SqlService(ISubscriptionService subscriptionService, ITenantService
     {
         try
         {
-            var subscriptionResource = await _subscriptionService.GetSubscription(subscription, null, retryPolicy);
+            return await _armServiceClient.GetSqlDatabaseAsync(
+                subscriptionId: subscription,
+                resourceGroupName: resourceGroup,
+                serverName: serverName,
+                databaseName: databaseName,
+                tenantId: null,
+                cancellationToken: cancellationToken);
 
-            var resourceGroupResource = await subscriptionResource
-                .GetResourceGroupAsync(resourceGroup, cancellationToken);
-
-            var sqlServerResource = await resourceGroupResource.Value
-                .GetSqlServers()
-                .GetAsync(serverName);
-
-            var databaseResource = await sqlServerResource.Value
-                .GetSqlDatabases()
-                .GetAsync(databaseName);
-
-            var database = databaseResource.Value.Data;
-
-            return new SqlDatabase(
-                Name: database.Name,
-                Id: database.Id.ToString(),
-                Type: database.ResourceType.ToString(),
-                Location: database.Location.ToString(),
-                Sku: database.Sku != null ? new DatabaseSku(
-                    Name: database.Sku.Name,
-                    Tier: database.Sku.Tier,
-                    Capacity: database.Sku.Capacity,
-                    Family: database.Sku.Family,
-                    Size: database.Sku.Size
-                ) : null,
-                Status: database.Status?.ToString(),
-                Collation: database.Collation,
-                CreationDate: database.CreatedOn,
-                MaxSizeBytes: database.MaxSizeBytes,
-                ServiceLevelObjective: database.CurrentServiceObjectiveName,
-                Edition: database.CurrentSku?.Name,
-                ElasticPoolName: database.ElasticPoolId?.ToString().Split('/').LastOrDefault(),
-                EarliestRestoreDate: database.EarliestRestoreOn,
-                ReadScale: database.ReadScale?.ToString(),
-                ZoneRedundant: database.IsZoneRedundant
-            );
         }
         catch (Exception ex)
         {

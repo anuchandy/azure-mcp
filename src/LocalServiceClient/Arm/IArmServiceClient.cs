@@ -339,6 +339,25 @@ public interface IArmServiceClient : IServiceClient
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets a SQL Server database details.
+    /// </summary>
+    /// <param name="subscriptionId">Subscription ID where the server exists</param>
+    /// <param name="resourceGroupName">Resource group name containing the server</param>
+    /// <param name="serverName">SQL server name</param>
+    /// <param name="databaseName">Database name</param>
+    /// <param name="tenantId">Optional tenant ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>The SQL database details</returns>
+    /// <exception cref="LocalServiceCallException">Thrown when the operation fails</exception>
+    Task<AzureMcp.Areas.Sql.Models.SqlDatabase> GetSqlDatabaseAsync(
+        string subscriptionId,
+        string resourceGroupName,
+        string serverName,
+        string databaseName,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Lists Azure Search services in a subscription.
     /// </summary>
     /// <param name="subscriptionId">Subscription ID where the Search services exist</param>
@@ -409,6 +428,40 @@ public interface IArmServiceClient : IServiceClient
         string subscriptionId,
         string resourceGroupName,
         string workspaceName,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deploys a model to Azure Cognitive Services.
+    /// </summary>
+    /// <param name="deploymentName">The deployment name</param>
+    /// <param name="modelName">The model name</param>
+    /// <param name="modelFormat">The model format (e.g., OpenAI)</param>
+    /// <param name="azureAiServicesName">The Azure AI Services account name</param>
+    /// <param name="resourceGroup">The resource group name</param>
+    /// <param name="subscriptionId">The subscription ID</param>
+    /// <param name="modelVersion">Optional model version</param>
+    /// <param name="modelSource">Optional model source</param>
+    /// <param name="skuName">Optional SKU name</param>
+    /// <param name="skuCapacity">Optional SKU capacity</param>
+    /// <param name="scaleType">Optional scale type</param>
+    /// <param name="scaleCapacity">Optional scale capacity</param>
+    /// <param name="tenantId">Optional tenant ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Deployment result as JSON string</returns>
+    Task<string> DeployModelAsync(
+        string deploymentName,
+        string modelName,
+        string modelFormat,
+        string azureAiServicesName,
+        string resourceGroup,
+        string subscriptionId,
+        string? modelVersion = null,
+        string? modelSource = null,
+        string? skuName = null,
+        int? skuCapacity = null,
+        string? scaleType = null,
+        int? scaleCapacity = null,
         string? tenantId = null,
         CancellationToken cancellationToken = default);
 

@@ -1124,6 +1124,88 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         }
     }
 
+    public async Task<AzureMcp.Areas.Sql.Models.SqlDatabase> GetSqlDatabaseAsync(
+        string subscriptionId,
+        string resourceGroupName,
+        string serverName,
+        string databaseName,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var endpoint = await EnsureServiceStartedAsync(cancellationToken);
+        try
+        {
+            EnsureClient(endpoint);
+
+            var request = new GetSqlDatabaseRequest
+            {
+                SubscriptionId = subscriptionId,
+                ResourceGroupName = resourceGroupName,
+                ServerName = serverName,
+                DatabaseName = databaseName,
+                TenantId = tenantId ?? string.Empty
+            };
+
+            var response = await _client!.GetSqlDatabaseAsync(request, cancellationToken: cancellationToken);
+
+            if (!response.IsSuccess)
+            {
+                throw new LocalServiceCallException("GetSqlDatabase", GetErrorMessage(response.ErrorMessage));
+            }
+
+            if (response.Database == null)
+            {
+                throw new LocalServiceCallException("GetSqlDatabase", "No database information returned from service");
+            }
+
+            var database = response.Database;
+            
+            var sku = database.Sku != null ? new AzureMcp.Areas.Sql.Models.DatabaseSku(
+                Name: database.Sku.Name,
+                Tier: database.Sku.Tier,
+                Capacity: database.Sku.Capacity,
+                Family: database.Sku.Family,
+                Size: database.Sku.Size
+            ) : null;
+
+            var creationDate = database.CreationDate > 0 
+                ? DateTimeOffset.FromUnixTimeSeconds(database.CreationDate) 
+                : (DateTimeOffset?)null;
+
+            var earliestRestoreDate = database.EarliestRestoreDate > 0 
+                ? DateTimeOffset.FromUnixTimeSeconds(database.EarliestRestoreDate) 
+                : (DateTimeOffset?)null;
+
+            var maxSizeBytes = database.MaxSizeBytes > 0 ? database.MaxSizeBytes : (long?)null;
+
+            return new AzureMcp.Areas.Sql.Models.SqlDatabase(
+                Name: database.Name,
+                Id: database.Id,
+                Type: database.Type,
+                Location: string.IsNullOrEmpty(database.Location) ? null : database.Location,
+                Sku: sku,
+                Status: string.IsNullOrEmpty(database.Status) ? null : database.Status,
+                Collation: string.IsNullOrEmpty(database.Collation) ? null : database.Collation,
+                CreationDate: creationDate,
+                MaxSizeBytes: maxSizeBytes,
+                ServiceLevelObjective: string.IsNullOrEmpty(database.ServiceLevelObjective) ? null : database.ServiceLevelObjective,
+                Edition: string.IsNullOrEmpty(database.Edition) ? null : database.Edition,
+                ElasticPoolName: string.IsNullOrEmpty(database.ElasticPoolName) ? null : database.ElasticPoolName,
+                EarliestRestoreDate: earliestRestoreDate,
+                ReadScale: string.IsNullOrEmpty(database.ReadScale) ? null : database.ReadScale,
+                ZoneRedundant: database.ZoneRedundant
+            );
+        }
+        catch (LocalServiceCallException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new LocalServiceCallException("GetSqlDatabase", ArmLocalServiceConnectError, ex);
+        }
+    }
+
     public async Task<List<string>> ListSearchServicesAsync(
         string subscriptionId,
         string? tenantId = null,
@@ -1363,6 +1445,63 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         catch (Exception ex)
         {
             throw new LocalServiceCallException("ListMonitorTableTypes", ArmLocalServiceConnectError, ex);
+        }
+    }
+
+    public async Task<string> DeployModelAsync(
+        string deploymentName,
+        string modelName,
+        string modelFormat,
+        string azureAiServicesName,
+        string resourceGroup,
+        string subscriptionId,
+        string? modelVersion = null,
+        string? modelSource = null,
+        string? skuName = null,
+        int? skuCapacity = null,
+        string? scaleType = null,
+        int? scaleCapacity = null,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var endpoint = await EnsureServiceStartedAsync(cancellationToken);
+        try
+        {
+            EnsureClient(endpoint);
+
+            var request = new DeployModelRequest
+            {
+                DeploymentName = deploymentName,
+                ModelName = modelName,
+                ModelFormat = modelFormat,
+                AzureAiServicesName = azureAiServicesName,
+                ResourceGroup = resourceGroup,
+                SubscriptionId = subscriptionId,
+                ModelVersion = modelVersion ?? string.Empty,
+                ModelSource = modelSource ?? string.Empty,
+                SkuName = skuName ?? string.Empty,
+                SkuCapacity = skuCapacity ?? 0,
+                ScaleType = scaleType ?? string.Empty,
+                ScaleCapacity = scaleCapacity ?? 0,
+                TenantId = tenantId ?? string.Empty
+            };
+
+            var response = await _client!.DeployModelAsync(request, cancellationToken: cancellationToken);
+
+            if (!response.IsSuccess)
+            {
+                throw new LocalServiceCallException("DeployModel", GetErrorMessage(response.ErrorMessage));
+            }
+
+            return response.DeploymentData;
+        }
+        catch (LocalServiceCallException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new LocalServiceCallException("DeployModel", ArmLocalServiceConnectError, ex);
         }
     }
 

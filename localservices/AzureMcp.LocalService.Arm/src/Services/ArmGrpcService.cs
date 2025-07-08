@@ -8,11 +8,14 @@ using Azure.ResourceManager.Storage;
 using Azure.ResourceManager.Storage.Models;
 using Azure.ResourceManager.CosmosDB;
 using Azure.ResourceManager.AppConfiguration;
+using Azure.ResourceManager.CognitiveServices;
+using Azure.ResourceManager.CognitiveServices.Models;
 using Azure.ResourceManager.Kusto;
 using Azure.ResourceManager.Redis;
 using Azure.ResourceManager.RedisEnterprise;
 using Azure.ResourceManager.PostgreSql.FlexibleServers;
 using Azure.ResourceManager.Search;
+using Azure.ResourceManager.Sql;
 using Azure.ResourceManager.Datadog;
 using Azure.ResourceManager.OperationalInsights;
 using AzureMcp.LocalService.Arm.Grpc;
@@ -37,6 +40,7 @@ public class ArmGrpcService : ArmService.ArmServiceBase
     private const string ErrorParameterValueRequired = "Parameter value cannot be null or empty";
     private const string ErrorWorkspaceNameRequired = "Workspace name cannot be null or empty";
     private const string ErrorResourceNameRequired = "Resource name cannot be null or empty";
+    private const string ErrorDatabaseNameRequired = "Database name cannot be null or empty";
 
     private readonly ILogger<ArmGrpcService> _logger;
     private readonly IdentityClient _identityClient;
@@ -1906,6 +1910,146 @@ public class ArmGrpcService : ArmService.ArmServiceBase
 
     #endregion
 
+    #region SQL ARM APIs
+
+    /// <summary>
+    /// Gets a SQL Server database details.
+    /// </summary>
+    /// <param name="request">The request containing subscription ID, resource group, server name, database name, and optional tenant ID.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>A response containing the SQL database details.</returns>
+    public override async Task<GetSqlDatabaseResponse> GetSqlDatabase(
+        GetSqlDatabaseRequest request,
+        ServerCallContext context)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(request.SubscriptionId))
+            {
+                return new GetSqlDatabaseResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = ErrorSubscriptionIdRequired
+                };
+            }
+
+            if (string.IsNullOrWhiteSpace(request.ResourceGroupName))
+            {
+                return new GetSqlDatabaseResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = ErrorResourceGroupNameRequired
+                };
+            }
+
+            if (string.IsNullOrWhiteSpace(request.ServerName))
+            {
+                return new GetSqlDatabaseResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = ErrorServerNameRequired
+                };
+            }
+
+            if (string.IsNullOrWhiteSpace(request.DatabaseName))
+            {
+                return new GetSqlDatabaseResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = ErrorDatabaseNameRequired
+                };
+            }
+
+            var subscription = await GetSubscriptionAsync(request.SubscriptionId, request.TenantId);
+            var resourceGroup = await subscription.GetResourceGroupAsync(request.ResourceGroupName);
+
+            if (resourceGroup?.Value == null)
+            {
+                return new GetSqlDatabaseResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"Resource group '{request.ResourceGroupName}' not found"
+                };
+            }
+
+            var sqlServerResource = await resourceGroup.Value
+                .GetSqlServers()
+                .GetAsync(request.ServerName, cancellationToken: context.CancellationToken);
+
+            if (sqlServerResource?.Value == null)
+            {
+                return new GetSqlDatabaseResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"SQL server '{request.ServerName}' not found"
+                };
+            }
+
+            var databaseResource = await sqlServerResource.Value
+                .GetSqlDatabases()
+                .GetAsync(request.DatabaseName, cancellationToken: context.CancellationToken);
+
+            if (databaseResource?.Value?.Data == null)
+            {
+                return new GetSqlDatabaseResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"SQL database '{request.DatabaseName}' not found"
+                };
+            }
+
+            var database = databaseResource.Value.Data;
+
+            var sqlDatabaseInfo = new SqlDatabaseInfo
+            {
+                Name = database.Name ?? string.Empty,
+                Id = database.Id?.ToString() ?? string.Empty,
+                Type = database.ResourceType.ToString(),
+                Location = database.Location.ToString(),
+                Status = database.Status?.ToString() ?? string.Empty,
+                Collation = database.Collation ?? string.Empty,
+                CreationDate = database.CreatedOn?.ToUnixTimeSeconds() ?? 0,
+                MaxSizeBytes = database.MaxSizeBytes ?? 0,
+                ServiceLevelObjective = database.CurrentServiceObjectiveName ?? string.Empty,
+                Edition = database.CurrentSku?.Name ?? string.Empty,
+                ElasticPoolName = database.ElasticPoolId?.ToString().Split('/').LastOrDefault() ?? string.Empty,
+                EarliestRestoreDate = database.EarliestRestoreOn?.ToUnixTimeSeconds() ?? 0,
+                ReadScale = database.ReadScale?.ToString() ?? string.Empty,
+                ZoneRedundant = database.IsZoneRedundant ?? false
+            };
+
+            if (database.Sku != null)
+            {
+                sqlDatabaseInfo.Sku = new SqlDatabaseSku
+                {
+                    Name = database.Sku.Name ?? string.Empty,
+                    Tier = database.Sku.Tier ?? string.Empty,
+                    Capacity = database.Sku.Capacity ?? 0,
+                    Family = database.Sku.Family ?? string.Empty,
+                    Size = database.Sku.Size ?? string.Empty
+                };
+            }
+
+            return new GetSqlDatabaseResponse
+            {
+                IsSuccess = true,
+                Database = sqlDatabaseInfo
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting SQL database {DatabaseName} from server {ServerName} in resource group {ResourceGroupName}",
+                request.DatabaseName, request.ServerName, request.ResourceGroupName);
+            return new GetSqlDatabaseResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message
+            };
+        }
+    }
+
+    #endregion
+
     #region Azure_Search ARM APIs
 
     /// <summary>
@@ -1944,6 +2088,165 @@ public class ArmGrpcService : ArmService.ArmServiceBase
             {
                 IsSuccess = false,
                 ErrorMessage = ex.Message
+            };
+        }
+    }
+
+    #endregion
+
+    #region Azure_CognitiveServices ARM APIs
+
+    /// <summary>
+    /// Deploys a model to Azure Cognitive Services.
+    /// </summary>
+    /// <param name="request">The request containing deployment parameters.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>A response containing the deployment result.</returns>
+    public override async Task<DeployModelResponse> DeployModel(
+        DeployModelRequest request,
+        ServerCallContext context)
+    {
+        if (string.IsNullOrWhiteSpace(request.DeploymentName))
+        {
+            return new DeployModelResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = "Deployment name cannot be null or empty"
+            };
+        }
+
+        if (string.IsNullOrWhiteSpace(request.ModelName))
+        {
+            return new DeployModelResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = "Model name cannot be null or empty"
+            };
+        }
+
+        if (string.IsNullOrWhiteSpace(request.ModelFormat))
+        {
+            return new DeployModelResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = "Model format cannot be null or empty"
+            };
+        }
+
+        if (string.IsNullOrWhiteSpace(request.AzureAiServicesName))
+        {
+            return new DeployModelResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = "Azure AI Services name cannot be null or empty"
+            };
+        }
+
+        if (string.IsNullOrWhiteSpace(request.ResourceGroup))
+        {
+            return new DeployModelResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorResourceGroupNameRequired
+            };
+        }
+
+        if (string.IsNullOrWhiteSpace(request.SubscriptionId))
+        {
+            return new DeployModelResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorSubscriptionIdRequired
+            };
+        }
+
+        try
+        {
+            var armClient = CreateArmClient(request.TenantId);
+
+            var subscription = armClient.GetSubscriptionResource(SubscriptionResource.CreateResourceIdentifier(request.SubscriptionId));
+            var resourceGroupResource = await subscription.GetResourceGroupAsync(request.ResourceGroup);
+
+            var cognitiveServicesAccounts = resourceGroupResource.Value.GetCognitiveServicesAccounts();
+            var cognitiveServicesAccount = await cognitiveServicesAccounts.GetAsync(request.AzureAiServicesName);
+
+            var deploymentData = new CognitiveServicesAccountDeploymentData
+            {
+                Properties = new CognitiveServicesAccountDeploymentProperties
+                {
+                    Model = new CognitiveServicesAccountDeploymentModel
+                    {
+                        Format = request.ModelFormat,
+                        Name = request.ModelName,
+                        Version = !string.IsNullOrEmpty(request.ModelVersion) ? request.ModelVersion : null
+                    }
+                }
+            };
+
+            if (!string.IsNullOrEmpty(request.ModelSource))
+            {
+                deploymentData.Properties.Model.Source = request.ModelSource;
+            }
+
+            if (!string.IsNullOrEmpty(request.SkuName))
+            {
+                deploymentData.Sku = new CognitiveServicesSku(request.SkuName);
+                if (request.SkuCapacity > 0)
+                {
+                    deploymentData.Sku.Capacity = request.SkuCapacity;
+                }
+            }
+
+            if (!string.IsNullOrEmpty(request.ScaleType))
+            {
+                deploymentData.Properties.ScaleSettings = new CognitiveServicesAccountDeploymentScaleSettings
+                {
+                    ScaleType = request.ScaleType,
+                    Capacity = request.ScaleCapacity > 0 ? request.ScaleCapacity : null
+                };
+            }
+
+            var deploymentOperation = await cognitiveServicesAccount.Value.GetCognitiveServicesAccountDeployments()
+                .CreateOrUpdateAsync(Azure.WaitUntil.Completed, request.DeploymentName, deploymentData);
+
+            var deployment = deploymentOperation.Value;
+
+            var responseData = new Dictionary<string, object>();
+            
+            if (!deployment.HasData)
+            {
+                responseData["has_data"] = false;
+            }
+            else
+            {
+                responseData["has_data"] = true;
+                responseData["id"] = deployment.Data.Id.ToString();
+                responseData["name"] = deployment.Data.Name ?? string.Empty;
+                responseData["type"] = deployment.Data.ResourceType.ToString();
+                responseData["tags"] = deployment.Data.Tags ?? new Dictionary<string, string>();
+                if (deployment.Data.Sku != null)
+                {
+                    // E.g., { "name":"Standard", "tier":"Standard", capacity":10 }
+                    responseData["sku"] = deployment.Data.Sku;
+                }
+                if (deployment.Data.Properties != null)
+                {
+                    responseData["properties"] = deployment.Data.Properties;
+                }
+            }
+
+            return new DeployModelResponse
+            {
+                IsSuccess = true,
+                DeploymentData = System.Text.Json.JsonSerializer.Serialize(responseData)
+            };
+        }
+        catch (Exception ex)
+        {
+            return new DeployModelResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = $"Failed to deploy model: {ex.Message}"
             };
         }
     }

@@ -6,7 +6,6 @@ using Azure.Monitor.Query;
 using Azure.Monitor.Query.Models;
 using AzureMcp.Areas.Monitor.Models;
 using AzureMcp.LocalServiceClient.Identity;
-using AzureMcp.Helpers;
 using AzureMcp.Options;
 using AzureMcp.Services.Azure;
 using MetricDefinition = AzureMcp.Areas.Monitor.Models.MetricDefinition;

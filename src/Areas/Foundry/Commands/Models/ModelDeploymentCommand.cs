@@ -111,5 +111,5 @@ public sealed class ModelDeploymentCommand : SubscriptionCommand<ModelDeployment
         return context.Response;
     }
 
-    internal record ModelDeploymentCommandResult(Dictionary<string, object> DeploymentData);
+    internal record ModelDeploymentCommandResult(Dictionary<string, object?> DeploymentData);
 }

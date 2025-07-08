@@ -6,6 +6,9 @@ using AzureMcp.Areas.Server.Commands.Discovery;
 using AzureMcp.Areas.Server.Commands.Runtime;
 using AzureMcp.Areas.Server.Commands.ToolLoading;
 using AzureMcp.Areas.Server.Options;
+using AzureMcp.LocalServiceClient.Arm;
+using AzureMcp.LocalServiceClient.CosmosDB;
+using AzureMcp.LocalServiceClient.Identity;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ModelContextProtocol.Protocol;
@@ -27,6 +30,9 @@ public static class AzureMcpServiceCollectionExtensions
     /// <returns>The service collection with MCP server services added.</returns>
     public static IServiceCollection AddAzureMcpServer(this IServiceCollection services, ServiceStartOptions serviceStartOptions)
     {
+        // Register the LocalServiceClient services
+        AddLocalServiceClients(services);
+
         // Register options for service start
         services.AddSingleton(serviceStartOptions);
         services.AddSingleton(Options.Options.Create(serviceStartOptions));
@@ -128,5 +134,29 @@ public static class AzureMcpServiceCollectionExtensions
         mcpServerBuilder.WithStdioServerTransport();
 
         return services;
+    }
+
+    private static void AddLocalServiceClients(IServiceCollection services)
+    {
+        services.AddSingleton<IIdentityServiceClient>(provider =>
+        {
+            var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
+            return new IdentityServiceClient(loggerFactory);
+        });
+
+        services.AddSingleton<IArmServiceClient>(provider =>
+        {
+            var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
+            var identityServiceClient = provider.GetRequiredService<IIdentityServiceClient>();
+            return new ArmServiceClient(loggerFactory, identityServiceClient);
+        });
+
+        services.AddSingleton<ICosmosDBServiceClient>(provider =>
+        {
+            var loggerFactory = provider.GetRequiredService<ILoggerFactory>();
+            var identityServiceClient = provider.GetRequiredService<IIdentityServiceClient>();
+            var armServiceClient = provider.GetRequiredService<IArmServiceClient>();
+            return new CosmosDBServiceClient(loggerFactory, identityServiceClient, armServiceClient);
+        });
     }
 }
