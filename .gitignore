@@ -14,3 +14,6 @@ node_modules
 .env.local
 .env.*.local
 .vscode/mcp.json
+
+# temp workspace dir created by src\LocalServiceClient\try-me.ps1
+try-me-temp/
