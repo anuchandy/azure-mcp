@@ -34,7 +34,7 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
     private bool _disposed;
 
     public ArmServiceClient(ILoggerFactory loggerFactory, IIdentityServiceClient identityServiceClient)
-        : this(loggerFactory, identityServiceClient, IServiceClient.CreateDefaultServiceHost(loggerFactory, LocalServiceName, Path.Combine("localservices", LocalServiceName)))
+        : this(loggerFactory, identityServiceClient, IServiceClient.CreateDefaultServiceHost(loggerFactory, LocalServiceName))
     {
     }
 

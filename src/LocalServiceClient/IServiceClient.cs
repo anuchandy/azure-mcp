@@ -23,13 +23,15 @@ public interface IServiceClient
     /// </summary>
     /// <param name="loggerFactory">The logger factory for creating loggers.</param>
     /// <param name="localServiceName">The full name of the local service (e.g., "AzureMcp.LocalService.Arm").</param>
-    /// <param name="extensionPath">The path to the local service executable.</param>
+    /// <param name="extensionPath">The path to the local service executable (optional - will use config if not provided).</param>
     /// <returns>A configured GrpcServiceHost instance.</returns>
-    static GrpcServiceHost CreateDefaultServiceHost(ILoggerFactory loggerFactory, string localServiceName, string extensionPath)
+    static GrpcServiceHost CreateDefaultServiceHost(ILoggerFactory loggerFactory, string localServiceName, string? extensionPath = null)
     {
         ArgumentNullException.ThrowIfNull(loggerFactory);
         ArgumentException.ThrowIfNullOrWhiteSpace(localServiceName);
-        ArgumentException.ThrowIfNullOrWhiteSpace(extensionPath);
+
+        // Use provided path or get from configuration
+        var servicePath = extensionPath ?? LocalServicesConfig.GetServicePath(localServiceName);
 
         var serviceName = localServiceName.StartsWith("AzureMcp.LocalService.")
             ? localServiceName["AzureMcp.LocalService.".Length..]
@@ -38,7 +40,7 @@ public interface IServiceClient
         var config = new GrpcServiceConfig
         {
             ServiceName = serviceName,
-            ExtensionPath = extensionPath,
+            ExtensionPath = servicePath,
             ExecutableNames = new[]
             {
                 $"{localServiceName}.exe",

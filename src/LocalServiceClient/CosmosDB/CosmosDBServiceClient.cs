@@ -28,7 +28,7 @@ public sealed class CosmosDBServiceClient : ICosmosDBServiceClient, IDisposable
     private bool _disposed;
 
     public CosmosDBServiceClient(ILoggerFactory loggerFactory, IIdentityServiceClient identityServiceClient, IArmServiceClient armServiceClient)
-        : this(loggerFactory, identityServiceClient, armServiceClient, IServiceClient.CreateDefaultServiceHost(loggerFactory, LocalServiceName, Path.Combine("localservices", LocalServiceName)))
+        : this(loggerFactory, identityServiceClient, armServiceClient, IServiceClient.CreateDefaultServiceHost(loggerFactory, LocalServiceName))
     {
     }
 

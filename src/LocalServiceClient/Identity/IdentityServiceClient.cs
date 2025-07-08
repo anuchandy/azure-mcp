@@ -21,7 +21,7 @@ public sealed class IdentityServiceClient : IIdentityServiceClient, IDisposable
     private bool _disposed;
 
     public IdentityServiceClient(ILoggerFactory loggerFactory)
-        : this(loggerFactory, IServiceClient.CreateDefaultServiceHost(loggerFactory, LocalServiceName, Path.Combine("localservices", LocalServiceName)))
+        : this(loggerFactory, IServiceClient.CreateDefaultServiceHost(loggerFactory, LocalServiceName))
     {
     }
 
