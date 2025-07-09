@@ -61,10 +61,17 @@ function Build-AOTAzMcp($runtime, $platformDir) {
     if ($LASTEXITCODE -ne 0) {
         throw "AOT azmcp build failed for $runtime"
     }
-    # Copy AOT azmcp build to dist folder
+    # Copy AOT azmcp build to dist folder, excluding debug symbols
     $aotPublishDir = "$RepoRoot/src/bin/Release/net9.0/$runtime/publish"
     if (Test-Path $aotPublishDir) {
-        Copy-Item -Path "$aotPublishDir/*" -Destination "$platformDir/dist/" -Recurse -Force
+        # Copy only the executable, exclude .dSYM debug symbols
+        $executable = Get-ChildItem -Path $aotPublishDir -Filter "azmcp*" | Where-Object { $_.Extension -eq "" -or $_.Extension -eq ".exe" }
+        if ($executable) {
+            Copy-Item -Path $executable.FullName -Destination "$platformDir/dist/" -Force
+            Write-Host "Copied AOT executable: $($executable.Name) (excluding debug symbols)" -ForegroundColor Gray
+        } else {
+            throw "AOT executable not found in: $aotPublishDir"
+        }
     } else {
         throw "AOT publish directory not found: $aotPublishDir"
     }
