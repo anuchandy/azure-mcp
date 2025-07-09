@@ -68,8 +68,8 @@ function Find-VsCodeCommand {
         }
     }
     
-    $isWindows = [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform([System.Runtime.InteropServices.OSPlatform]::Windows)
-    if ($isWindows) {
+    $isWin = [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform([System.Runtime.InteropServices.OSPlatform]::Windows)
+    if ($isWin) {
         $Paths = @(
             "$env:LOCALAPPDATA\Programs\Microsoft VS Code\bin\code.cmd",
             "$env:PROGRAMFILES\Microsoft VS Code\bin\code.cmd",

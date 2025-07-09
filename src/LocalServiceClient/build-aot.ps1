@@ -7,7 +7,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-. "$PSScriptRoot/AOT-Config.ps1"
+. "$PSScriptRoot/../../eng/scripts/AOT-Config.ps1"
 $config = Get-AOTConfig
 
 $root = $config.RootPath
