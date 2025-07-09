@@ -60,7 +60,14 @@ $exitCode = $LASTEXITCODE
 
 if ($exitCode -eq 0) {
     Write-Host "AOT build succeeded." -ForegroundColor Green
+
     if (Test-Path $defaultOutputDir) {
+        # Clean up unwanted files from publish directory
+        Get-ChildItem -Path $defaultOutputDir -Filter "*.ps1" -Recurse | ForEach-Object {
+            Write-Host "Removing: $($_.FullName)" -ForegroundColor Gray
+            Remove-Item -Path $_.FullName -Force -ErrorAction SilentlyContinue
+        }
+        
         $executable = Get-ChildItem -Path $defaultOutputDir -Filter "azmcp*" -File | Where-Object { $_.Extension -eq ".exe" -or $_.Extension -eq "" }
         if ($executable) {
             $size = [math]::Round($executable.Length / 1MB, 2)

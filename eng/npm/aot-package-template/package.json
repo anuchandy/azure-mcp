@@ -1,0 +1,43 @@
+{
+  "name": "@azure/mcp-aot-{os}-{cpu}",
+  "version": "{version}",
+  "description": "Azure MCP Server AOT - High-performance AOT-compiled main binary with local services, for {os} on {cpu}",
+  "author": "Microsoft Corporation",
+  "homepage": "https://github.com/Azure/azure-mcp#readme",
+  "license": "MIT",
+  "keywords": [
+    "azure",
+    "mcp",
+    "model-context-protocol",
+    "aot",
+    "native",
+    "performance"
+  ],
+  "bugs": {
+    "url": "https://github.com/Azure/azure-mcp/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Azure/azure-mcp.git"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "main": "./index.js",
+  "bin": {
+    "azmcp-aot-{os}-{cpu}": "./index.js"
+  },
+  "os": [
+    "{os}"
+  ],
+  "cpu": [
+    "{cpu}"
+  ],
+  "files": [
+    "index.js",
+    "dist/",
+    "localservices/",
+    "README.md",
+    "LICENSE"
+  ]
+}
