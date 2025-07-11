@@ -13,6 +13,7 @@ using AzureMcp.Tests.Client;
 using AzureMcp.Tests.Client.Helpers;
 using AzureMcp.Tests.Helpers;
 using Microsoft.Extensions.Caching.Memory;
+using NSubstitute;
 using Xunit;
 
 namespace AzureMcp.Tests.Areas.Monitor.LiveTests;

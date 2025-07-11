@@ -50,33 +50,12 @@ public class SqlService(IArmServiceClient armServiceClient, ILogger<SqlService> 
     {
         try
         {
-            var subscriptionResource = await _subscriptionService.GetSubscription(subscription, null, retryPolicy);
-
-            var resourceGroupResource = await subscriptionResource
-                .GetResourceGroupAsync(resourceGroup, cancellationToken);
-
-            var sqlServerResource = await resourceGroupResource.Value
-                .GetSqlServers()
-                .GetAsync(serverName);
-
-            var entraAdministrators = new List<SqlServerEntraAdministrator>();
-
-            await foreach (var adminResource in sqlServerResource.Value.GetSqlServerAzureADAdministrators().GetAllAsync(cancellationToken))
-            {
-                var admin = adminResource.Data;
-                entraAdministrators.Add(new SqlServerEntraAdministrator(
-                    Name: admin.Name,
-                    Id: admin.Id.ToString(),
-                    Type: admin.ResourceType.ToString(),
-                    AdministratorType: admin.AdministratorType?.ToString(),
-                    Login: admin.Login,
-                    Sid: admin.Sid?.ToString(),
-                    TenantId: admin.TenantId?.ToString(),
-                    AzureADOnlyAuthentication: admin.IsAzureADOnlyAuthenticationEnabled
-                ));
-            }
-
-            return entraAdministrators;
+            return await _armServiceClient.GetSqlEntraAdministratorsAsync(
+                subscriptionId: subscription,
+                resourceGroupName: resourceGroup,
+                serverName: serverName,
+                tenantId: null,
+                cancellationToken: cancellationToken);
         }
         catch (Exception ex)
         {

@@ -2049,6 +2049,104 @@ public class ArmGrpcService : ArmService.ArmServiceBase
         }
     }
 
+    /// <summary>
+    /// Gets SQL Server Entra ID administrators for the specified server.
+    /// </summary>
+    /// <param name="request">The request containing subscription ID, resource group, and server name.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>A response containing the list of Entra ID administrators.</returns>
+    public override async Task<GetSqlEntraAdministratorsResponse> GetSqlEntraAdministrators(
+        GetSqlEntraAdministratorsRequest request,
+        ServerCallContext context)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(request.SubscriptionId))
+            {
+                return new GetSqlEntraAdministratorsResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = ErrorSubscriptionIdRequired
+                };
+            }
+
+            if (string.IsNullOrWhiteSpace(request.ResourceGroupName))
+            {
+                return new GetSqlEntraAdministratorsResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = ErrorResourceGroupNameRequired
+                };
+            }
+
+            if (string.IsNullOrWhiteSpace(request.ServerName))
+            {
+                return new GetSqlEntraAdministratorsResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = ErrorServerNameRequired
+                };
+            }
+
+            var subscription = await GetSubscriptionAsync(request.SubscriptionId, request.TenantId);
+            var resourceGroup = await subscription.GetResourceGroupAsync(request.ResourceGroupName);
+
+            if (resourceGroup?.Value == null)
+            {
+                return new GetSqlEntraAdministratorsResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"Resource group '{request.ResourceGroupName}' not found"
+                };
+            }
+
+            var sqlServerResource = await resourceGroup.Value
+                .GetSqlServers()
+                .GetAsync(request.ServerName, cancellationToken: context.CancellationToken);
+
+            if (sqlServerResource?.Value == null)
+            {
+                return new GetSqlEntraAdministratorsResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"SQL server '{request.ServerName}' not found"
+                };
+            }
+
+            var administrators = new List<SqlServerEntraAdministrator>();
+
+            await foreach (var adminResource in sqlServerResource.Value.GetSqlServerAzureADAdministrators().GetAllAsync(cancellationToken: context.CancellationToken))
+            {
+                var admin = adminResource.Data;
+                administrators.Add(new SqlServerEntraAdministrator
+                {
+                    Name = admin.Name ?? string.Empty,
+                    Id = admin.Id?.ToString() ?? string.Empty,
+                    Type = admin.ResourceType.ToString(),
+                    AdministratorType = admin.AdministratorType?.ToString() ?? string.Empty,
+                    Login = admin.Login ?? string.Empty,
+                    Sid = admin.Sid?.ToString() ?? string.Empty,
+                    TenantId = admin.TenantId?.ToString() ?? string.Empty,
+                    AzureAdOnlyAuthentication = admin.IsAzureADOnlyAuthenticationEnabled ?? false
+                });
+            }
+
+            return new GetSqlEntraAdministratorsResponse
+            {
+                IsSuccess = true,
+                Administrators = { administrators }
+            };
+        }
+        catch (Exception ex)
+        {
+            return new GetSqlEntraAdministratorsResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message
+            };
+        }
+    }
+
     #endregion
 
     #region Azure_Search ARM APIs

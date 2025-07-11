@@ -81,6 +81,9 @@ service ArmService {
   // Get a SQL Server database details
   rpc GetSqlDatabase(GetSqlDatabaseRequest) returns (GetSqlDatabaseResponse);
 
+  // Get SQL Server Entra ID administrators
+  rpc GetSqlEntraAdministrators(GetSqlEntraAdministratorsRequest) returns (GetSqlEntraAdministratorsResponse);
+
   // List Azure Search services in a subscription
   rpc ListSearchServices(ListSearchServicesRequest) returns (ListSearchServicesResponse);
 
@@ -1257,4 +1260,46 @@ message GrafanaWorkspaceData {
   ManagedIdentityInfo identity = 11;
   // Resource tags (key-value pairs)
   map<string, string> tags = 12;
+}
+
+// Request to get SQL Server Entra ID administrators
+message GetSqlEntraAdministratorsRequest {
+  // The subscription ID
+  string subscription_id = 1;
+  // The resource group name
+  string resource_group_name = 2;
+  // The SQL server name
+  string server_name = 3;
+  // Optional tenant ID for multi-tenant scenarios
+  string tenant_id = 4;
+}
+
+// Response containing SQL Server Entra ID administrators
+message GetSqlEntraAdministratorsResponse {
+  // Indicates if the operation was successful
+  bool is_success = 1;
+  // Error message if operation failed
+  string error_message = 2;
+  // List of Entra ID administrators
+  repeated SqlServerEntraAdministrator administrators = 3;
+}
+
+// SQL Server Entra ID administrator information
+message SqlServerEntraAdministrator {
+  // Administrator name
+  string name = 1;
+  // Administrator ID
+  string id = 2;
+  // Resource type
+  string type = 3;
+  // Administrator type
+  string administrator_type = 4;
+  // Login name
+  string login = 5;
+  // Security identifier (SID)
+  string sid = 6;
+  // Tenant ID
+  string tenant_id = 7;
+  // Whether Azure AD only authentication is enabled
+  bool azure_ad_only_authentication = 8;
 }

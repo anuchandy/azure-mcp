@@ -358,6 +358,23 @@ public interface IArmServiceClient : IServiceClient
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets SQL Server Entra ID administrators for the specified server.
+    /// </summary>
+    /// <param name="subscriptionId">Subscription ID where the SQL server exists</param>
+    /// <param name="resourceGroupName">Resource group name containing the SQL server</param>
+    /// <param name="serverName">SQL server name</param>
+    /// <param name="tenantId">Optional tenant ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of SQL Server Entra ID administrators</returns>
+    /// <exception cref="LocalServiceCallException">Thrown when the operation fails</exception>
+    Task<List<AzureMcp.Areas.Sql.Models.SqlServerEntraAdministrator>> GetSqlEntraAdministratorsAsync(
+        string subscriptionId,
+        string resourceGroupName,
+        string serverName,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Lists Azure Search services in a subscription.
     /// </summary>
     /// <param name="subscriptionId">Subscription ID where the Search services exist</param>

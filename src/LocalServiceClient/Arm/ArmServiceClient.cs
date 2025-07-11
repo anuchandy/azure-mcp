@@ -1206,6 +1206,61 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         }
     }
 
+    public async Task<List<AzureMcp.Areas.Sql.Models.SqlServerEntraAdministrator>> GetSqlEntraAdministratorsAsync(
+        string subscriptionId,
+        string resourceGroupName,
+        string serverName,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var endpoint = await EnsureServiceStartedAsync(cancellationToken);
+        try
+        {
+            EnsureClient(endpoint);
+
+            var request = new GetSqlEntraAdministratorsRequest
+            {
+                SubscriptionId = subscriptionId,
+                ResourceGroupName = resourceGroupName,
+                ServerName = serverName,
+                TenantId = tenantId ?? string.Empty
+            };
+
+            var response = await _client!.GetSqlEntraAdministratorsAsync(request, cancellationToken: cancellationToken);
+
+            if (!response.IsSuccess)
+            {
+                throw new LocalServiceCallException("GetSqlEntraAdministrators", GetErrorMessage(response.ErrorMessage));
+            }
+
+            var administrators = new List<AzureMcp.Areas.Sql.Models.SqlServerEntraAdministrator>();
+
+            foreach (var grpcAdmin in response.Administrators)
+            {
+                administrators.Add(new AzureMcp.Areas.Sql.Models.SqlServerEntraAdministrator(
+                    Name: grpcAdmin.Name,
+                    Id: grpcAdmin.Id,
+                    Type: grpcAdmin.Type,
+                    AdministratorType: string.IsNullOrEmpty(grpcAdmin.AdministratorType) ? null : grpcAdmin.AdministratorType,
+                    Login: grpcAdmin.Login,
+                    Sid: string.IsNullOrEmpty(grpcAdmin.Sid) ? null : grpcAdmin.Sid,
+                    TenantId: string.IsNullOrEmpty(grpcAdmin.TenantId) ? null : grpcAdmin.TenantId,
+                    AzureADOnlyAuthentication: grpcAdmin.AzureAdOnlyAuthentication
+                ));
+            }
+
+            return administrators;
+        }
+        catch (LocalServiceCallException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new LocalServiceCallException("GetSqlEntraAdministrators", ArmLocalServiceConnectError, ex);
+        }
+    }
+
     public async Task<List<string>> ListSearchServicesAsync(
         string subscriptionId,
         string? tenantId = null,
