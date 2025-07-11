@@ -10,6 +10,7 @@ using Azure.ResourceManager.CosmosDB;
 using Azure.ResourceManager.AppConfiguration;
 using Azure.ResourceManager.CognitiveServices;
 using Azure.ResourceManager.CognitiveServices.Models;
+using Azure.ResourceManager.Grafana;
 using Azure.ResourceManager.Kusto;
 using Azure.ResourceManager.Redis;
 using Azure.ResourceManager.RedisEnterprise;
@@ -2085,6 +2086,109 @@ public class ArmGrpcService : ArmService.ArmServiceBase
         {
             _logger.LogError(ex, "Error listing Search services for subscription {SubscriptionId}", request.SubscriptionId);
             return new ListSearchServicesResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message
+            };
+        }
+    }
+
+    #endregion
+
+    #region Azure_Grafana ARM APIs
+
+    /// <summary>
+    /// Lists Grafana workspaces in a subscription.
+    /// </summary>
+    /// <param name="request">The request containing subscription ID and optional tenant ID.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>A response containing the list of Grafana workspaces.</returns>
+    public override async Task<ListGrafanaWorkspacesResponse> ListGrafanaWorkspaces(
+        ListGrafanaWorkspacesRequest request,
+        ServerCallContext context)
+    {
+        if (string.IsNullOrWhiteSpace(request.SubscriptionId))
+        {
+            return new ListGrafanaWorkspacesResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorSubscriptionIdRequired
+            };
+        }
+
+        try
+        {
+            var subscription = await GetSubscriptionAsync(request.SubscriptionId, request.TenantId);
+            var workspaces = new List<GrafanaWorkspaceData>();
+
+            await foreach (var workspaceResource in subscription.GetManagedGrafanasAsync())
+            {
+                if (string.IsNullOrWhiteSpace(workspaceResource?.Id.ToString()) || 
+                    string.IsNullOrWhiteSpace(workspaceResource.Data.Name))
+                {
+                    continue;
+                }
+
+                var workspace = workspaceResource.Data;
+                var grafanaWorkspace = new GrafanaWorkspaceData
+                {
+                    Name = workspace.Name ?? string.Empty,
+                    ResourceGroupName = workspaceResource.Id.ResourceGroupName ?? string.Empty,
+                    SubscriptionId = workspaceResource.Id.SubscriptionId ?? string.Empty,
+                    Location = workspace.Location.ToString(),
+                    Sku = workspace.SkuName ?? string.Empty,
+                    ProvisioningState = workspace.Properties.ProvisioningState?.ToString() ?? string.Empty,
+                    Endpoint = workspace.Properties?.Endpoint ?? string.Empty,
+                    ZoneRedundancy = workspace.Properties?.ZoneRedundancy?.ToString() ?? string.Empty,
+                    PublicNetworkAccess = workspace.Properties?.PublicNetworkAccess?.ToString() ?? string.Empty,
+                    GrafanaVersion = workspace.Properties?.GrafanaVersion ?? string.Empty
+                };
+
+                if (workspace.Identity != null)
+                {
+                    grafanaWorkspace.Identity = new ManagedIdentityInfo
+                    {
+                        SystemAssignedIdentity = new SystemAssignedIdentityInfo
+                        {
+                            Enabled = workspace.Identity != null,
+                            TenantId = workspace.Identity?.TenantId?.ToString() ?? string.Empty,
+                            PrincipalId = workspace.Identity?.PrincipalId?.ToString() ?? string.Empty
+                        }
+                    };
+
+                    if (workspace.Identity?.UserAssignedIdentities != null)
+                    {
+                        foreach (var userIdentity in workspace.Identity.UserAssignedIdentities)
+                        {
+                            grafanaWorkspace.Identity.UserAssignedIdentities.Add(new UserAssignedIdentityInfo
+                            {
+                                ClientId = userIdentity.Value.ClientId?.ToString() ?? string.Empty,
+                                PrincipalId = userIdentity.Value.PrincipalId?.ToString() ?? string.Empty
+                            });
+                        }
+                    }
+                }
+
+                if (workspace.Tags != null)
+                {
+                    foreach (var tag in workspace.Tags)
+                    {
+                        grafanaWorkspace.Tags[tag.Key] = tag.Value;
+                    }
+                }
+
+                workspaces.Add(grafanaWorkspace);
+            }
+
+            return new ListGrafanaWorkspacesResponse
+            {
+                IsSuccess = true,
+                GrafanaWorkspaces = { workspaces }
+            };
+        }
+        catch (Exception ex)
+        {
+            return new ListGrafanaWorkspacesResponse
             {
                 IsSuccess = false,
                 ErrorMessage = ex.Message

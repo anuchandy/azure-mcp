@@ -2,18 +2,19 @@
 // Licensed under the MIT License.
 // cSpell:ignore Grafanas
 
-using Azure.ResourceManager.Grafana;
-using AzureMcp.Models.Identity;
+using AzureMcp.LocalServiceClient.Arm;
+using AzureMcp.LocalServiceClient.Identity;
 using AzureMcp.Options;
 using AzureMcp.Services.Azure;
-using AzureMcp.Services.Azure.Subscription;
 using AzureMcp.Services.Azure.Tenant;
 
 namespace AzureMcp.Areas.Grafana.Services;
 
-public class GrafanaService(ISubscriptionService _subscriptionService, ITenantService tenantService)
-    : BaseAzureService(tenantService), IGrafanaService
+public class GrafanaService(IArmServiceClient armServiceClient, IIdentityServiceClient credentialService, ITenantService tenantService)
+    : BaseAzureService(credentialService, tenantService), IGrafanaService
 {
+    private readonly IArmServiceClient _armServiceClient = armServiceClient ?? throw new ArgumentNullException(nameof(armServiceClient));
+
     public async Task<IEnumerable<Models.Workspace.Workspace>> ListWorkspacesAsync(
         string subscriptionId,
         string? tenant = null,
@@ -23,49 +24,7 @@ public class GrafanaService(ISubscriptionService _subscriptionService, ITenantSe
 
         try
         {
-            var subscriptionResource = await _subscriptionService.GetSubscription(subscriptionId, tenant, retryPolicy) ?? throw new Exception($"Subscription '{subscriptionId}' not found");
-            var workspaces = new List<Models.Workspace.Workspace>();
-
-            await foreach (var workspaceResource in subscriptionResource.GetManagedGrafanasAsync())
-            {
-                if (string.IsNullOrWhiteSpace(workspaceResource?.Id.ToString())
-                    || string.IsNullOrWhiteSpace(workspaceResource.Data.Name))
-                {
-                    continue;
-                }
-
-                var workspace = workspaceResource.Data;
-                workspaces.Add(new()
-                {
-                    Name = workspace.Name,
-                    ResourceGroupName = workspaceResource.Id.ResourceGroupName,
-                    SubscriptionId = workspaceResource.Id.SubscriptionId,
-                    Location = workspace.Location,
-                    Sku = workspace.SkuName,
-                    ProvisioningState = workspace.Properties.ProvisioningState?.ToString(),
-                    Endpoint = workspace.Properties?.Endpoint,
-                    ZoneRedundancy = workspace.Properties?.ZoneRedundancy?.ToString(),
-                    PublicNetworkAccess = workspace.Properties?.PublicNetworkAccess?.ToString(),
-                    GrafanaVersion = workspace.Properties?.GrafanaVersion,
-                    Identity = workspace.Identity is null ? null : new ManagedIdentityInfo
-                    {
-                        SystemAssignedIdentity = new SystemAssignedIdentityInfo
-                        {
-                            Enabled = workspace.Identity != null,
-                            TenantId = workspace.Identity?.TenantId?.ToString(),
-                            PrincipalId = workspace.Identity?.PrincipalId?.ToString()
-                        },
-                        UserAssignedIdentities = workspace.Identity?.UserAssignedIdentities?
-                            .Select(identity => new UserAssignedIdentityInfo
-                            {
-                                ClientId = identity.Value.ClientId?.ToString(),
-                                PrincipalId = identity.Value.PrincipalId?.ToString()
-                            }).ToArray()
-                    },
-                    Tags = workspace.Tags?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
-                });
-            }
-
+            var workspaces = await _armServiceClient.ListGrafanaWorkspacesAsync(subscriptionId, tenant);
             return workspaces;
         }
         catch (Exception ex)

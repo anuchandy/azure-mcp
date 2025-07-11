@@ -370,6 +370,18 @@ public interface IArmServiceClient : IServiceClient
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Lists Grafana workspaces in a subscription.
+    /// </summary>
+    /// <param name="subscriptionId">Subscription ID where the Grafana workspaces exist</param>
+    /// <param name="tenantId">Optional tenant ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of Grafana workspaces</returns>
+    Task<List<AzureMcp.Areas.Grafana.Models.Workspace.Workspace>> ListGrafanaWorkspacesAsync(
+        string subscriptionId,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Lists monitored resources for a Datadog monitor.
     /// </summary>
     /// <param name="subscriptionId">Subscription ID containing the Datadog resource</param>

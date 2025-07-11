@@ -1241,6 +1241,81 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         }
     }
 
+    public async Task<List<AzureMcp.Areas.Grafana.Models.Workspace.Workspace>> ListGrafanaWorkspacesAsync(
+        string subscriptionId,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var endpoint = await EnsureServiceStartedAsync(cancellationToken);
+        try
+        {
+            EnsureClient(endpoint);
+
+            var request = new ListGrafanaWorkspacesRequest
+            {
+                SubscriptionId = subscriptionId,
+                TenantId = tenantId ?? string.Empty
+            };
+
+            var response = await _client!.ListGrafanaWorkspacesAsync(request, cancellationToken: cancellationToken);
+
+            if (!response.IsSuccess)
+            {
+                throw new LocalServiceCallException("ListGrafanaWorkspaces", GetErrorMessage(response.ErrorMessage));
+            }
+
+            var workspaces = new List<AzureMcp.Areas.Grafana.Models.Workspace.Workspace>();
+            foreach (var grpcWorkspace in response.GrafanaWorkspaces)
+            {
+                var workspace = new AzureMcp.Areas.Grafana.Models.Workspace.Workspace
+                {
+                    Name = grpcWorkspace.Name,
+                    ResourceGroupName = grpcWorkspace.ResourceGroupName,
+                    SubscriptionId = grpcWorkspace.SubscriptionId,
+                    Location = grpcWorkspace.Location,
+                    Sku = grpcWorkspace.Sku,
+                    ProvisioningState = grpcWorkspace.ProvisioningState,
+                    Endpoint = grpcWorkspace.Endpoint,
+                    ZoneRedundancy = grpcWorkspace.ZoneRedundancy,
+                    PublicNetworkAccess = grpcWorkspace.PublicNetworkAccess,
+                    GrafanaVersion = grpcWorkspace.GrafanaVersion,
+                    Tags = grpcWorkspace.Tags?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
+                };
+
+                if (grpcWorkspace.Identity != null)
+                {
+                    workspace.Identity = new AzureMcp.Models.Identity.ManagedIdentityInfo
+                    {
+                        SystemAssignedIdentity = grpcWorkspace.Identity.SystemAssignedIdentity != null ? new AzureMcp.Models.Identity.SystemAssignedIdentityInfo
+                        {
+                            Enabled = grpcWorkspace.Identity.SystemAssignedIdentity.Enabled,
+                            TenantId = grpcWorkspace.Identity.SystemAssignedIdentity.TenantId,
+                            PrincipalId = grpcWorkspace.Identity.SystemAssignedIdentity.PrincipalId
+                        } : null,
+                        UserAssignedIdentities = grpcWorkspace.Identity.UserAssignedIdentities?
+                            .Select(userIdentity => new AzureMcp.Models.Identity.UserAssignedIdentityInfo
+                            {
+                                ClientId = userIdentity.ClientId,
+                                PrincipalId = userIdentity.PrincipalId
+                            }).ToArray()
+                    };
+                }
+
+                workspaces.Add(workspace);
+            }
+
+            return workspaces;
+        }
+        catch (LocalServiceCallException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new LocalServiceCallException("ListGrafanaWorkspaces", ArmLocalServiceConnectError, ex);
+        }
+    }
+
     public async Task<List<string>> ListMonitoredDatadogResourcesAsync(
         string subscriptionId,
         string resourceGroupName,

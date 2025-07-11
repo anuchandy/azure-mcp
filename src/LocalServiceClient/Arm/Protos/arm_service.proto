@@ -84,6 +84,9 @@ service ArmService {
   // List Azure Search services in a subscription
   rpc ListSearchServices(ListSearchServicesRequest) returns (ListSearchServicesResponse);
 
+  // List Grafana workspaces in a subscription
+  rpc ListGrafanaWorkspaces(ListGrafanaWorkspacesRequest) returns (ListGrafanaWorkspacesResponse);
+
   // Deploy a model to Azure Cognitive Services
   rpc DeployModel(DeployModelRequest) returns (DeployModelResponse);
 
@@ -1208,4 +1211,50 @@ message DeployModelResponse {
   string error_message = 2;
   // Deployment result data as JSON string
   string deployment_data = 3;
+}
+
+// Request for listing Grafana workspaces
+message ListGrafanaWorkspacesRequest {
+  // Subscription ID to get Grafana workspaces for
+  string subscription_id = 1;
+  // Optional tenant ID
+  string tenant_id = 2;
+}
+
+// Response containing list of Grafana workspaces
+message ListGrafanaWorkspacesResponse {
+  // List of Grafana workspace data
+  repeated GrafanaWorkspaceData grafana_workspaces = 1;
+  // Whether the operation was successful
+  bool is_success = 2;
+  // Error message if operation failed
+  string error_message = 3;
+}
+
+// Grafana workspace data
+message GrafanaWorkspaceData {
+  // The workspace name
+  string name = 1;
+  // The resource group name
+  string resource_group_name = 2;
+  // The subscription ID
+  string subscription_id = 3;
+  // The workspace location
+  string location = 4;
+  // The SKU name
+  string sku = 5;
+  // The provisioning state
+  string provisioning_state = 6;
+  // The endpoint URL
+  string endpoint = 7;
+  // The zone redundancy setting
+  string zone_redundancy = 8;
+  // The public network access setting
+  string public_network_access = 9;
+  // The Grafana version
+  string grafana_version = 10;
+  // Managed identity information
+  ManagedIdentityInfo identity = 11;
+  // Resource tags (key-value pairs)
+  map<string, string> tags = 12;
 }
