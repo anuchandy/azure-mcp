@@ -104,6 +104,9 @@ service ArmService {
   
   // List Monitor table types for a workspace
   rpc ListMonitorTableTypes(ListMonitorTableTypesRequest) returns (ListMonitorTableTypesResponse);
+  
+  // List AKS clusters in a subscription
+  rpc ListAksClusters(ListAksClustersRequest) returns (ListAksClustersResponse);
 }
 
 // Request for checking Identity service status
@@ -1302,4 +1305,64 @@ message GrafanaWorkspaceData {
   ManagedIdentityInfo identity = 11;
   // Resource tags (key-value pairs)
   map<string, string> tags = 12;
+}
+
+// Request for listing AKS clusters
+message ListAksClustersRequest {
+  // The subscription ID
+  string subscription_id = 1;
+  // Optional tenant ID
+  string tenant_id = 2;
+}
+
+// Response for listing AKS clusters
+message ListAksClustersResponse {
+  // Whether the operation was successful
+  bool is_success = 1;
+  // Error message if operation failed
+  string error_message = 2;
+  // The list of AKS clusters
+  repeated AksCluster clusters = 3;
+}
+
+// AKS cluster information
+message AksCluster {
+  // Name of the AKS cluster resource
+  string name = 1;
+  // ID of the Azure subscription containing the AKS cluster resource
+  string subscription_id = 2;
+  // Name of the resource group containing the AKS cluster resource
+  string resource_group_name = 3;
+  // Azure geo-location where the AKS cluster resource lives
+  string location = 4;
+  // Kubernetes version of the AKS cluster
+  string kubernetes_version = 5;
+  // Provisioning status of the AKS cluster resource
+  string provisioning_state = 6;
+  // Current power state of the AKS cluster
+  string power_state = 7;
+  // DNS prefix specified when creating the managed cluster
+  string dns_prefix = 8;
+  // FQDN for the master pool
+  string fqdn = 9;
+  // Number of nodes in the default agent pool
+  int32 node_count = 10;
+  // VM size of the agent nodes
+  string node_vm_size = 11;
+  // Type of managed identity used by this managed cluster
+  string identity_type = 12;
+  // Whether RBAC is enabled
+  bool enable_rbac = 13;
+  // Network plugin used for building the Kubernetes network
+  string network_plugin = 14;
+  // Network policy used for building the Kubernetes network
+  string network_policy = 15;
+  // Service CIDR for the Kubernetes service
+  string service_cidr = 16;
+  // DNS service IP address for the Kubernetes service
+  string dns_service_ip = 17;
+  // SKU tier of this managed cluster
+  string sku_tier = 18;
+  // Resource tags associated with the cluster
+  map<string, string> tags = 19;
 }

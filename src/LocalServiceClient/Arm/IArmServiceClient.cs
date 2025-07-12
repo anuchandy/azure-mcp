@@ -511,6 +511,19 @@ public interface IArmServiceClient : IServiceClient
         string resourceName,
         string? tenant = null,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Lists all AKS (Azure Kubernetes Service) clusters in a subscription.
+    /// </summary>
+    /// <param name="subscriptionId">Subscription ID to list clusters for</param>
+    /// <param name="tenantId">Optional tenant ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>A list of AKS clusters</returns>
+    /// <exception cref="LocalServiceCallException">Thrown when the operation fails</exception>
+    Task<List<AzureMcp.Areas.Aks.Models.Cluster>> ListAksClustersAsync(
+        string subscriptionId,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>

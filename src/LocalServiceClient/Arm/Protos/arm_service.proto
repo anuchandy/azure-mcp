@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option csharp_namespace = "AzureMcp.LocalServiceClient.Arm.Grpc";
+option csharp_namespace = "AzureMcp.LocalService.Arm.Grpc";
 
 package arm;
 
@@ -104,6 +104,9 @@ service ArmService {
   
   // List Monitor table types for a workspace
   rpc ListMonitorTableTypes(ListMonitorTableTypesRequest) returns (ListMonitorTableTypesResponse);
+  
+  // List AKS clusters in a subscription
+  rpc ListAksClusters(ListAksClustersRequest) returns (ListAksClustersResponse);
 }
 
 // Request for checking Identity service status
@@ -876,6 +879,48 @@ message SqlDatabaseSku {
   string size = 5;
 }
 
+// Request to get SQL Server Entra ID administrators
+message GetSqlEntraAdministratorsRequest {
+  // The subscription ID
+  string subscription_id = 1;
+  // The resource group name
+  string resource_group_name = 2;
+  // The SQL server name
+  string server_name = 3;
+  // Optional tenant ID for multi-tenant scenarios
+  string tenant_id = 4;
+}
+
+// Response containing SQL Server Entra ID administrators
+message GetSqlEntraAdministratorsResponse {
+  // Indicates if the operation was successful
+  bool is_success = 1;
+  // Error message if operation failed
+  string error_message = 2;
+  // List of Entra ID administrators
+  repeated SqlServerEntraAdministrator administrators = 3;
+}
+
+// SQL Server Entra ID administrator information
+message SqlServerEntraAdministrator {
+  // Administrator name
+  string name = 1;
+  // Administrator ID
+  string id = 2;
+  // Resource type
+  string type = 3;
+  // Administrator type
+  string administrator_type = 4;
+  // Login name
+  string login = 5;
+  // Security identifier (SID)
+  string sid = 6;
+  // Tenant ID
+  string tenant_id = 7;
+  // Whether Azure AD only authentication is enabled
+  bool azure_ad_only_authentication = 8;
+}
+
 // Search Services
 
 // Request to list Azure Search services in a subscription
@@ -1262,44 +1307,62 @@ message GrafanaWorkspaceData {
   map<string, string> tags = 12;
 }
 
-// Request to get SQL Server Entra ID administrators
-message GetSqlEntraAdministratorsRequest {
+// Request for listing AKS clusters
+message ListAksClustersRequest {
   // The subscription ID
   string subscription_id = 1;
-  // The resource group name
-  string resource_group_name = 2;
-  // The SQL server name
-  string server_name = 3;
-  // Optional tenant ID for multi-tenant scenarios
-  string tenant_id = 4;
+  // Optional tenant ID
+  string tenant_id = 2;
 }
 
-// Response containing SQL Server Entra ID administrators
-message GetSqlEntraAdministratorsResponse {
-  // Indicates if the operation was successful
+// Response for listing AKS clusters
+message ListAksClustersResponse {
+  // Whether the operation was successful
   bool is_success = 1;
   // Error message if operation failed
   string error_message = 2;
-  // List of Entra ID administrators
-  repeated SqlServerEntraAdministrator administrators = 3;
+  // The list of AKS clusters
+  repeated AksCluster clusters = 3;
 }
 
-// SQL Server Entra ID administrator information
-message SqlServerEntraAdministrator {
-  // Administrator name
+// AKS cluster information
+message AksCluster {
+  // Name of the AKS cluster resource
   string name = 1;
-  // Administrator ID
-  string id = 2;
-  // Resource type
-  string type = 3;
-  // Administrator type
-  string administrator_type = 4;
-  // Login name
-  string login = 5;
-  // Security identifier (SID)
-  string sid = 6;
-  // Tenant ID
-  string tenant_id = 7;
-  // Whether Azure AD only authentication is enabled
-  bool azure_ad_only_authentication = 8;
+  // ID of the Azure subscription containing the AKS cluster resource
+  string subscription_id = 2;
+  // Name of the resource group containing the AKS cluster resource
+  string resource_group_name = 3;
+  // Azure geo-location where the AKS cluster resource lives
+  string location = 4;
+  // Kubernetes version of the AKS cluster
+  string kubernetes_version = 5;
+  // Provisioning status of the AKS cluster resource
+  string provisioning_state = 6;
+  // Current power state of the AKS cluster
+  string power_state = 7;
+  // DNS prefix specified when creating the managed cluster
+  string dns_prefix = 8;
+  // FQDN for the master pool
+  string fqdn = 9;
+  // Number of nodes in the default agent pool
+  int32 node_count = 10;
+  // VM size of the agent nodes
+  string node_vm_size = 11;
+  // Type of managed identity used by this managed cluster
+  string identity_type = 12;
+  // Whether RBAC is enabled
+  bool enable_rbac = 13;
+  // Network plugin used for building the Kubernetes network
+  string network_plugin = 14;
+  // Network policy used for building the Kubernetes network
+  string network_policy = 15;
+  // Service CIDR for the Kubernetes service
+  string service_cidr = 16;
+  // DNS service IP address for the Kubernetes service
+  string dns_service_ip = 17;
+  // SKU tier of this managed cluster
+  string sku_tier = 18;
+  // Resource tags associated with the cluster
+  map<string, string> tags = 19;
 }

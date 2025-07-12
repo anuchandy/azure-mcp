@@ -3,6 +3,7 @@
 
 using Azure.ResourceManager;
 using Azure.ResourceManager.Authorization;
+using Azure.ResourceManager.ContainerService;
 using Azure.ResourceManager.Resources;
 using Azure.ResourceManager.Storage;
 using Azure.ResourceManager.Storage.Models;
@@ -2927,6 +2928,94 @@ public class ArmGrpcService : ArmService.ArmServiceBase
 
     #endregion
 
+    #region Azure_AKS ARM APIs
+
+    /// <summary>
+    /// Lists all AKS (Azure Kubernetes Service) clusters in a subscription.
+    /// </summary>
+    /// <param name="request">The request containing the subscription ID and optional tenant ID.</param>
+    /// <param name="context">The gRPC server call context.</param>
+    /// <returns>A response containing the list of AKS clusters.</returns>
+    public override async Task<ListAksClustersResponse> ListAksClusters(ListAksClustersRequest request, ServerCallContext context)
+    {
+        if (string.IsNullOrWhiteSpace(request.SubscriptionId))
+        {
+            return new ListAksClustersResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ErrorSubscriptionIdRequired
+            };
+        }
+
+        try
+        {
+            var armClient = CreateArmClient(request.TenantId);
+            var subscription = armClient.GetSubscriptionResource(SubscriptionResource.CreateResourceIdentifier(request.SubscriptionId));
+            
+            var clusters = new List<AksCluster>();
+            await foreach (var managedCluster in subscription.GetContainerServiceManagedClustersAsync())
+            {
+                var cluster = ConvertToAksCluster(managedCluster);
+                clusters.Add(cluster);
+            }
+
+            return new ListAksClustersResponse
+            {
+                IsSuccess = true,
+                Clusters = { clusters }
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to list AKS clusters for subscription: {SubscriptionId}", request.SubscriptionId);
+            return new ListAksClustersResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message
+            };
+        }
+    }
+
+    private static AksCluster ConvertToAksCluster(ContainerServiceManagedClusterResource managedCluster)
+    {
+        var data = managedCluster.Data;
+        var agentPool = data.AgentPoolProfiles?.FirstOrDefault();
+
+        var cluster = new AksCluster
+        {
+            Name = data.Name,
+            SubscriptionId = managedCluster.Id.SubscriptionId,
+            ResourceGroupName = managedCluster.Id.ResourceGroupName,
+            Location = data.Location.ToString(),
+            KubernetesVersion = data.KubernetesVersion ?? string.Empty,
+            ProvisioningState = data.ProvisioningState?.ToString() ?? string.Empty,
+            PowerState = data.PowerStateCode?.ToString() ?? string.Empty,
+            DnsPrefix = data.DnsPrefix ?? string.Empty,
+            Fqdn = data.Fqdn ?? string.Empty,
+            NodeCount = agentPool?.Count ?? 0,
+            NodeVmSize = agentPool?.VmSize ?? string.Empty,
+            IdentityType = data.Identity?.ManagedServiceIdentityType.ToString() ?? string.Empty,
+            EnableRbac = data.EnableRbac ?? false,
+            NetworkPlugin = data.NetworkProfile?.NetworkPlugin?.ToString() ?? string.Empty,
+            NetworkPolicy = data.NetworkProfile?.NetworkPolicy?.ToString() ?? string.Empty,
+            ServiceCidr = data.NetworkProfile?.ServiceCidr ?? string.Empty,
+            DnsServiceIp = data.NetworkProfile?.DnsServiceIP?.ToString() ?? string.Empty,
+            SkuTier = data.Sku?.Tier?.ToString() ?? string.Empty
+        };
+
+        if (data.Tags != null)
+        {
+            foreach (var tag in data.Tags)
+            {
+                cluster.Tags.Add(tag.Key, tag.Value);
+            }
+        }
+
+        return cluster;
+    }
+
+    #endregion
+
     #region Azure_Resources ARM APIs
 
     /// <summary>
@@ -3270,3 +3359,4 @@ public class ArmGrpcService : ArmService.ArmServiceBase
         return armClient;
     }
 }
+

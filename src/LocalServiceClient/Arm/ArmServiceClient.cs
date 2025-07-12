@@ -7,7 +7,7 @@ using AzureMcp.Areas.Redis.Models.CacheForRedis;
 using AzureMcp.Areas.Redis.Models.ManagedRedis;
 using AzureMcp.Commands.Kusto;
 using AzureMcp.LocalServiceClient.Identity;
-using AzureMcp.LocalServiceClient.Arm.Grpc;
+using AzureMcp.LocalService.Arm.Grpc;
 using AzureMcp.Models.Identity;
 using AzureMcp.Models.ResourceGroup;
 using Grpc.Net.Client;
@@ -1684,6 +1684,68 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
             _armServiceHost.Dispose();
             _disposed = true;
         }
+    }
+
+    public async Task<List<AzureMcp.Areas.Aks.Models.Cluster>> ListAksClustersAsync(
+        string subscriptionId,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var endpoint = await EnsureServiceStartedAsync(cancellationToken);
+        try
+        {
+            EnsureClient(endpoint);
+
+            var request = new ListAksClustersRequest
+            {
+                SubscriptionId = subscriptionId,
+                TenantId = tenantId ?? string.Empty
+            };
+
+            var response = await _client!.ListAksClustersAsync(request, cancellationToken: cancellationToken);
+
+            var clusters = new List<AzureMcp.Areas.Aks.Models.Cluster>();
+            foreach (var grpcCluster in response.Clusters)
+            {
+                clusters.Add(ConvertFromGrpcCluster(grpcCluster));
+            }
+
+            return clusters;
+        }
+        catch (LocalServiceCallException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new LocalServiceCallException("ListAksClusters", ex.Message, ex);
+        }
+    }
+
+    private static AzureMcp.Areas.Aks.Models.Cluster ConvertFromGrpcCluster(AksCluster grpcCluster)
+    {
+        return new AzureMcp.Areas.Aks.Models.Cluster
+        {
+            Name = grpcCluster.Name,
+            SubscriptionId = grpcCluster.SubscriptionId,
+            ResourceGroupName = grpcCluster.ResourceGroupName,
+            Location = grpcCluster.Location,
+            KubernetesVersion = grpcCluster.KubernetesVersion,
+            ProvisioningState = grpcCluster.ProvisioningState,
+            PowerState = grpcCluster.PowerState,
+            DnsPrefix = grpcCluster.DnsPrefix,
+            Fqdn = grpcCluster.Fqdn,
+            NodeCount = grpcCluster.NodeCount,
+            NodeVmSize = grpcCluster.NodeVmSize,
+            IdentityType = grpcCluster.IdentityType,
+            EnableRbac = grpcCluster.EnableRbac,
+            NetworkPlugin = grpcCluster.NetworkPlugin,
+            NetworkPolicy = grpcCluster.NetworkPolicy,
+            ServiceCidr = grpcCluster.ServiceCidr,
+            DnsServiceIP = grpcCluster.DnsServiceIp,
+            SkuTier = grpcCluster.SkuTier,
+            Tags = grpcCluster.Tags.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
+        };
     }
 
     private void EnsureClient(string endpoint)
