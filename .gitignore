@@ -17,3 +17,7 @@ node_modules
 
 # temp workspace dir created by src\LocalServiceClient\try-me.ps1
 try-me-temp/
+
+# anu's AOT working dir (mstat, py scripts etc..).
+dgml/
+.DS_Store
