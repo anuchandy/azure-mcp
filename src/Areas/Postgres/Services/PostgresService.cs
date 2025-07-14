@@ -172,7 +172,7 @@ public class PostgresService(IArmServiceClient armService, IIdentityServiceClien
             throw new Exception($"Error setting PostgreSQL server parameter '{param}' to '{value}': {ex.Message}", ex);
         }
     }
-
+    
     private sealed class PostgresResource : IAsyncDisposable
     {
         public NpgsqlConnection Connection { get; }
