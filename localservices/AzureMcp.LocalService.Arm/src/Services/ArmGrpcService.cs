@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using Azure.Core;
 using Azure.ResourceManager;
 using Azure.ResourceManager.Authorization;
 using Azure.ResourceManager.ContainerService;
@@ -13,6 +14,7 @@ using Azure.ResourceManager.CognitiveServices;
 using Azure.ResourceManager.CognitiveServices.Models;
 using Azure.ResourceManager.Grafana;
 using Azure.ResourceManager.Kusto;
+using Azure.ResourceManager.LoadTesting;
 using Azure.ResourceManager.Redis;
 using Azure.ResourceManager.RedisEnterprise;
 using Azure.ResourceManager.PostgreSql.FlexibleServers;
@@ -2148,6 +2150,402 @@ public class ArmGrpcService : ArmService.ArmServiceBase
         }
     }
 
+    /// <summary>
+    /// Gets SQL Server elastic pools for the specified server.
+    /// </summary>
+    /// <param name="request">The request containing subscription ID, resource group, server name, and optional tenant ID.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>A response containing the list of elastic pools.</returns>
+    public override async Task<GetSqlElasticPoolsResponse> GetSqlElasticPools(
+        GetSqlElasticPoolsRequest request,
+        ServerCallContext context)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(request.SubscriptionId))
+            {
+                return new GetSqlElasticPoolsResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = ErrorSubscriptionIdRequired
+                };
+            }
+
+            if (string.IsNullOrWhiteSpace(request.ResourceGroupName))
+            {
+                return new GetSqlElasticPoolsResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = ErrorResourceGroupNameRequired
+                };
+            }
+
+            if (string.IsNullOrWhiteSpace(request.ServerName))
+            {
+                return new GetSqlElasticPoolsResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = ErrorServerNameRequired
+                };
+            }
+
+            var subscription = await GetSubscriptionAsync(request.SubscriptionId, request.TenantId);
+            var resourceGroup = await subscription.GetResourceGroupAsync(request.ResourceGroupName);
+
+            if (resourceGroup?.Value == null)
+            {
+                return new GetSqlElasticPoolsResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"Resource group '{request.ResourceGroupName}' not found"
+                };
+            }
+
+            var sqlServerResource = await resourceGroup.Value
+                .GetSqlServers()
+                .GetAsync(request.ServerName, cancellationToken: context.CancellationToken);
+
+            if (sqlServerResource?.Value == null)
+            {
+                return new GetSqlElasticPoolsResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"SQL server '{request.ServerName}' not found"
+                };
+            }
+
+            var elasticPools = new List<SqlElasticPool>();
+
+            await foreach (var poolResource in sqlServerResource.Value.GetElasticPools().GetAllAsync(cancellationToken: context.CancellationToken))
+            {
+                var pool = poolResource.Data;
+                var elasticPool = new SqlElasticPool
+                {
+                    Name = pool.Name ?? string.Empty,
+                    Id = pool.Id?.ToString() ?? string.Empty,
+                    Type = pool.ResourceType.ToString(),
+                    Location = pool.Location.ToString(),
+                    State = pool.State?.ToString() ?? string.Empty,
+                    CreationDate = pool.CreatedOn?.ToUnixTimeSeconds() ?? 0,
+                    MaxSizeBytes = pool.MaxSizeBytes ?? 0,
+                    ZoneRedundant = pool.IsZoneRedundant ?? false,
+                    LicenseType = pool.LicenseType?.ToString() ?? string.Empty
+                };
+
+                if (pool.Sku != null)
+                {
+                    elasticPool.Sku = new SqlElasticPoolSku
+                    {
+                        Name = pool.Sku.Name ?? string.Empty,
+                        Tier = pool.Sku.Tier ?? string.Empty,
+                        Capacity = pool.Sku.Capacity ?? 0,
+                        Family = pool.Sku.Family ?? string.Empty,
+                        Size = pool.Sku.Size ?? string.Empty
+                    };
+                }
+
+                if (pool.PerDatabaseSettings != null)
+                {
+                    elasticPool.PerDatabaseSettings = new SqlElasticPoolPerDatabaseSettings
+                    {
+                        MinCapacity = pool.PerDatabaseSettings.MinCapacity ?? 0,
+                        MaxCapacity = pool.PerDatabaseSettings.MaxCapacity ?? 0
+                    };
+                }
+
+                elasticPools.Add(elasticPool);
+            }
+
+            return new GetSqlElasticPoolsResponse
+            {
+                IsSuccess = true,
+                ElasticPools = { elasticPools }
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting SQL elastic pools from server {ServerName} in resource group {ResourceGroupName}",
+                request.ServerName, request.ResourceGroupName);
+            return new GetSqlElasticPoolsResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message
+            };
+        }
+    }
+
+    /// <summary>
+    /// Lists SQL Server firewall rules for the specified server.
+    /// </summary>
+    /// <param name="request">The request containing subscription ID, resource group, server name, and optional tenant ID.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>A response containing the list of firewall rules.</returns>
+    public override async Task<ListSqlFirewallRulesResponse> ListSqlFirewallRules(
+        ListSqlFirewallRulesRequest request,
+        ServerCallContext context)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(request.SubscriptionId))
+            {
+                return new ListSqlFirewallRulesResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = ErrorSubscriptionIdRequired
+                };
+            }
+
+            if (string.IsNullOrWhiteSpace(request.ResourceGroupName))
+            {
+                return new ListSqlFirewallRulesResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = ErrorResourceGroupNameRequired
+                };
+            }
+
+            if (string.IsNullOrWhiteSpace(request.ServerName))
+            {
+                return new ListSqlFirewallRulesResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = ErrorServerNameRequired
+                };
+            }
+
+            var subscription = await GetSubscriptionAsync(request.SubscriptionId, request.TenantId);
+            var resourceGroup = await subscription.GetResourceGroupAsync(request.ResourceGroupName);
+
+            if (resourceGroup?.Value == null)
+            {
+                return new ListSqlFirewallRulesResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"Resource group '{request.ResourceGroupName}' not found"
+                };
+            }
+
+            var sqlServerResource = await resourceGroup.Value
+                .GetSqlServers()
+                .GetAsync(request.ServerName, cancellationToken: context.CancellationToken);
+
+            if (sqlServerResource?.Value == null)
+            {
+                return new ListSqlFirewallRulesResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"SQL server '{request.ServerName}' not found"
+                };
+            }
+
+            var firewallRules = new List<SqlServerFirewallRule>();
+
+            await foreach (var firewallRuleResource in sqlServerResource.Value.GetSqlFirewallRules().GetAllAsync(cancellationToken: context.CancellationToken))
+            {
+                var rule = firewallRuleResource.Data;
+                firewallRules.Add(new SqlServerFirewallRule
+                {
+                    Name = rule.Name ?? string.Empty,
+                    Id = rule.Id?.ToString() ?? string.Empty,
+                    Type = rule.ResourceType.ToString(),
+                    StartIpAddress = rule.StartIPAddress ?? string.Empty,
+                    EndIpAddress = rule.EndIPAddress ?? string.Empty
+                });
+            }
+
+            return new ListSqlFirewallRulesResponse
+            {
+                IsSuccess = true,
+                FirewallRules = { firewallRules }
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting SQL firewall rules from server {ServerName} in resource group {ResourceGroupName}",
+                request.ServerName, request.ResourceGroupName);
+            return new ListSqlFirewallRulesResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message
+            };
+        }
+    }
+
+    /// <summary>
+    /// Gets load testing resources from a subscription.
+    /// </summary>
+    /// <param name="request">The request containing subscription ID, optional resource group, test resource name, and tenant ID.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>A response containing the list of load testing resources.</returns>
+    public override async Task<GetLoadTestResourcesResponse> GetLoadTestResources(
+        GetLoadTestResourcesRequest request,
+        ServerCallContext context)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(request.SubscriptionId))
+            {
+                return new GetLoadTestResourcesResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = ErrorSubscriptionIdRequired
+                };
+            }
+
+            if (string.IsNullOrWhiteSpace(request.ResourceGroup))
+            {
+                return new GetLoadTestResourcesResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = ErrorResourceGroupNameRequired
+                };
+            }
+
+            var armClient = CreateArmClient(request.TenantId);
+            var resources = new List<LoadTestResource>();
+
+            if (!string.IsNullOrWhiteSpace(request.TestResourceName))
+            {
+                // Get specific resource by name
+                var resourceId = LoadTestingResource.CreateResourceIdentifier(request.SubscriptionId, request.ResourceGroup, request.TestResourceName);
+                var loadTestingResource = await armClient.GetLoadTestingResource(resourceId).GetAsync(cancellationToken: context.CancellationToken);
+
+                if (loadTestingResource?.Value?.Data != null)
+                {
+                    var resource = loadTestingResource.Value.Data;
+                    resources.Add(new LoadTestResource
+                    {
+                        Id = resource.Id?.ToString() ?? string.Empty,
+                        Name = resource.Name ?? string.Empty,
+                        Location = resource.Location.ToString(),
+                        DataPlaneUri = resource.DataPlaneUri?.ToString() ?? string.Empty,
+                        ProvisioningState = resource.ProvisioningState?.ToString() ?? string.Empty
+                    });
+                }
+            }
+            else
+            {
+                // Get all resources in a specific resource group
+                var resourceGroupResource = ResourceGroupResource.CreateResourceIdentifier(request.SubscriptionId, request.ResourceGroup);
+                var rgResource = armClient.GetResourceGroupResource(resourceGroupResource);
+                var loadTestingResources = rgResource.GetLoadTestingResources();
+
+                await foreach (var loadTestingResource in loadTestingResources.GetAllAsync(cancellationToken: context.CancellationToken))
+                {
+                    var resource = loadTestingResource.Data;
+                    resources.Add(new LoadTestResource
+                    {
+                        Id = resource.Id?.ToString() ?? string.Empty,
+                        Name = resource.Name ?? string.Empty,
+                        Location = resource.Location.ToString(),
+                        DataPlaneUri = resource.DataPlaneUri?.ToString() ?? string.Empty,
+                        ProvisioningState = resource.ProvisioningState?.ToString() ?? string.Empty
+                    });
+                }
+            }
+
+            return new GetLoadTestResourcesResponse
+            {
+                IsSuccess = true,
+                Resources = { resources }
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting load testing resources from subscription {SubscriptionId}",
+                request.SubscriptionId);
+            return new GetLoadTestResourcesResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message
+            };
+        }
+    }
+
+    /// <summary>
+    /// Creates or updates a load testing resource.
+    /// </summary>
+    /// <param name="request">The request containing subscription ID, resource group, optional test resource name, and tenant ID.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>A response containing the created or updated load testing resource.</returns>
+    public override async Task<CreateOrUpdateLoadTestingResourceResponse> CreateOrUpdateLoadTestingResource(
+        CreateOrUpdateLoadTestingResourceRequest request,
+        ServerCallContext context)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(request.SubscriptionId))
+            {
+                return new CreateOrUpdateLoadTestingResourceResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = ErrorSubscriptionIdRequired
+                };
+            }
+
+            if (string.IsNullOrWhiteSpace(request.ResourceGroup))
+            {
+                return new CreateOrUpdateLoadTestingResourceResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = ErrorResourceGroupNameRequired
+                };
+            }
+
+            var armClient = CreateArmClient(request.TenantId);
+            var rgResource = armClient.GetResourceGroupResource(ResourceGroupResource.CreateResourceIdentifier(request.SubscriptionId, request.ResourceGroup));
+            
+            // Generate test resource name if not provided
+            var testResourceName = string.IsNullOrWhiteSpace(request.TestResourceName) 
+                ? $"testRun_{DateTime.UtcNow:dd-MM-yyyy_HH:mm:ss tt}" 
+                : request.TestResourceName;
+
+            // Get resource group location
+            var resourceGroupData = await rgResource.GetAsync(cancellationToken: context.CancellationToken);
+            var location = resourceGroupData.Value.Data.Location;
+
+            // Create or update the load testing resource
+            var response = await rgResource.GetLoadTestingResources().CreateOrUpdateAsync(
+                Azure.WaitUntil.Completed, 
+                testResourceName, 
+                new LoadTestingResourceData(location), 
+                cancellationToken: context.CancellationToken);
+
+            if (response?.Value?.Data == null)
+            {
+                return new CreateOrUpdateLoadTestingResourceResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"Failed to create or update Azure Load Testing resource"
+                };
+            }
+
+            var resourceData = response.Value.Data;
+            return new CreateOrUpdateLoadTestingResourceResponse
+            {
+                IsSuccess = true,
+                Resource = new LoadTestResource
+                {
+                    Id = resourceData.Id?.ToString() ?? string.Empty,
+                    Name = resourceData.Name ?? string.Empty,
+                    Location = resourceData.Location.ToString(),
+                    DataPlaneUri = resourceData.DataPlaneUri?.ToString() ?? string.Empty,
+                    ProvisioningState = resourceData.ProvisioningState?.ToString() ?? string.Empty
+                }
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating or updating load testing resource in subscription {SubscriptionId}, resource group {ResourceGroup}",
+                request.SubscriptionId, request.ResourceGroup);
+            return new CreateOrUpdateLoadTestingResourceResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message
+            };
+        }
+    }
+
     #endregion
 
     #region Azure_Search ARM APIs
@@ -3227,6 +3625,74 @@ public class ArmGrpcService : ArmService.ArmServiceBase
             _logger.LogError(ex, "Failed to list subscriptions for tenant: {TenantId}",
                 string.IsNullOrWhiteSpace(request.TenantId) ? "default" : request.TenantId);
             return new ListSubscriptionsResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = ex.Message
+            };
+        }
+    }
+
+    /// <summary>
+    /// Gets a specific subscription by ID or name.
+    /// </summary>
+    /// <param name="request">The request containing subscription ID/name and optional tenant ID.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>A response containing the subscription data if found.</returns>
+    public override async Task<GetSubscriptionResponse> GetSubscription(
+        GetSubscriptionRequest request,
+        ServerCallContext context)
+    {
+        if (string.IsNullOrWhiteSpace(request.Subscription))
+        {
+            return new GetSubscriptionResponse
+            {
+                IsSuccess = false,
+                ErrorMessage = "Subscription cannot be null or empty"
+            };
+        }
+
+        try
+        {
+            var tenantId = string.IsNullOrWhiteSpace(request.TenantId) ? null : request.TenantId;
+            var subscriptions = await GetSubscriptionsAsync(tenantId);
+            
+            // Try to find by subscription ID first (exact match)
+            var subscription = subscriptions.FirstOrDefault(s => 
+                string.Equals(s.SubscriptionId, request.Subscription, StringComparison.OrdinalIgnoreCase));
+            
+            // If not found by ID, try to find by display name
+            if (subscription == null)
+            {
+                subscription = subscriptions.FirstOrDefault(s => 
+                    string.Equals(s.DisplayName, request.Subscription, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (subscription == null)
+            {
+                return new GetSubscriptionResponse
+                {
+                    IsSuccess = false,
+                    ErrorMessage = $"Subscription '{request.Subscription}' not found"
+                };
+            }
+
+            return new GetSubscriptionResponse
+            {
+                IsSuccess = true,
+                Subscription = new AzureMcp.LocalService.Arm.Grpc.SubscriptionData
+                {
+                    SubscriptionId = subscription.SubscriptionId,
+                    DisplayName = subscription.DisplayName,
+                    TenantId = subscription.TenantId?.ToString() ?? string.Empty,
+                    State = subscription.State?.ToString() ?? "Unknown"
+                }
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get subscription '{Subscription}' for tenant: {TenantId}",
+                request.Subscription, string.IsNullOrWhiteSpace(request.TenantId) ? "default" : request.TenantId);
+            return new GetSubscriptionResponse
             {
                 IsSuccess = false,
                 ErrorMessage = ex.Message

@@ -55,7 +55,7 @@ public sealed class AzqrCommand(ILogger<AzqrCommand> logger, int processTimeoutS
             var subscription = await subscriptionService.GetSubscription(options.Subscription, options.Tenant);
 
             // Compose azqr command
-            var command = $"scan --subscription-id {subscription.Id}";
+            var command = $"scan --subscription-id {subscription.SubscriptionId}";
             if (!string.IsNullOrWhiteSpace(options.ResourceGroup))
             {
                 command += $" --resource-group {options.ResourceGroup}";

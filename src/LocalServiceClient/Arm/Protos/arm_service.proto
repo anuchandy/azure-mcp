@@ -15,6 +15,9 @@ service ArmService {
   // List all accessible subscriptions for the specified tenant
   rpc ListSubscriptions(ListSubscriptionsRequest) returns (ListSubscriptionsResponse);
   
+  // Get a specific subscription by ID or name
+  rpc GetSubscription(GetSubscriptionRequest) returns (GetSubscriptionResponse);
+  
   // Get storage accounts for a subscription
   rpc GetStorageAccounts(GetStorageAccountsRequest) returns (GetStorageAccountsResponse);
   
@@ -83,6 +86,18 @@ service ArmService {
 
   // Get SQL Server Entra ID administrators
   rpc GetSqlEntraAdministrators(GetSqlEntraAdministratorsRequest) returns (GetSqlEntraAdministratorsResponse);
+
+  // Get SQL Server elastic pools
+  rpc GetSqlElasticPools(GetSqlElasticPoolsRequest) returns (GetSqlElasticPoolsResponse);
+
+  // List SQL Server firewall rules
+  rpc ListSqlFirewallRules(ListSqlFirewallRulesRequest) returns (ListSqlFirewallRulesResponse);
+
+  // Get load testing resources
+  rpc GetLoadTestResources(GetLoadTestResourcesRequest) returns (GetLoadTestResourcesResponse);
+
+  // Create or update a load testing resource
+  rpc CreateOrUpdateLoadTestingResource(CreateOrUpdateLoadTestingResourceRequest) returns (CreateOrUpdateLoadTestingResourceResponse);
 
   // List Azure Search services in a subscription
   rpc ListSearchServices(ListSearchServicesRequest) returns (ListSearchServicesResponse);
@@ -192,6 +207,24 @@ message SubscriptionData {
   string tenant_id = 3;
   // The subscription state (e.g., "Enabled", "Disabled")
   string state = 4;
+}
+
+// Request for getting a specific subscription
+message GetSubscriptionRequest {
+  // The subscription ID or name to retrieve
+  string subscription = 1;
+  // Optional tenant ID to search within specific tenant
+  string tenant_id = 2;
+}
+
+// Response containing subscription details
+message GetSubscriptionResponse {
+  // The subscription data if found
+  SubscriptionData subscription = 1;
+  // Whether the operation was successful
+  bool is_success = 2;
+  // Error message if operation failed
+  string error_message = 3;
 }
 
 // Request for getting storage accounts
@@ -919,6 +952,178 @@ message SqlServerEntraAdministrator {
   string tenant_id = 7;
   // Whether Azure AD only authentication is enabled
   bool azure_ad_only_authentication = 8;
+}
+
+// Request to get SQL Server elastic pools
+message GetSqlElasticPoolsRequest {
+  // The subscription ID
+  string subscription_id = 1;
+  // The resource group name
+  string resource_group_name = 2;
+  // The SQL server name
+  string server_name = 3;
+  // Optional tenant ID for multi-tenant scenarios
+  string tenant_id = 4;
+}
+
+// Response containing SQL Server elastic pools
+message GetSqlElasticPoolsResponse {
+  // Indicates if the operation was successful
+  bool is_success = 1;
+  // Error message if operation failed
+  string error_message = 2;
+  // List of elastic pools
+  repeated SqlElasticPool elastic_pools = 3;
+}
+
+// SQL elastic pool information
+message SqlElasticPool {
+  // Pool name
+  string name = 1;
+  // Pool ID
+  string id = 2;
+  // Resource type
+  string type = 3;
+  // Pool location
+  string location = 4;
+  // Pool SKU information
+  SqlElasticPoolSku sku = 5;
+  // Pool state
+  string state = 6;
+  // Creation date (Unix timestamp)
+  int64 creation_date = 7;
+  // Maximum size in bytes
+  int64 max_size_bytes = 8;
+  // Per database settings
+  SqlElasticPoolPerDatabaseSettings per_database_settings = 9;
+  // Zone redundant setting
+  bool zone_redundant = 10;
+  // License type
+  string license_type = 11;
+  // Database DTU minimum
+  int32 database_dtu_min = 12;
+  // Database DTU maximum
+  int32 database_dtu_max = 13;
+  // DTU
+  int32 dtu = 14;
+  // Storage in MB
+  int32 storage_mb = 15;
+}
+
+// SQL elastic pool SKU information
+message SqlElasticPoolSku {
+  // SKU name
+  string name = 1;
+  // SKU tier
+  string tier = 2;
+  // SKU capacity
+  int32 capacity = 3;
+  // SKU family
+  string family = 4;
+  // SKU size
+  string size = 5;
+}
+
+// SQL elastic pool per database settings
+message SqlElasticPoolPerDatabaseSettings {
+  // Minimum capacity
+  double min_capacity = 1;
+  // Maximum capacity
+  double max_capacity = 2;
+}
+
+// Request to list SQL Server firewall rules
+message ListSqlFirewallRulesRequest {
+  // The subscription ID
+  string subscription_id = 1;
+  // The resource group name
+  string resource_group_name = 2;
+  // The SQL server name
+  string server_name = 3;
+  // Optional tenant ID for multi-tenant scenarios
+  string tenant_id = 4;
+}
+
+// Response containing SQL Server firewall rules
+message ListSqlFirewallRulesResponse {
+  // Indicates if the operation was successful
+  bool is_success = 1;
+  // Error message if operation failed
+  string error_message = 2;
+  // List of firewall rules
+  repeated SqlServerFirewallRule firewall_rules = 3;
+}
+
+// SQL Server firewall rule information
+message SqlServerFirewallRule {
+  // Rule name
+  string name = 1;
+  // Rule ID
+  string id = 2;
+  // Resource type
+  string type = 3;
+  // Start IP address
+  string start_ip_address = 4;
+  // End IP address
+  string end_ip_address = 5;
+}
+
+// Request to get load testing resources
+message GetLoadTestResourcesRequest {
+  // The subscription ID
+  string subscription_id = 1;
+  // Optional resource group name
+  string resource_group = 2;
+  // Optional test resource name
+  string test_resource_name = 3;
+  // Optional tenant ID for multi-tenant scenarios
+  string tenant_id = 4;
+}
+
+// Response containing load testing resources
+message GetLoadTestResourcesResponse {
+  // Indicates if the operation was successful
+  bool is_success = 1;
+  // Error message if operation failed
+  string error_message = 2;
+  // List of load testing resources
+  repeated LoadTestResource resources = 3;
+}
+
+// Load testing resource information
+message LoadTestResource {
+  // Resource ID
+  string id = 1;
+  // Resource name
+  string name = 2;
+  // Resource location
+  string location = 3;
+  // Data plane URI
+  string data_plane_uri = 4;
+  // Provisioning state
+  string provisioning_state = 5;
+}
+
+// Request to create or update a load testing resource
+message CreateOrUpdateLoadTestingResourceRequest {
+  // The subscription ID
+  string subscription_id = 1;
+  // The resource group name
+  string resource_group = 2;
+  // Optional test resource name (if not provided, will be auto-generated)
+  string test_resource_name = 3;
+  // Optional tenant ID for multi-tenant scenarios
+  string tenant_id = 4;
+}
+
+// Response for creating or updating a load testing resource
+message CreateOrUpdateLoadTestingResourceResponse {
+  // Indicates if the operation was successful
+  bool is_success = 1;
+  // Error message if operation failed
+  string error_message = 2;
+  // The created/updated load testing resource
+  LoadTestResource resource = 3;
 }
 
 // Search Services

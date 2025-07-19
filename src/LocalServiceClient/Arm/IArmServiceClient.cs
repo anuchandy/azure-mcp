@@ -43,6 +43,18 @@ public interface IArmServiceClient : IServiceClient
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets a specific subscription by ID or name.
+    /// </summary>
+    /// <param name="subscription">The subscription ID or name to retrieve</param>
+    /// <param name="tenantId">Optional tenant ID to search within specific tenant</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>The subscription data if found</returns>
+    Task<SubscriptionData> GetSubscriptionAsync(
+        string subscription,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets storage accounts for a subscription.
     /// </summary>
     /// <param name="subscriptionId">Subscription ID to get storage accounts for</param>
@@ -371,6 +383,74 @@ public interface IArmServiceClient : IServiceClient
         string subscriptionId,
         string resourceGroupName,
         string serverName,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets SQL Server elastic pools for the specified server.
+    /// </summary>
+    /// <param name="subscriptionId">Subscription ID where the SQL server exists</param>
+    /// <param name="resourceGroupName">Resource group name containing the SQL server</param>
+    /// <param name="serverName">SQL server name</param>
+    /// <param name="tenantId">Optional tenant ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of SQL Server elastic pools</returns>
+    /// <exception cref="LocalServiceCallException">Thrown when the operation fails</exception>
+    Task<List<AzureMcp.Areas.Sql.Models.SqlElasticPool>> GetSqlElasticPoolsAsync(
+        string subscriptionId,
+        string resourceGroupName,
+        string serverName,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Lists SQL Server firewall rules for the specified server.
+    /// </summary>
+    /// <param name="subscriptionId">Subscription ID where the SQL server exists</param>
+    /// <param name="resourceGroupName">Resource group name containing the SQL server</param>
+    /// <param name="serverName">SQL server name</param>
+    /// <param name="tenantId">Optional tenant ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of SQL Server firewall rules</returns>
+    /// <exception cref="LocalServiceCallException">Thrown when the operation fails</exception>
+    Task<List<AzureMcp.Areas.Sql.Models.SqlServerFirewallRule>> ListSqlFirewallRulesAsync(
+        string subscriptionId,
+        string resourceGroupName,
+        string serverName,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets load testing resources from a subscription.
+    /// </summary>
+    /// <param name="subscriptionId">Subscription ID where the load testing resources exist</param>
+    /// <param name="resourceGroup">Optional resource group name to filter resources</param>
+    /// <param name="testResourceName">Optional specific test resource name to retrieve</param>
+    /// <param name="tenantId">Optional tenant ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of load testing resources</returns>
+    /// <exception cref="LocalServiceCallException">Thrown when the operation fails</exception>
+    Task<List<AzureMcp.Areas.LoadTesting.Models.LoadTestingResource.TestResource>> GetLoadTestResourcesAsync(
+        string subscriptionId,
+        string? resourceGroup = null,
+        string? testResourceName = null,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Creates or updates a load testing resource.
+    /// </summary>
+    /// <param name="subscriptionId">Subscription ID where the load testing resource will be created</param>
+    /// <param name="resourceGroup">Resource group name where the resource will be created</param>
+    /// <param name="testResourceName">Optional specific test resource name. If not provided, will be auto-generated</param>
+    /// <param name="tenantId">Optional tenant ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>The created or updated load testing resource</returns>
+    /// <exception cref="LocalServiceCallException">Thrown when the operation fails</exception>
+    Task<AzureMcp.Areas.LoadTesting.Models.LoadTestingResource.TestResource> CreateOrUpdateLoadTestingResourceAsync(
+        string subscriptionId,
+        string resourceGroup,
+        string? testResourceName = null,
         string? tenantId = null,
         CancellationToken cancellationToken = default);
 

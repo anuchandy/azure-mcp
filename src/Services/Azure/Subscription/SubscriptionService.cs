@@ -36,6 +36,25 @@ public class SubscriptionService(IArmServiceClient armServiceClient, ICacheServi
         return results;
     }
 
+    public async Task<AzureMcp.LocalServiceClient.Arm.SubscriptionData> GetSubscription(string subscription, string? tenant = null, RetryPolicyOptions? retryPolicy = null)
+    {
+        // Try to get from cache first using a subscription-specific cache key
+        var cacheKey = string.IsNullOrEmpty(tenant) ? $"subscription_{subscription}" : $"subscription_{subscription}_{tenant}";
+        var cachedResult = await _cacheService.GetAsync<AzureMcp.LocalServiceClient.Arm.SubscriptionData>(CacheGroup, cacheKey, s_cacheDuration);
+        if (cachedResult != null)
+        {
+            return cachedResult;
+        }
+
+        // If not in cache, fetch from Azure using the new gRPC method
+        var result = await _armServiceClient.GetSubscriptionAsync(subscription, tenant);
+        
+        // Cache the result
+        await _cacheService.SetAsync(CacheGroup, cacheKey, result, s_cacheDuration);
+
+        return result;
+    }
+
     public bool IsSubscriptionId(string subscription, string? tenant = null)
     {
         return Guid.TryParse(subscription, out _);

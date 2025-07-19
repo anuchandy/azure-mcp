@@ -6,6 +6,7 @@ using System.Runtime.Versioning;
 using Azure.Core;
 using AzureMcp.Services.Azure.Tenant;
 using AzureMcp.LocalServiceClient.Identity;
+using AzureMcp.Options;
 
 namespace AzureMcp.Services.Azure;
 
@@ -64,6 +65,27 @@ public abstract class BaseAzureService(IIdentityServiceClient credentialService,
     protected static T AddDefaultPolicies<T>(T clientOptions) where T : ClientOptions
     {
         clientOptions.AddPolicy(s_sharedUserAgentPolicy, HttpPipelinePosition.BeforeTransport);
+
+        return clientOptions;
+    }
+
+    /// <summary>
+    /// Configures retry policy options on the provided client options
+    /// </summary>
+    /// <typeparam name="T">Type of client options that inherits from ClientOptions</typeparam>
+    /// <param name="clientOptions">The client options to configure</param>
+    /// <param name="retryPolicy">Optional retry policy configuration</param>
+    /// <returns>The configured client options</returns>
+    protected static T ConfigureRetryPolicy<T>(T clientOptions, RetryPolicyOptions? retryPolicy) where T : ClientOptions
+    {
+        if (retryPolicy != null)
+        {
+            clientOptions.Retry.Delay = TimeSpan.FromSeconds(retryPolicy.DelaySeconds);
+            clientOptions.Retry.MaxDelay = TimeSpan.FromSeconds(retryPolicy.MaxDelaySeconds);
+            clientOptions.Retry.MaxRetries = retryPolicy.MaxRetries;
+            clientOptions.Retry.Mode = retryPolicy.Mode;
+            clientOptions.Retry.NetworkTimeout = TimeSpan.FromSeconds(retryPolicy.NetworkTimeoutSeconds);
+        }
 
         return clientOptions;
     }

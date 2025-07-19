@@ -7,7 +7,6 @@ using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Azure.Storage.Files.DataLake;
 using AzureMcp.Areas.Storage.Models;
-using AzureMcp.GrpcClient.Credential;
 using AzureMcp.LocalServiceClient.Identity;
 using AzureMcp.LocalServiceClient.Arm;
 using AzureMcp.Options;

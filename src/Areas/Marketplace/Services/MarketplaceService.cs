@@ -5,14 +5,15 @@ using Azure.Core;
 using Azure.Core.Pipeline;
 using AzureMcp.Areas.Marketplace.Commands;
 using AzureMcp.Areas.Marketplace.Models;
+using AzureMcp.LocalServiceClient.Identity;
 using AzureMcp.Options;
 using AzureMcp.Services.Azure;
 using AzureMcp.Services.Azure.Tenant;
 
 namespace AzureMcp.Areas.Marketplace.Services;
 
-public class MarketplaceService(ITenantService tenantService)
-    : BaseAzureService(tenantService), IMarketplaceService
+public class MarketplaceService(IIdentityServiceClient credentialService, ITenantService tenantService)
+    : BaseAzureService(credentialService, tenantService), IMarketplaceService
 {
     private const int TokenExpirationBuffer = 300;
     private const string ManagementApiBaseUrl = "https://management.azure.com";

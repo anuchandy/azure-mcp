@@ -190,6 +190,46 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         }
     }
 
+    public async Task<SubscriptionData> GetSubscriptionAsync(
+        string subscription,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var endpoint = await EnsureServiceStartedAsync(cancellationToken);
+        try
+        {
+            EnsureClient(endpoint);
+            var request = new GetSubscriptionRequest
+            {
+                Subscription = subscription,
+                TenantId = tenantId ?? string.Empty
+            };
+            
+            var response = await _client!.GetSubscriptionAsync(request, cancellationToken: cancellationToken);
+            
+            if (!response.IsSuccess)
+            {
+                throw new LocalServiceCallException("GetSubscription", GetErrorMessage(response.ErrorMessage));
+            }
+            
+            return new SubscriptionData
+            {
+                SubscriptionId = response.Subscription.SubscriptionId,
+                DisplayName = response.Subscription.DisplayName,
+                TenantId = response.Subscription.TenantId,
+                State = response.Subscription.State
+            };
+        }
+        catch (LocalServiceCallException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new LocalServiceCallException("GetSubscription", ArmLocalServiceConnectError, ex);
+        }
+    }
+
     public async Task<List<string>> GetStorageAccountsAsync(
         string subscriptionId,
         string? tenantId = null,
@@ -1258,6 +1298,237 @@ public sealed class ArmServiceClient : IArmServiceClient, IDisposable
         catch (Exception ex)
         {
             throw new LocalServiceCallException("GetSqlEntraAdministrators", ArmLocalServiceConnectError, ex);
+        }
+    }
+
+    public async Task<List<AzureMcp.Areas.Sql.Models.SqlElasticPool>> GetSqlElasticPoolsAsync(
+        string subscriptionId,
+        string resourceGroupName,
+        string serverName,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var endpoint = await EnsureServiceStartedAsync(cancellationToken);
+        try
+        {
+            EnsureClient(endpoint);
+
+            var request = new GetSqlElasticPoolsRequest
+            {
+                SubscriptionId = subscriptionId,
+                ResourceGroupName = resourceGroupName,
+                ServerName = serverName,
+                TenantId = tenantId ?? string.Empty
+            };
+
+            var response = await _client!.GetSqlElasticPoolsAsync(request, cancellationToken: cancellationToken);
+
+            if (!response.IsSuccess)
+            {
+                throw new LocalServiceCallException("GetSqlElasticPools", GetErrorMessage(response.ErrorMessage));
+            }
+
+            var elasticPools = new List<AzureMcp.Areas.Sql.Models.SqlElasticPool>();
+
+            foreach (var grpcPool in response.ElasticPools)
+            {
+                var sku = grpcPool.Sku != null ? new AzureMcp.Areas.Sql.Models.ElasticPoolSku(
+                    Name: string.IsNullOrEmpty(grpcPool.Sku.Name) ? null : grpcPool.Sku.Name,
+                    Tier: string.IsNullOrEmpty(grpcPool.Sku.Tier) ? null : grpcPool.Sku.Tier,
+                    Capacity: grpcPool.Sku.Capacity == 0 ? null : grpcPool.Sku.Capacity,
+                    Family: string.IsNullOrEmpty(grpcPool.Sku.Family) ? null : grpcPool.Sku.Family,
+                    Size: string.IsNullOrEmpty(grpcPool.Sku.Size) ? null : grpcPool.Sku.Size
+                ) : null;
+
+                var perDbSettings = grpcPool.PerDatabaseSettings != null ? new AzureMcp.Areas.Sql.Models.ElasticPoolPerDatabaseSettings(
+                    MinCapacity: grpcPool.PerDatabaseSettings.MinCapacity == 0 ? null : grpcPool.PerDatabaseSettings.MinCapacity,
+                    MaxCapacity: grpcPool.PerDatabaseSettings.MaxCapacity == 0 ? null : grpcPool.PerDatabaseSettings.MaxCapacity
+                ) : null;
+
+                elasticPools.Add(new AzureMcp.Areas.Sql.Models.SqlElasticPool(
+                    Name: grpcPool.Name,
+                    Id: grpcPool.Id,
+                    Type: grpcPool.Type,
+                    Location: string.IsNullOrEmpty(grpcPool.Location) ? null : grpcPool.Location,
+                    Sku: sku,
+                    State: string.IsNullOrEmpty(grpcPool.State) ? null : grpcPool.State,
+                    CreationDate: grpcPool.CreationDate == 0 ? null : DateTimeOffset.FromUnixTimeSeconds(grpcPool.CreationDate),
+                    MaxSizeBytes: grpcPool.MaxSizeBytes == 0 ? null : grpcPool.MaxSizeBytes,
+                    PerDatabaseSettings: perDbSettings,
+                    ZoneRedundant: grpcPool.ZoneRedundant ? grpcPool.ZoneRedundant : null,
+                    LicenseType: string.IsNullOrEmpty(grpcPool.LicenseType) ? null : grpcPool.LicenseType,
+                    DatabaseDtuMin: grpcPool.DatabaseDtuMin == 0 ? null : grpcPool.DatabaseDtuMin,
+                    DatabaseDtuMax: grpcPool.DatabaseDtuMax == 0 ? null : grpcPool.DatabaseDtuMax,
+                    Dtu: grpcPool.Dtu == 0 ? null : grpcPool.Dtu,
+                    StorageMB: grpcPool.StorageMb == 0 ? null : grpcPool.StorageMb
+                ));
+            }
+
+            return elasticPools;
+        }
+        catch (LocalServiceCallException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new LocalServiceCallException("GetSqlElasticPools", ArmLocalServiceConnectError, ex);
+        }
+    }
+
+    public async Task<List<AzureMcp.Areas.Sql.Models.SqlServerFirewallRule>> ListSqlFirewallRulesAsync(
+        string subscriptionId,
+        string resourceGroupName,
+        string serverName,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var endpoint = await EnsureServiceStartedAsync(cancellationToken);
+        try
+        {
+            EnsureClient(endpoint);
+
+            var request = new ListSqlFirewallRulesRequest
+            {
+                SubscriptionId = subscriptionId,
+                ResourceGroupName = resourceGroupName,
+                ServerName = serverName,
+                TenantId = tenantId ?? string.Empty
+            };
+
+            var response = await _client!.ListSqlFirewallRulesAsync(request, cancellationToken: cancellationToken);
+
+            if (!response.IsSuccess)
+            {
+                throw new LocalServiceCallException("ListSqlFirewallRules", GetErrorMessage(response.ErrorMessage));
+            }
+
+            var firewallRules = new List<AzureMcp.Areas.Sql.Models.SqlServerFirewallRule>();
+
+            foreach (var grpcRule in response.FirewallRules)
+            {
+                firewallRules.Add(new AzureMcp.Areas.Sql.Models.SqlServerFirewallRule(
+                    Name: grpcRule.Name,
+                    Id: grpcRule.Id,
+                    Type: grpcRule.Type,
+                    StartIpAddress: string.IsNullOrEmpty(grpcRule.StartIpAddress) ? null : grpcRule.StartIpAddress,
+                    EndIpAddress: string.IsNullOrEmpty(grpcRule.EndIpAddress) ? null : grpcRule.EndIpAddress
+                ));
+            }
+
+            return firewallRules;
+        }
+        catch (LocalServiceCallException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new LocalServiceCallException("ListSqlFirewallRules", ArmLocalServiceConnectError, ex);
+        }
+    }
+
+    public async Task<List<AzureMcp.Areas.LoadTesting.Models.LoadTestingResource.TestResource>> GetLoadTestResourcesAsync(
+        string subscriptionId,
+        string? resourceGroup = null,
+        string? testResourceName = null,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var endpoint = await EnsureServiceStartedAsync(cancellationToken);
+        try
+        {
+            EnsureClient(endpoint);
+
+            var request = new GetLoadTestResourcesRequest
+            {
+                SubscriptionId = subscriptionId,
+                ResourceGroup = resourceGroup ?? string.Empty,
+                TestResourceName = testResourceName ?? string.Empty,
+                TenantId = tenantId ?? string.Empty
+            };
+
+            var response = await _client!.GetLoadTestResourcesAsync(request, cancellationToken: cancellationToken);
+
+            if (!response.IsSuccess)
+            {
+                throw new LocalServiceCallException("GetLoadTestResources", GetErrorMessage(response.ErrorMessage));
+            }
+
+            var testResources = new List<AzureMcp.Areas.LoadTesting.Models.LoadTestingResource.TestResource>();
+
+            foreach (var grpcResource in response.Resources)
+            {
+                testResources.Add(new AzureMcp.Areas.LoadTesting.Models.LoadTestingResource.TestResource
+                {
+                    Id = grpcResource.Id,
+                    Name = grpcResource.Name,
+                    Location = grpcResource.Location,
+                    DataPlaneUri = grpcResource.DataPlaneUri,
+                    ProvisioningState = grpcResource.ProvisioningState
+                });
+            }
+
+            return testResources;
+        }
+        catch (LocalServiceCallException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new LocalServiceCallException("GetLoadTestResources", ArmLocalServiceConnectError, ex);
+        }
+    }
+
+    public async Task<AzureMcp.Areas.LoadTesting.Models.LoadTestingResource.TestResource> CreateOrUpdateLoadTestingResourceAsync(
+        string subscriptionId,
+        string resourceGroup,
+        string? testResourceName = null,
+        string? tenantId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var endpoint = await EnsureServiceStartedAsync(cancellationToken);
+        try
+        {
+            EnsureClient(endpoint);
+
+            var request = new CreateOrUpdateLoadTestingResourceRequest
+            {
+                SubscriptionId = subscriptionId,
+                ResourceGroup = resourceGroup,
+                TestResourceName = testResourceName ?? string.Empty,
+                TenantId = tenantId ?? string.Empty
+            };
+
+            var response = await _client!.CreateOrUpdateLoadTestingResourceAsync(request, cancellationToken: cancellationToken);
+
+            if (!response.IsSuccess)
+            {
+                throw new LocalServiceCallException("CreateOrUpdateLoadTestingResource", GetErrorMessage(response.ErrorMessage));
+            }
+
+            if (response.Resource == null)
+            {
+                throw new LocalServiceCallException("CreateOrUpdateLoadTestingResource", "No resource data returned from service");
+            }
+
+            return new AzureMcp.Areas.LoadTesting.Models.LoadTestingResource.TestResource
+            {
+                Id = response.Resource.Id,
+                Name = response.Resource.Name,
+                Location = response.Resource.Location,
+                DataPlaneUri = response.Resource.DataPlaneUri,
+                ProvisioningState = response.Resource.ProvisioningState
+            };
+        }
+        catch (LocalServiceCallException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new LocalServiceCallException("CreateOrUpdateLoadTestingResource", ArmLocalServiceConnectError, ex);
         }
     }
 

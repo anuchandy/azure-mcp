@@ -17,16 +17,12 @@ public class MarketplaceCommandTests : CommandTestsBase,
     IClassFixture<LiveTestFixture>
 {
     private const string ProductKey = "product";
-    private readonly MarketplaceService _marketplaceService;
     private readonly string _subscriptionId;
 
     public MarketplaceCommandTests(LiveTestFixture liveTestFixture, ITestOutputHelper output) : base(liveTestFixture, output)
     {
         var memoryCache = new MemoryCache(Microsoft.Extensions.Options.Options.Create(new MemoryCacheOptions()));
         var cacheService = new CacheService(memoryCache);
-        var tenantService = new TenantService(cacheService);
-        var subscriptionService = new SubscriptionService(cacheService, tenantService);
-        _marketplaceService = new MarketplaceService(tenantService);
         _subscriptionId = Settings.SubscriptionId;
     }
 
