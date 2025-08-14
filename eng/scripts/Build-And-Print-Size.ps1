@@ -198,7 +198,7 @@ function Clean-And-Publish {
             # sudo apt-get install -y binutils-x86-64-linux-gnu
             $publishArgs += '/p:ObjCopyName=x86_64-linux-gnu-objcopy'
             $publishArgs += '/p:StripName=x86_64-linux-gnu-strip'
-            # If /p:ObjCopyName and /p:StripName are specified, this arm64 linux host will use arm64 objcopy, which is not compatible with x64.
+            # If /p:ObjCopyName and /p:StripName unspecified, this arm64 linux host will use arm64 objcopy, which is not compatible with x64.
         }
     }
     
