@@ -6,7 +6,8 @@ param(
     [ValidateSet('Regular','Native','Both')]
     [string] $BuildType,
     [ValidateSet('x64','arm64')]
-    [string] $Architecture
+    [string] $Architecture,
+    [switch] $RegularKeepPdb
 )
 
 $ErrorActionPreference = 'Stop'
@@ -165,7 +166,7 @@ function Print-Comparison {
 }
 
 function Clean-And-Publish {
-    param($projectFile, $BuildType, $Architecture, $RepoRoot)
+    param($projectFile, $BuildType, $Architecture, $RepoRoot, $RegularKeepPdb)
     
     $runtime = [System.Runtime.InteropServices.RuntimeInformation]::RuntimeIdentifier
     $os, $arch = $runtime -split '-'
@@ -179,8 +180,8 @@ function Clean-And-Publish {
     
     New-Item $outputDir -ItemType Directory -Force | Out-Null
 
-    $buildType = if ($isNative) { "Native package" } else { "Self-contained .NET package" }
-    Write-Host "Building $buildType for $os-$arch..." -ForegroundColor Green
+    $bt = if ($isNative) { "Native package" } else { "Self-contained .NET package" }
+    Write-Host "Building $bt for $os-$arch..." -ForegroundColor Green
     
     $publishArgs = @(
         'publish', $projectFile
@@ -192,6 +193,16 @@ function Clean-And-Publish {
     if ($isNative) { $publishArgs += '/p:BuildNative=true' }
     
     & dotnet $publishArgs
+    
+    if ($BuildType -eq 'Regular' -and -not $RegularKeepPdb) {
+        $pdbFiles = Get-ChildItem -Path $outputDir -Filter "*.pdb" -Recurse
+        if ($pdbFiles) {
+            Write-Host "Removing $($pdbFiles.Count) PDB file(s) from Self-contained .NET package..." -ForegroundColor Gray
+            $pdbFiles | Remove-Item -Force
+        } else {
+            Write-Host "No PDB files found in Self-contained .NET package." -ForegroundColor Gray
+        }
+    }
 
     return @{
         OutputDir = $outputDir
@@ -201,9 +212,9 @@ function Clean-And-Publish {
 }
 
 function Build-Single-Type {
-    param($projectFile, $SingleBuildType, $Architecture, $RepoRoot)
+    param($projectFile, $SingleBuildType, $Architecture, $RepoRoot, $RegularKeepPdb)
     
-    $buildResult = Clean-And-Publish -projectFile $projectFile -BuildType $SingleBuildType -Architecture $Architecture -RepoRoot $RepoRoot
+    $buildResult = Clean-And-Publish -projectFile $projectFile -BuildType $SingleBuildType -Architecture $Architecture -RepoRoot $RepoRoot -RegularKeepPdb $RegularKeepPdb
     
     if ($SingleBuildType -eq 'Native') {
         $sizeInfo = NativeArtifactSize -outputDir $buildResult.OutputDir -os $buildResult.OS
@@ -221,8 +232,8 @@ function Build-Single-Type {
 Push-Location $RepoRoot
 try {
     if ($BuildType -eq 'Both') {
-        $regularResult = Build-Single-Type -projectFile $projectFile -SingleBuildType 'Regular' -Architecture $Architecture -RepoRoot $RepoRoot
-        $nativeResult = Build-Single-Type -projectFile $projectFile -SingleBuildType 'Native' -Architecture $Architecture -RepoRoot $RepoRoot
+        $regularResult = Build-Single-Type -projectFile $projectFile -SingleBuildType 'Regular' -Architecture $Architecture -RepoRoot $RepoRoot -RegularKeepPdb $RegularKeepPdb
+        $nativeResult = Build-Single-Type -projectFile $projectFile -SingleBuildType 'Native' -Architecture $Architecture -RepoRoot $RepoRoot -RegularKeepPdb $false
 
         $sizes = @{
             Regular = $regularResult.SizeInfo
@@ -244,7 +255,7 @@ try {
 
         Print-Comparison -sizes $sizes -compressedSizes $compressedSizes
     } else {
-        $result = Build-Single-Type -projectFile $projectFile -SingleBuildType $BuildType -Architecture $Architecture -RepoRoot $RepoRoot
+        $result = Build-Single-Type -projectFile $projectFile -SingleBuildType $BuildType -Architecture $Architecture -RepoRoot $RepoRoot -RegularKeepPdb $RegularKeepPdb
         
         if ($BuildType -eq 'Regular') {
             Write-Host "`nSelf-contained .NET package: $($result.SizeInfo.SizeMB) MB ($($result.SizeInfo.Size) bytes, $($result.SizeInfo.FileCount) files)" -ForegroundColor White
