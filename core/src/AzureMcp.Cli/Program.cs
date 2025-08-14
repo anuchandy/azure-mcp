@@ -85,8 +85,8 @@ internal class Program
             new AzureMcp.AzureTerraformBestPractices.AzureTerraformBestPracticesSetup(),
             new AzureMcp.LoadTesting.LoadTestingSetup(),
 #if !BUILD_NATIVE
-            new AzureMcp.BicepSchema.BicepSchemaSetup(),
-            new AzureMcp.Cosmos.CosmosSetup(),
+            // new AzureMcp.BicepSchema.BicepSchemaSetup(),
+            // new AzureMcp.Cosmos.CosmosSetup(),
 #endif
         ];
     }
