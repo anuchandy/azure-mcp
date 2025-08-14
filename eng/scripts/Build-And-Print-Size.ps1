@@ -190,7 +190,17 @@ function Clean-And-Publish {
         '--self-contained'
         '/p:Configuration=Release'
     )
-    if ($isNative) { $publishArgs += '/p:BuildNative=true' }
+    if ($isNative) { 
+        $publishArgs += '/p:BuildNative=true'
+        
+        if ($runtime -eq 'linux-arm64' -and $Architecture -eq 'x64') {
+            # if you're running the script on arm64 linux host to cross-compile to x64 then make sure to install x64 binutils
+            # sudo apt-get install -y binutils-x86-64-linux-gnu
+            $publishArgs += '/p:ObjCopyName=x86_64-linux-gnu-objcopy'
+            $publishArgs += '/p:StripName=x86_64-linux-gnu-strip'
+            # If /p:ObjCopyName and /p:StripName are specified, this arm64 linux host will use arm64 objcopy, which is not compatible with x64.
+        }
+    }
     
     & dotnet $publishArgs
     
